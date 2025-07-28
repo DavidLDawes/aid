@@ -1,0 +1,87 @@
+import React from 'react';
+import { Ship } from '../types/ship';
+import { TECH_LEVELS } from '../data/constants';
+
+interface ShipPanelProps {
+  ship: Ship;
+  onUpdate: (ship: Ship) => void;
+}
+
+const ShipPanel: React.FC<ShipPanelProps> = ({ ship, onUpdate }) => {
+  const handleInputChange = (field: keyof Ship, value: string | number) => {
+    onUpdate({ ...ship, [field]: value });
+  };
+
+  return (
+    <div className="panel-content">
+      <div className="form-group">
+        <label htmlFor="ship-name">Ship Name *</label>
+        <input
+          id="ship-name"
+          type="text"
+          maxLength={32}
+          value={ship.name}
+          onChange={(e) => handleInputChange('name', e.target.value)}
+          placeholder="Enter ship name (max 32 characters)"
+        />
+        <small>{ship.name.length}/32 characters</small>
+      </div>
+
+      <div className="form-group">
+        <label htmlFor="tech-level">Tech Level *</label>
+        <select
+          id="tech-level"
+          value={ship.tech_level}
+          onChange={(e) => handleInputChange('tech_level', e.target.value)}
+        >
+          {TECH_LEVELS.map(level => (
+            <option key={level} value={level}>{level}</option>
+          ))}
+        </select>
+      </div>
+
+      <div className="form-group">
+        <label htmlFor="tonnage">Tonnage *</label>
+        <input
+          id="tonnage"
+          type="number"
+          min="100"
+          value={ship.tonnage}
+          onChange={(e) => handleInputChange('tonnage', parseInt(e.target.value) || 100)}
+          placeholder="Minimum 100 tons"
+        />
+        <small>Minimum 100 tons</small>
+      </div>
+
+      <div className="form-group">
+        <label htmlFor="description">Description (Optional)</label>
+        <textarea
+          id="description"
+          maxLength={250}
+          value={ship.description || ''}
+          onChange={(e) => handleInputChange('description', e.target.value)}
+          placeholder="Enter ship description (max 250 characters)"
+          rows={4}
+        />
+        <small>{(ship.description || '').length}/250 characters</small>
+      </div>
+
+      <div className="validation-info">
+        <h3>Requirements:</h3>
+        <ul>
+          <li className={ship.name.trim() ? 'valid' : 'invalid'}>
+            ✓ Ship name is required
+          </li>
+          <li className={ship.tech_level ? 'valid' : 'invalid'}>
+            ✓ Tech level is required
+          </li>
+          <li className={ship.tonnage >= 100 ? 'valid' : 'invalid'}>
+            ✓ Tonnage must be at least 100
+          </li>
+        </ul>
+      </div>
+    </div>
+  );
+};
+
+export default ShipPanel;
