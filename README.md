@@ -29,15 +29,21 @@ cd aid
 ### 2. Database Setup
 
 1. **Install and start MySQL server**
-2. **Create the database** by running the schema:
+2. **Create the database and user** by running the schema as MySQL root:
    ```bash
    mysql -u root -p < backend/schema.sql
    ```
-3. **Configure database connection** in `backend/.env`:
+   This will:
+   - Create the `starship_designer` database
+   - Create user `ddawes` with the configured password
+   - Grant all necessary privileges
+   - Create all required tables
+
+3. **Database configuration** is already set in `backend/.env`:
    ```env
    DB_HOST=localhost
-   DB_USER=root
-   DB_PASSWORD=your_mysql_password
+   DB_USER=ddawes
+   DB_PASSWORD=rebozo78namyL!
    DB_NAME=starship_designer
    PORT=3001
    ```

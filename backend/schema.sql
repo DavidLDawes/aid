@@ -1,4 +1,15 @@
+-- Create database and user
 CREATE DATABASE IF NOT EXISTS starship_designer;
+
+-- Create user ddawes if it doesn't exist
+CREATE USER IF NOT EXISTS 'ddawes'@'localhost' IDENTIFIED BY 'rebozo78namyL!';
+
+-- Grant all privileges on starship_designer database to ddawes
+GRANT ALL PRIVILEGES ON starship_designer.* TO 'ddawes'@'localhost';
+
+-- Flush privileges to ensure they take effect
+FLUSH PRIVILEGES;
+
 USE starship_designer;
 
 CREATE TABLE ships (
