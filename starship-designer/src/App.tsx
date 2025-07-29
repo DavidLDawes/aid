@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import type { ShipDesign, Ship, Engine, Fitting, Weapon, Defense, Berth, Facility, Cargo, Vehicle, Drone, MassCalculation, CostCalculation, StaffRequirements } from './types/ship';
+import { calculateTotalFuelMass } from './data/constants';
 import ShipPanel from './components/ShipPanel';
 import EnginesPanel from './components/EnginesPanel';
 import FittingsPanel from './components/FittingsPanel';
@@ -18,7 +19,7 @@ import './App.css';
 function App() {
   const [currentPanel, setCurrentPanel] = useState(0);
   const [shipDesign, setShipDesign] = useState<ShipDesign>({
-    ship: { name: '', tech_level: 'A', tonnage: 100, description: '' },
+    ship: { name: '', tech_level: 'A', tonnage: 100, configuration: 'standard', fuel_weeks: 2, description: '' },
     engines: [],
     fittings: [],
     weapons: [],
@@ -65,6 +66,14 @@ function App() {
     
     // Add drone masses
     used += shipDesign.drones.reduce((sum, drone) => sum + (drone.mass * drone.quantity), 0);
+
+    // Add fuel tank mass
+    const jumpDrive = shipDesign.engines.find(e => e.engine_type === 'jump_drive');
+    const maneuverDrive = shipDesign.engines.find(e => e.engine_type === 'maneuver_drive');
+    const jumpPerformance = jumpDrive?.performance || 0;
+    const maneuverPerformance = maneuverDrive?.performance || 0;
+    const fuelMass = calculateTotalFuelMass(shipDesign.ship.tonnage, jumpPerformance, maneuverPerformance, shipDesign.ship.fuel_weeks);
+    used += fuelMass;
 
     const total = shipDesign.ship.tonnage;
     const remaining = total - used;
@@ -189,7 +198,13 @@ function App() {
       case 0:
         return <ShipPanel ship={shipDesign.ship} onUpdate={(ship) => updateShipDesign({ ship })} />;
       case 1:
-        return <EnginesPanel engines={shipDesign.engines} shipTonnage={shipDesign.ship.tonnage} onUpdate={(engines) => updateShipDesign({ engines })} />;
+        return <EnginesPanel 
+          engines={shipDesign.engines} 
+          shipTonnage={shipDesign.ship.tonnage} 
+          fuelWeeks={shipDesign.ship.fuel_weeks}
+          onUpdate={(engines) => updateShipDesign({ engines })} 
+          onFuelWeeksUpdate={(fuel_weeks) => updateShipDesign({ ship: { ...shipDesign.ship, fuel_weeks } })}
+        />;
       case 2:
         return <FittingsPanel fittings={shipDesign.fittings} shipTonnage={shipDesign.ship.tonnage} onUpdate={(fittings) => updateShipDesign({ fittings })} />;
       case 3:
