@@ -4,6 +4,7 @@ export interface Ship {
   tech_level: string;
   tonnage: number;
   configuration: 'standard' | 'streamlined' | 'distributed';
+  fuel_weeks: number;
   description?: string;
 }
 

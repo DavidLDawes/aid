@@ -5,11 +5,12 @@ import { getAvailableEngines, calculateJumpFuel, calculateManeuverFuel, calculat
 interface EnginesPanelProps {
   engines: Engine[];
   shipTonnage: number;
+  fuelWeeks: number;
   onUpdate: (engines: Engine[]) => void;
+  onFuelWeeksUpdate: (weeks: number) => void;
 }
 
-const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, onUpdate }) => {
-  const [fuelWeeks, setFuelWeeks] = useState(2);
+const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, fuelWeeks, onUpdate, onFuelWeeksUpdate }) => {
 
   const getEngine = (type: Engine['engine_type']): Engine => {
     return engines.find(e => e.engine_type === type) || {
@@ -166,7 +167,7 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, onUpd
           <select
             id="fuel-weeks"
             value={fuelWeeks}
-            onChange={(e) => setFuelWeeks(parseInt(e.target.value))}
+            onChange={(e) => onFuelWeeksUpdate(parseInt(e.target.value))}
           >
             {Array.from({length: effectiveMaxWeeks - 1}, (_, i) => i + 2).map(weeks => (
               <option key={weeks} value={weeks}>
