@@ -41,7 +41,9 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, onUpd
 
   const renderEngineInput = (type: Engine['engine_type'], label: string) => {
     const engine = getEngine(type);
-    const availableEngines = getAvailableEngines(shipTonnage, type);
+    const powerPlant = getEngine('power_plant');
+    const powerPlantPerformance = powerPlant.performance > 0 ? powerPlant.performance : undefined;
+    const availableEngines = getAvailableEngines(shipTonnage, type, powerPlantPerformance);
 
     return (
       <div key={type} className="engine-group">
@@ -71,6 +73,12 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, onUpd
                 </option>
               ))}
             </select>
+            {(type === 'jump_drive' || type === 'maneuver_drive') && powerPlantPerformance && (
+              <small>Limited by Power Plant P-{powerPlantPerformance}</small>
+            )}
+            {(type === 'jump_drive' || type === 'maneuver_drive') && !powerPlantPerformance && (
+              <small className="warning">Configure Power Plant first to see available options</small>
+            )}
           </div>
 
           {engine.drive_code && (
@@ -109,12 +117,22 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, onUpd
     );
   };
 
+  const powerPlant = getEngine('power_plant');
+  const jumpDrive = getEngine('jump_drive');
+  const maneuverDrive = getEngine('maneuver_drive');
+  
+  const powerRequirementsMet = 
+    (!jumpDrive.drive_code || jumpDrive.performance <= powerPlant.performance) &&
+    (!maneuverDrive.drive_code || maneuverDrive.performance <= powerPlant.performance);
+  
   const allEnginesConfigured = engines.length === 3 && 
-    engines.every(e => e.drive_code && e.performance >= 1 && e.performance <= 10 && e.mass > 0 && e.cost > 0);
+    engines.every(e => e.drive_code && e.performance >= 1 && e.performance <= 10 && e.mass > 0 && e.cost > 0) &&
+    powerRequirementsMet;
 
   return (
     <div className="panel-content">
       <p>Configure the three required engine types for your starship.</p>
+      <p><small><strong>Note:</strong> Jump and Maneuver drives require a Power Plant with equal or higher performance rating.</small></p>
       
       {renderEngineInput('power_plant', 'Power Plant')}
       {renderEngineInput('maneuver_drive', 'Maneuver Drive')}
@@ -131,6 +149,9 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, onUpd
           </li>
           <li className={engines.some(e => e.engine_type === 'jump_drive') ? 'valid' : 'invalid'}>
             ✓ Jump Drive configured
+          </li>
+          <li className={powerRequirementsMet ? 'valid' : 'invalid'}>
+            ✓ Power Plant provides sufficient power for Jump and Maneuver drives
           </li>
           <li className={allEnginesConfigured ? 'valid' : 'invalid'}>
             ✓ All engines have valid drive selection with automatic mass and cost
