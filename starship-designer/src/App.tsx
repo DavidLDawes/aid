@@ -128,7 +128,9 @@ function App() {
     const engineers = Math.ceil(totalEnginesWeight / 100);
     
     // Gunners: 1 per weapon/turret mount
-    const weaponCount = shipDesign.weapons.reduce((sum, weapon) => sum + weapon.quantity, 0);
+    const weaponCount = shipDesign.weapons
+      .filter(weapon => weapon.weapon_name !== 'Hard Point')
+      .reduce((sum, weapon) => sum + weapon.quantity, 0);
     const defenseCount = shipDesign.defenses.filter(d => d.defense_type !== 'armor' && d.defense_type !== 'reflec')
       .reduce((sum, defense) => sum + defense.quantity, 0);
     const gunners = weaponCount + defenseCount;
