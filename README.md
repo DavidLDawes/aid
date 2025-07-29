@@ -43,7 +43,7 @@ cd aid
    ```env
    DB_HOST=localhost
    DB_USER=ddawes
-   DB_PASSWORD=rebozo78namyL!
+   DB_PASSWORD=dbPasswordGoesHere
    DB_NAME=starship_designer
    PORT=3001
    ```

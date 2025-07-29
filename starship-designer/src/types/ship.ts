@@ -3,6 +3,7 @@ export interface Ship {
   name: string;
   tech_level: string;
   tonnage: number;
+  configuration: 'standard' | 'streamlined' | 'distributed';
   description?: string;
 }
 

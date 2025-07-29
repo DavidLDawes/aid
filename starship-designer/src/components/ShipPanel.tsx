@@ -1,5 +1,5 @@
 import React from 'react';
-import { Ship } from '../types/ship';
+import type { Ship } from '../types/ship';
 import { TECH_LEVELS } from '../data/constants';
 
 interface ShipPanelProps {
@@ -54,6 +54,19 @@ const ShipPanel: React.FC<ShipPanelProps> = ({ ship, onUpdate }) => {
       </div>
 
       <div className="form-group">
+        <label htmlFor="configuration">Configuration *</label>
+        <select
+          id="configuration"
+          value={ship.configuration}
+          onChange={(e) => handleInputChange('configuration', e.target.value)}
+        >
+          <option value="standard">Standard (wedge, cone, sphere or cylinder)</option>
+          <option value="streamlined">Streamlined (wing, disc or lifting body for atmospheric entry)</option>
+          <option value="distributed">Distributed (multiple sections, atmosphere/gravity incompatible)</option>
+        </select>
+      </div>
+
+      <div className="form-group">
         <label htmlFor="description">Description (Optional)</label>
         <textarea
           id="description"
@@ -77,6 +90,9 @@ const ShipPanel: React.FC<ShipPanelProps> = ({ ship, onUpdate }) => {
           </li>
           <li className={ship.tonnage >= 100 ? 'valid' : 'invalid'}>
             ✓ Tonnage must be at least 100
+          </li>
+          <li className={ship.configuration ? 'valid' : 'invalid'}>
+            ✓ Configuration is required
           </li>
         </ul>
       </div>
