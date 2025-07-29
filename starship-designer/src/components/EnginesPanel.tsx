@@ -1,5 +1,6 @@
 import React from 'react';
 import type { Engine } from '../types/ship';
+import { getAvailableEngines } from '../data/constants';
 
 interface EnginesPanelProps {
   engines: Engine[];
@@ -13,6 +14,7 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, onUpd
   const getEngine = (type: Engine['engine_type']): Engine => {
     return engines.find(e => e.engine_type === type) || {
       engine_type: type,
+      drive_code: '',
       performance: 1,
       mass: 0.1,
       cost: 0
@@ -40,6 +42,7 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, onUpd
 
   const renderEngineInput = (type: Engine['engine_type'], label: string) => {
     const engine = getEngine(type);
+    const availableEngines = getAvailableEngines(shipTonnage, type);
 
     return (
       <div key={type} className="engine-group">
@@ -47,17 +50,26 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, onUpd
         
         <div className="form-row">
           <div className="form-group">
-            <label>Performance *</label>
-            <input
-              type="number"
-              min="1"
-              max="10"
-              value={engine.performance}
-              onChange={(e) => updateEngine(type, { 
-                performance: Math.min(10, Math.max(1, parseInt(e.target.value) || 1)) 
-              })}
-            />
-            <small>1-10</small>
+            <label>Drive Selection *</label>
+            <select
+              value={engine.drive_code}
+              onChange={(e) => {
+                const selectedEngine = availableEngines.find(eng => eng.code === e.target.value);
+                if (selectedEngine) {
+                  updateEngine(type, { 
+                    drive_code: selectedEngine.code,
+                    performance: selectedEngine.performance
+                  });
+                }
+              }}
+            >
+              <option value="">Select a drive...</option>
+              {availableEngines.map(availEngine => (
+                <option key={availEngine.code} value={availEngine.code}>
+                  {availEngine.label}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="form-group">
@@ -91,12 +103,18 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, onUpd
             />
           </div>
         </div>
+        
+        {engine.drive_code && (
+          <div className="engine-info">
+            <small>Performance: {engine.performance} ({type === 'jump_drive' ? 'J' : type === 'maneuver_drive' ? 'M' : 'P'}-{engine.performance})</small>
+          </div>
+        )}
       </div>
     );
   };
 
   const allEnginesConfigured = engines.length === 3 && 
-    engines.every(e => e.performance >= 1 && e.performance <= 10 && e.mass >= 0.1 && e.cost >= 0);
+    engines.every(e => e.drive_code && e.performance >= 1 && e.performance <= 10 && e.mass >= 0.1 && e.cost >= 0);
 
   return (
     <div className="panel-content">
@@ -119,7 +137,7 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, onUpd
             ✓ Jump Drive configured
           </li>
           <li className={allEnginesConfigured ? 'valid' : 'invalid'}>
-            ✓ All engines have valid performance (1-10), mass (≥0.1), and cost (≥0)
+            ✓ All engines have valid drive selection, mass (≥0.1), and cost (≥0)
           </li>
         </ul>
       </div>
@@ -130,6 +148,7 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, onUpd
           <thead>
             <tr>
               <th>Engine Type</th>
+              <th>Drive</th>
               <th>Performance</th>
               <th>Mass (tons)</th>
               <th>Cost (MCr)</th>
@@ -139,7 +158,8 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, onUpd
             {engines.map(engine => (
               <tr key={engine.engine_type}>
                 <td>{engine.engine_type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</td>
-                <td>{engine.performance}</td>
+                <td>{engine.drive_code || '-'}</td>
+                <td>{engine.performance} ({engine.engine_type === 'jump_drive' ? 'J' : engine.engine_type === 'maneuver_drive' ? 'M' : 'P'}-{engine.performance})</td>
                 <td>{engine.mass.toFixed(1)}</td>
                 <td>{engine.cost.toFixed(2)}</td>
               </tr>

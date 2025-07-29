@@ -18,6 +18,292 @@ export const HULL_SIZES = [
   { tonnage: 2000, code: 'L', cost: 200 }
 ];
 
+export const ENGINE_DRIVES = {
+  A: [
+    { hullIndex: 0, performance: 4 },
+    { hullIndex: 1, performance: 4 },
+    { hullIndex: 2, performance: 2 },
+    { hullIndex: 3, performance: 1 },
+    { hullIndex: 4, performance: 1 }
+  ],
+  B: [
+    { hullIndex: 0, performance: 6 },
+    { hullIndex: 1, performance: 6 },
+    { hullIndex: 2, performance: 3 },
+    { hullIndex: 3, performance: 1 },
+    { hullIndex: 4, performance: 1 },
+    { hullIndex: 5, performance: 1 }
+  ],
+  C: [
+    { hullIndex: 2, performance: 4 },
+    { hullIndex: 3, performance: 2 },
+    { hullIndex: 4, performance: 2 },
+    { hullIndex: 5, performance: 1 },
+    { hullIndex: 6, performance: 1 },
+    { hullIndex: 7, performance: 1 },
+    { hullIndex: 8, performance: 1 }
+  ],
+  D: [
+    { hullIndex: 2, performance: 5 },
+    { hullIndex: 3, performance: 3 },
+    { hullIndex: 4, performance: 2 },
+    { hullIndex: 5, performance: 2 },
+    { hullIndex: 6, performance: 1 },
+    { hullIndex: 7, performance: 1 },
+    { hullIndex: 8, performance: 1 },
+    { hullIndex: 9, performance: 1 },
+    { hullIndex: 10, performance: 1 }
+  ],
+  E: [
+    { hullIndex: 2, performance: 6 },
+    { hullIndex: 3, performance: 4 },
+    { hullIndex: 4, performance: 3 },
+    { hullIndex: 5, performance: 2 },
+    { hullIndex: 6, performance: 2 },
+    { hullIndex: 7, performance: 1 },
+    { hullIndex: 8, performance: 1 },
+    { hullIndex: 9, performance: 1 },
+    { hullIndex: 10, performance: 1 },
+    { hullIndex: 11, performance: 1 },
+    { hullIndex: 12, performance: 1 }
+  ],
+  F: [
+    { hullIndex: 3, performance: 4 },
+    { hullIndex: 4, performance: 3 },
+    { hullIndex: 5, performance: 2 },
+    { hullIndex: 6, performance: 2 },
+    { hullIndex: 7, performance: 2 },
+    { hullIndex: 8, performance: 2 },
+    { hullIndex: 9, performance: 1 },
+    { hullIndex: 10, performance: 1 },
+    { hullIndex: 11, performance: 1 },
+    { hullIndex: 12, performance: 1 },
+    { hullIndex: 13, performance: 1 },
+    { hullIndex: 14, performance: 1 }
+  ],
+  G: [
+    { hullIndex: 3, performance: 5 },
+    { hullIndex: 4, performance: 4 },
+    { hullIndex: 5, performance: 3 },
+    { hullIndex: 6, performance: 2 },
+    { hullIndex: 7, performance: 2 },
+    { hullIndex: 8, performance: 2 },
+    { hullIndex: 9, performance: 2 },
+    { hullIndex: 10, performance: 2 },
+    { hullIndex: 11, performance: 1 },
+    { hullIndex: 12, performance: 1 },
+    { hullIndex: 13, performance: 1 },
+    { hullIndex: 14, performance: 1 }
+  ],
+  H: [
+    { hullIndex: 3, performance: 6 },
+    { hullIndex: 4, performance: 4 },
+    { hullIndex: 5, performance: 3 },
+    { hullIndex: 6, performance: 3 },
+    { hullIndex: 7, performance: 2 },
+    { hullIndex: 8, performance: 2 },
+    { hullIndex: 9, performance: 2 },
+    { hullIndex: 10, performance: 2 },
+    { hullIndex: 11, performance: 2 },
+    { hullIndex: 12, performance: 2 },
+    { hullIndex: 13, performance: 2 },
+    { hullIndex: 14, performance: 1 }
+  ],
+  J: [
+    { hullIndex: 4, performance: 5 },
+    { hullIndex: 5, performance: 4 },
+    { hullIndex: 6, performance: 3 },
+    { hullIndex: 7, performance: 3 },
+    { hullIndex: 8, performance: 3 },
+    { hullIndex: 9, performance: 2 },
+    { hullIndex: 10, performance: 2 },
+    { hullIndex: 11, performance: 2 },
+    { hullIndex: 12, performance: 2 },
+    { hullIndex: 13, performance: 2 },
+    { hullIndex: 14, performance: 2 }
+  ],
+  K: [
+    { hullIndex: 4, performance: 5 },
+    { hullIndex: 5, performance: 4 },
+    { hullIndex: 6, performance: 3 },
+    { hullIndex: 7, performance: 3 },
+    { hullIndex: 8, performance: 3 },
+    { hullIndex: 9, performance: 3 },
+    { hullIndex: 10, performance: 3 },
+    { hullIndex: 11, performance: 3 },
+    { hullIndex: 12, performance: 2 },
+    { hullIndex: 13, performance: 2 },
+    { hullIndex: 14, performance: 2 }
+  ],
+  L: [
+    { hullIndex: 4, performance: 6 },
+    { hullIndex: 5, performance: 4 },
+    { hullIndex: 6, performance: 4 },
+    { hullIndex: 7, performance: 3 },
+    { hullIndex: 8, performance: 3 },
+    { hullIndex: 9, performance: 3 },
+    { hullIndex: 10, performance: 3 },
+    { hullIndex: 11, performance: 3 },
+    { hullIndex: 12, performance: 3 },
+    { hullIndex: 13, performance: 3 },
+    { hullIndex: 14, performance: 2 }
+  ],
+  M: [
+    { hullIndex: 4, performance: 6 },
+    { hullIndex: 5, performance: 5 },
+    { hullIndex: 6, performance: 4 },
+    { hullIndex: 7, performance: 4 },
+    { hullIndex: 8, performance: 4 },
+    { hullIndex: 9, performance: 3 },
+    { hullIndex: 10, performance: 3 },
+    { hullIndex: 11, performance: 3 },
+    { hullIndex: 12, performance: 3 },
+    { hullIndex: 13, performance: 3 },
+    { hullIndex: 14, performance: 3 }
+  ],
+  N: [
+    { hullIndex: 5, performance: 5 },
+    { hullIndex: 6, performance: 4 },
+    { hullIndex: 7, performance: 4 },
+    { hullIndex: 8, performance: 4 },
+    { hullIndex: 9, performance: 4 },
+    { hullIndex: 10, performance: 4 },
+    { hullIndex: 11, performance: 3 },
+    { hullIndex: 12, performance: 3 },
+    { hullIndex: 13, performance: 3 },
+    { hullIndex: 14, performance: 3 }
+  ],
+  P: [
+    { hullIndex: 5, performance: 6 },
+    { hullIndex: 6, performance: 5 },
+    { hullIndex: 7, performance: 4 },
+    { hullIndex: 8, performance: 4 },
+    { hullIndex: 9, performance: 4 },
+    { hullIndex: 10, performance: 4 },
+    { hullIndex: 11, performance: 4 },
+    { hullIndex: 12, performance: 4 },
+    { hullIndex: 13, performance: 4 },
+    { hullIndex: 14, performance: 3 }
+  ],
+  Q: [
+    { hullIndex: 5, performance: 6 },
+    { hullIndex: 6, performance: 5 },
+    { hullIndex: 7, performance: 5 },
+    { hullIndex: 8, performance: 5 },
+    { hullIndex: 9, performance: 4 },
+    { hullIndex: 10, performance: 4 },
+    { hullIndex: 11, performance: 4 },
+    { hullIndex: 12, performance: 4 },
+    { hullIndex: 13, performance: 4 },
+    { hullIndex: 14, performance: 4 }
+  ],
+  R: [
+    { hullIndex: 5, performance: 6 },
+    { hullIndex: 6, performance: 5 },
+    { hullIndex: 7, performance: 5 },
+    { hullIndex: 8, performance: 5 },
+    { hullIndex: 9, performance: 5 },
+    { hullIndex: 10, performance: 5 },
+    { hullIndex: 11, performance: 5 },
+    { hullIndex: 12, performance: 4 },
+    { hullIndex: 13, performance: 4 },
+    { hullIndex: 14, performance: 4 }
+  ],
+  S: [
+    { hullIndex: 6, performance: 6 },
+    { hullIndex: 7, performance: 5 },
+    { hullIndex: 8, performance: 5 },
+    { hullIndex: 9, performance: 5 },
+    { hullIndex: 10, performance: 5 },
+    { hullIndex: 11, performance: 5 },
+    { hullIndex: 12, performance: 5 },
+    { hullIndex: 13, performance: 5 },
+    { hullIndex: 14, performance: 4 }
+  ],
+  T: [
+    { hullIndex: 6, performance: 6 },
+    { hullIndex: 7, performance: 6 },
+    { hullIndex: 8, performance: 5 },
+    { hullIndex: 9, performance: 5 },
+    { hullIndex: 10, performance: 5 },
+    { hullIndex: 11, performance: 5 },
+    { hullIndex: 12, performance: 5 },
+    { hullIndex: 13, performance: 5 },
+    { hullIndex: 14, performance: 4 }
+  ],
+  U: [
+    { hullIndex: 6, performance: 6 },
+    { hullIndex: 7, performance: 6 },
+    { hullIndex: 8, performance: 6 },
+    { hullIndex: 9, performance: 5 },
+    { hullIndex: 10, performance: 5 },
+    { hullIndex: 11, performance: 5 },
+    { hullIndex: 12, performance: 5 },
+    { hullIndex: 13, performance: 5 },
+    { hullIndex: 14, performance: 5 }
+  ],
+  V: [
+    { hullIndex: 7, performance: 6 },
+    { hullIndex: 8, performance: 6 },
+    { hullIndex: 9, performance: 6 },
+    { hullIndex: 10, performance: 5 },
+    { hullIndex: 11, performance: 5 },
+    { hullIndex: 12, performance: 5 },
+    { hullIndex: 13, performance: 5 },
+    { hullIndex: 14, performance: 5 }
+  ],
+  W: [
+    { hullIndex: 7, performance: 6 },
+    { hullIndex: 8, performance: 6 },
+    { hullIndex: 9, performance: 6 },
+    { hullIndex: 10, performance: 6 },
+    { hullIndex: 11, performance: 6 },
+    { hullIndex: 12, performance: 5 },
+    { hullIndex: 13, performance: 5 },
+    { hullIndex: 14, performance: 5 }
+  ],
+  X: [
+    { hullIndex: 7, performance: 6 },
+    { hullIndex: 8, performance: 6 },
+    { hullIndex: 9, performance: 6 },
+    { hullIndex: 10, performance: 6 },
+    { hullIndex: 11, performance: 6 },
+    { hullIndex: 12, performance: 5 },
+    { hullIndex: 13, performance: 5 },
+    { hullIndex: 14, performance: 5 }
+  ],
+  Y: [
+    { hullIndex: 7, performance: 6 },
+    { hullIndex: 8, performance: 6 },
+    { hullIndex: 9, performance: 6 },
+    { hullIndex: 10, performance: 6 },
+    { hullIndex: 11, performance: 6 },
+    { hullIndex: 12, performance: 6 },
+    { hullIndex: 13, performance: 6 },
+    { hullIndex: 14, performance: 5 }
+  ]
+};
+
+export function getAvailableEngines(hullTonnage: number, engineType: string) {
+  const hullIndex = HULL_SIZES.findIndex(hull => hull.tonnage === hullTonnage);
+  if (hullIndex === -1) return [];
+  
+  const availableEngines = [];
+  for (const [driveCode, hullCompatibility] of Object.entries(ENGINE_DRIVES)) {
+    const compatibility = hullCompatibility.find(h => h.hullIndex === hullIndex);
+    if (compatibility) {
+      const performanceLabel = engineType === 'jump_drive' ? 'J' : 
+                              engineType === 'maneuver_drive' ? 'M' : 'P';
+      availableEngines.push({
+        code: driveCode,
+        performance: compatibility.performance,
+        label: `Drive ${driveCode} (${performanceLabel}-${compatibility.performance})`
+      });
+    }
+  }
+  return availableEngines;
+}
+
 export const WEAPON_TYPES = [
   { name: 'Pulse Laser Turret', mass: 2, cost: 1.5 },
   { name: 'Dual Pulse Laser Turret', mass: 2, cost: 2 },
