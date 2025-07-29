@@ -1,5 +1,5 @@
 import React from 'react';
-import { Berth } from '../types/ship';
+import type { Berth } from '../types/ship';
 
 interface BerthsPanelProps {
   berths: Berth[];

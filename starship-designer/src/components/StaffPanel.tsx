@@ -1,5 +1,5 @@
 import React from 'react';
-import { StaffRequirements, Berth } from '../types/ship';
+import type { StaffRequirements, Berth } from '../types/ship';
 
 interface StaffPanelProps {
   staffRequirements: StaffRequirements;

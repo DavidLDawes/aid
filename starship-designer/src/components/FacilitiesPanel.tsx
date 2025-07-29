@@ -1,5 +1,5 @@
 import React from 'react';
-import { Facility } from '../types/ship';
+import type { Facility } from '../types/ship';
 
 interface FacilitiesPanelProps {
   facilities: Facility[];

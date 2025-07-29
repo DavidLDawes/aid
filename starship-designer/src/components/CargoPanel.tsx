@@ -1,5 +1,5 @@
 import React from 'react';
-import { Cargo } from '../types/ship';
+import type { Cargo } from '../types/ship';
 
 interface CargoPanelProps {
   cargo: Cargo[];

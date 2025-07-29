@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShipDesign, MassCalculation, CostCalculation, StaffRequirements } from '../types/ship';
+import type { ShipDesign, MassCalculation, CostCalculation, StaffRequirements } from '../types/ship';
 
 interface SummaryPanelProps {
   shipDesign: ShipDesign;

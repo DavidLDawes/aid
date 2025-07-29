@@ -1,5 +1,5 @@
 import React from 'react';
-import { Engine } from '../types/ship';
+import type { Engine } from '../types/ship';
 
 interface EnginesPanelProps {
   engines: Engine[];

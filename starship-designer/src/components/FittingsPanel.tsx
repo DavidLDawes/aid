@@ -1,5 +1,5 @@
 import React from 'react';
-import { Fitting } from '../types/ship';
+import type { Fitting } from '../types/ship';
 import { getBridgeMassAndCost } from '../data/constants';
 
 interface FittingsPanelProps {

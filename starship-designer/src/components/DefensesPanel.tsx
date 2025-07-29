@@ -1,5 +1,5 @@
 import React from 'react';
-import { Defense } from '../types/ship';
+import type { Defense } from '../types/ship';
 
 interface DefensesPanelProps {
   defenses: Defense[];

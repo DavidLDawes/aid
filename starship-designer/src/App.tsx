@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShipDesign, Ship, Engine, Fitting, Weapon, Defense, Berth, Facility, Cargo, Vehicle, Drone, MassCalculation, CostCalculation, StaffRequirements } from './types/ship';
+import type { ShipDesign, Ship, Engine, Fitting, Weapon, Defense, Berth, Facility, Cargo, Vehicle, Drone, MassCalculation, CostCalculation, StaffRequirements } from './types/ship';
 import ShipPanel from './components/ShipPanel';
 import EnginesPanel from './components/EnginesPanel';
 import FittingsPanel from './components/FittingsPanel';

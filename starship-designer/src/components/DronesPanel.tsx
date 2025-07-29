@@ -1,5 +1,5 @@
 import React from 'react';
-import { Drone } from '../types/ship';
+import type { Drone } from '../types/ship';
 
 interface DronesPanelProps {
   drones: Drone[];
