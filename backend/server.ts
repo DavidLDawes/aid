@@ -14,7 +14,7 @@ app.use(express.json());
 const dbConfig = {
   host: process.env.DB_HOST || 'localhost',
   user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
+  password: process.env.DB_PASSWORD || 'whuUd-23my-secret',
   database: process.env.DB_NAME || 'starship_designer'
 };
 
@@ -33,7 +33,7 @@ async function initDatabase() {
 // Ship routes
 app.get('/api/ships', async (req, res) => {
   try {
-    const [rows] = await db.execute('SELECT id, name, tech_level, tonnage, description, created_at FROM ships ORDER BY created_at DESC');
+    const [rows] = await db.execute('SELECT id, name, tech_level, tonnage, configuration, description, created_at FROM ships ORDER BY created_at DESC');
     res.json(rows);
   } catch (error) {
     console.error('Error fetching ships:', error);
@@ -94,8 +94,8 @@ app.post('/api/ships', async (req, res) => {
     try {
       // Insert ship
       const [shipResult] = await db.execute(
-        'INSERT INTO ships (name, tech_level, tonnage, description) VALUES (?, ?, ?, ?)',
-        [ship.name, ship.tech_level, ship.tonnage, ship.description || null]
+        'INSERT INTO ships (name, tech_level, tonnage, configuration, description) VALUES (?, ?, ?, ?, ?)',
+        [ship.name, ship.tech_level, ship.tonnage, ship.configuration, ship.description || null]
       );
       
       const shipId = (shipResult as any).insertId;
