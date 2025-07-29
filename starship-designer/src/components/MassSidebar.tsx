@@ -1,5 +1,5 @@
 import React from 'react';
-import { MassCalculation, CostCalculation } from '../types/ship';
+import type { MassCalculation, CostCalculation } from '../types/ship';
 
 interface MassSidebarProps {
   mass: MassCalculation;

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Weapon } from '../types/ship';
+import type { Weapon } from '../types/ship';
 import { WEAPON_TYPES, getWeaponMountLimit } from '../data/constants';
 
 interface WeaponsPanelProps {
