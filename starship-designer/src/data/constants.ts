@@ -284,6 +284,32 @@ export const ENGINE_DRIVES = {
   ]
 };
 
+export const ENGINE_SPECS = {
+  A: { jump_drive: { tons: 10, cost: 10 }, maneuver_drive: { tons: 2, cost: 4 }, power_plant: { tons: 4, cost: 8 } },
+  B: { jump_drive: { tons: 15, cost: 20 }, maneuver_drive: { tons: 3, cost: 8 }, power_plant: { tons: 7, cost: 16 } },
+  C: { jump_drive: { tons: 20, cost: 30 }, maneuver_drive: { tons: 5, cost: 12 }, power_plant: { tons: 10, cost: 24 } },
+  D: { jump_drive: { tons: 25, cost: 40 }, maneuver_drive: { tons: 7, cost: 16 }, power_plant: { tons: 13, cost: 32 } },
+  E: { jump_drive: { tons: 30, cost: 50 }, maneuver_drive: { tons: 9, cost: 20 }, power_plant: { tons: 16, cost: 40 } },
+  F: { jump_drive: { tons: 35, cost: 60 }, maneuver_drive: { tons: 11, cost: 24 }, power_plant: { tons: 19, cost: 48 } },
+  G: { jump_drive: { tons: 40, cost: 70 }, maneuver_drive: { tons: 13, cost: 28 }, power_plant: { tons: 22, cost: 56 } },
+  H: { jump_drive: { tons: 45, cost: 80 }, maneuver_drive: { tons: 15, cost: 32 }, power_plant: { tons: 25, cost: 64 } },
+  J: { jump_drive: { tons: 50, cost: 90 }, maneuver_drive: { tons: 17, cost: 36 }, power_plant: { tons: 28, cost: 72 } },
+  K: { jump_drive: { tons: 55, cost: 100 }, maneuver_drive: { tons: 19, cost: 40 }, power_plant: { tons: 31, cost: 80 } },
+  L: { jump_drive: { tons: 60, cost: 110 }, maneuver_drive: { tons: 21, cost: 44 }, power_plant: { tons: 34, cost: 88 } },
+  M: { jump_drive: { tons: 65, cost: 120 }, maneuver_drive: { tons: 23, cost: 48 }, power_plant: { tons: 37, cost: 96 } },
+  N: { jump_drive: { tons: 70, cost: 130 }, maneuver_drive: { tons: 25, cost: 52 }, power_plant: { tons: 40, cost: 104 } },
+  P: { jump_drive: { tons: 75, cost: 140 }, maneuver_drive: { tons: 27, cost: 56 }, power_plant: { tons: 43, cost: 112 } },
+  Q: { jump_drive: { tons: 80, cost: 150 }, maneuver_drive: { tons: 29, cost: 60 }, power_plant: { tons: 46, cost: 120 } },
+  R: { jump_drive: { tons: 85, cost: 160 }, maneuver_drive: { tons: 31, cost: 64 }, power_plant: { tons: 49, cost: 128 } },
+  S: { jump_drive: { tons: 90, cost: 170 }, maneuver_drive: { tons: 33, cost: 68 }, power_plant: { tons: 52, cost: 136 } },
+  T: { jump_drive: { tons: 95, cost: 180 }, maneuver_drive: { tons: 35, cost: 72 }, power_plant: { tons: 55, cost: 144 } },
+  U: { jump_drive: { tons: 100, cost: 190 }, maneuver_drive: { tons: 37, cost: 76 }, power_plant: { tons: 58, cost: 152 } },
+  V: { jump_drive: { tons: 105, cost: 200 }, maneuver_drive: { tons: 39, cost: 80 }, power_plant: { tons: 61, cost: 160 } },
+  W: { jump_drive: { tons: 110, cost: 210 }, maneuver_drive: { tons: 41, cost: 84 }, power_plant: { tons: 64, cost: 168 } },
+  X: { jump_drive: { tons: 115, cost: 220 }, maneuver_drive: { tons: 43, cost: 88 }, power_plant: { tons: 67, cost: 176 } },
+  Y: { jump_drive: { tons: 120, cost: 230 }, maneuver_drive: { tons: 45, cost: 92 }, power_plant: { tons: 70, cost: 184 } }
+};
+
 export function getAvailableEngines(hullTonnage: number, engineType: string) {
   const hullIndex = HULL_SIZES.findIndex(hull => hull.tonnage === hullTonnage);
   if (hullIndex === -1) return [];
@@ -294,10 +320,15 @@ export function getAvailableEngines(hullTonnage: number, engineType: string) {
     if (compatibility) {
       const performanceLabel = engineType === 'jump_drive' ? 'J' : 
                               engineType === 'maneuver_drive' ? 'M' : 'P';
+      const specs = ENGINE_SPECS[driveCode as keyof typeof ENGINE_SPECS];
+      const engineSpec = specs[engineType as keyof typeof specs];
+      
       availableEngines.push({
         code: driveCode,
         performance: compatibility.performance,
-        label: `Drive ${driveCode} (${performanceLabel}-${compatibility.performance})`
+        mass: engineSpec.tons,
+        cost: engineSpec.cost,
+        label: `Drive ${driveCode} (${performanceLabel}-${compatibility.performance}) - ${engineSpec.tons}t, ${engineSpec.cost}MCr`
       });
     }
   }

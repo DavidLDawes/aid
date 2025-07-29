@@ -9,7 +9,6 @@ interface EnginesPanelProps {
 }
 
 const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, onUpdate }) => {
-  const maxMass = Math.floor(shipTonnage * 0.95 * 10) / 10; // 95% of ship tonnage, rounded to 0.1
 
   const getEngine = (type: Engine['engine_type']): Engine => {
     return engines.find(e => e.engine_type === type) || {
@@ -58,7 +57,9 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, onUpd
                 if (selectedEngine) {
                   updateEngine(type, { 
                     drive_code: selectedEngine.code,
-                    performance: selectedEngine.performance
+                    performance: selectedEngine.performance,
+                    mass: selectedEngine.mass,
+                    cost: selectedEngine.cost
                   });
                 }
               }}
@@ -72,36 +73,31 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, onUpd
             </select>
           </div>
 
-          <div className="form-group">
-            <label>Mass (tons) *</label>
-            <input
-              type="number"
-              min="0.1"
-              max={maxMass}
-              step="0.1"
-              value={engine.mass}
-              onChange={(e) => {
-                const value = parseFloat(e.target.value) || 0.1;
-                updateEngine(type, { 
-                  mass: Math.min(maxMass, Math.max(0.1, Math.round(value * 10) / 10))
-                });
-              }}
-            />
-            <small>0.1 - {maxMass} tons</small>
-          </div>
+          {engine.drive_code && (
+            <>
+              <div className="form-group">
+                <label>Mass (tons)</label>
+                <input
+                  type="number"
+                  value={engine.mass}
+                  readOnly
+                  disabled
+                />
+                <small>Set by drive selection</small>
+              </div>
 
-          <div className="form-group">
-            <label>Cost (MCr) *</label>
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              value={engine.cost}
-              onChange={(e) => updateEngine(type, { 
-                cost: Math.max(0, parseFloat(e.target.value) || 0) 
-              })}
-            />
-          </div>
+              <div className="form-group">
+                <label>Cost (MCr)</label>
+                <input
+                  type="number"
+                  value={engine.cost}
+                  readOnly
+                  disabled
+                />
+                <small>Set by drive selection</small>
+              </div>
+            </>
+          )}
         </div>
         
         {engine.drive_code && (
@@ -114,7 +110,7 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, onUpd
   };
 
   const allEnginesConfigured = engines.length === 3 && 
-    engines.every(e => e.drive_code && e.performance >= 1 && e.performance <= 10 && e.mass >= 0.1 && e.cost >= 0);
+    engines.every(e => e.drive_code && e.performance >= 1 && e.performance <= 10 && e.mass > 0 && e.cost > 0);
 
   return (
     <div className="panel-content">
@@ -137,7 +133,7 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, onUpd
             ✓ Jump Drive configured
           </li>
           <li className={allEnginesConfigured ? 'valid' : 'invalid'}>
-            ✓ All engines have valid drive selection, mass (≥0.1), and cost (≥0)
+            ✓ All engines have valid drive selection with automatic mass and cost
           </li>
         </ul>
       </div>
