@@ -310,7 +310,7 @@ export const ENGINE_SPECS = {
   Y: { jump_drive: { tons: 120, cost: 230 }, maneuver_drive: { tons: 45, cost: 92 }, power_plant: { tons: 70, cost: 184 } }
 };
 
-export function getAvailableEngines(hullTonnage: number, engineType: string) {
+export function getAvailableEngines(hullTonnage: number, engineType: string, powerPlantPerformance?: number) {
   const hullIndex = HULL_SIZES.findIndex(hull => hull.tonnage === hullTonnage);
   if (hullIndex === -1) return [];
   
@@ -318,6 +318,13 @@ export function getAvailableEngines(hullTonnage: number, engineType: string) {
   for (const [driveCode, hullCompatibility] of Object.entries(ENGINE_DRIVES)) {
     const compatibility = hullCompatibility.find(h => h.hullIndex === hullIndex);
     if (compatibility) {
+      // For Jump and Maneuver drives, check power plant requirement
+      if ((engineType === 'jump_drive' || engineType === 'maneuver_drive') && powerPlantPerformance !== undefined) {
+        if (compatibility.performance > powerPlantPerformance) {
+          continue; // Skip this drive if it requires more power than available
+        }
+      }
+      
       const performanceLabel = engineType === 'jump_drive' ? 'J' : 
                               engineType === 'maneuver_drive' ? 'M' : 'P';
       const specs = ENGINE_SPECS[driveCode as keyof typeof ENGINE_SPECS];
