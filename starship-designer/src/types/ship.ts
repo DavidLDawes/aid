@@ -10,6 +10,7 @@ export interface Ship {
 export interface Engine {
   id?: number;
   engine_type: 'power_plant' | 'maneuver_drive' | 'jump_drive';
+  drive_code: string;
   performance: number;
   mass: number;
   cost: number;

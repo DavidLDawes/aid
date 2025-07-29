@@ -104,8 +104,8 @@ app.post('/api/ships', async (req, res) => {
       if (engines && engines.length > 0) {
         for (const engine of engines) {
           await db.execute(
-            'INSERT INTO engines (ship_id, engine_type, performance, mass, cost) VALUES (?, ?, ?, ?, ?)',
-            [shipId, engine.engine_type, engine.performance, engine.mass, engine.cost]
+            'INSERT INTO engines (ship_id, engine_type, drive_code, performance, mass, cost) VALUES (?, ?, ?, ?, ?, ?)',
+            [shipId, engine.engine_type, engine.drive_code, engine.performance, engine.mass, engine.cost]
           );
         }
       }
