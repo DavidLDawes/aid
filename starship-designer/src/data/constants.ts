@@ -342,6 +342,23 @@ export function getAvailableEngines(hullTonnage: number, engineType: string, pow
   return availableEngines;
 }
 
+export function calculateJumpFuel(shipTonnage: number, jumpPerformance: number): number {
+  // Jump fuel: 0.1 * ship mass * jump rating per jump
+  return shipTonnage * 0.1 * jumpPerformance;
+}
+
+export function calculateManeuverFuel(shipTonnage: number, maneuverPerformance: number, weeks: number): number {
+  // Maneuver fuel: 0.01 * ship mass * maneuver rating * (weeks / 2)
+  // Base is 2 weeks for M-1 at 1% of ship mass
+  return shipTonnage * 0.01 * maneuverPerformance * (weeks / 2);
+}
+
+export function calculateTotalFuelMass(shipTonnage: number, jumpPerformance: number, maneuverPerformance: number, weeks: number): number {
+  const jumpFuel = calculateJumpFuel(shipTonnage, jumpPerformance);
+  const maneuverFuel = calculateManeuverFuel(shipTonnage, maneuverPerformance, weeks);
+  return jumpFuel + maneuverFuel;
+}
+
 export const WEAPON_TYPES = [
   { name: 'Pulse Laser Turret', mass: 2, cost: 1.5 },
   { name: 'Dual Pulse Laser Turret', mass: 2, cost: 2 },

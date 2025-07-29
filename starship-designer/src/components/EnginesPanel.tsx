@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { Engine } from '../types/ship';
-import { getAvailableEngines } from '../data/constants';
+import { getAvailableEngines, calculateJumpFuel, calculateManeuverFuel, calculateTotalFuelMass } from '../data/constants';
 
 interface EnginesPanelProps {
   engines: Engine[];
@@ -9,6 +9,7 @@ interface EnginesPanelProps {
 }
 
 const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, onUpdate }) => {
+  const [fuelWeeks, setFuelWeeks] = useState(2);
 
   const getEngine = (type: Engine['engine_type']): Engine => {
     return engines.find(e => e.engine_type === type) || {
@@ -125,9 +126,29 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, onUpd
     (!jumpDrive.drive_code || jumpDrive.performance <= powerPlant.performance) &&
     (!maneuverDrive.drive_code || maneuverDrive.performance <= powerPlant.performance);
   
+  // Calculate fuel requirements
+  const jumpFuel = jumpDrive.performance > 0 ? calculateJumpFuel(shipTonnage, jumpDrive.performance) : 0;
+  const maneuverFuel = maneuverDrive.performance > 0 ? calculateManeuverFuel(shipTonnage, maneuverDrive.performance, fuelWeeks) : 0;
+  const totalFuelMass = jumpFuel + maneuverFuel;
+  
+  // Calculate total engine mass
+  const totalEngineMass = engines.reduce((sum, engine) => sum + engine.mass, 0);
+  
+  // Calculate remaining mass available for fuel (assuming we need some buffer)
+  const usedMass = totalEngineMass; // This should include other ship components in a real calculation
+  const remainingMass = shipTonnage - usedMass;
+  const fuelFitsInShip = totalFuelMass <= remainingMass;
+  
+  // Calculate maximum weeks possible given remaining mass
+  const maxPossibleWeeks = maneuverDrive.performance > 0 
+    ? Math.floor(2 * (remainingMass - jumpFuel) / (shipTonnage * 0.01 * maneuverDrive.performance))
+    : 12;
+  const effectiveMaxWeeks = Math.min(12, Math.max(2, maxPossibleWeeks));
+  
   const allEnginesConfigured = engines.length === 3 && 
     engines.every(e => e.drive_code && e.performance >= 1 && e.performance <= 10 && e.mass > 0 && e.cost > 0) &&
-    powerRequirementsMet;
+    powerRequirementsMet &&
+    fuelFitsInShip;
 
   return (
     <div className="panel-content">
@@ -137,6 +158,48 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, onUpd
       {renderEngineInput('power_plant', 'Power Plant')}
       {renderEngineInput('maneuver_drive', 'Maneuver Drive')}
       {renderEngineInput('jump_drive', 'Jump Drive')}
+
+      <div className="fuel-section">
+        <h3>Fuel Requirements</h3>
+        <div className="form-group">
+          <label htmlFor="fuel-weeks">Maneuver Drive Fuel Duration</label>
+          <select
+            id="fuel-weeks"
+            value={fuelWeeks}
+            onChange={(e) => setFuelWeeks(parseInt(e.target.value))}
+          >
+            {Array.from({length: effectiveMaxWeeks - 1}, (_, i) => i + 2).map(weeks => (
+              <option key={weeks} value={weeks}>
+                {weeks} weeks
+              </option>
+            ))}
+          </select>
+          <small>Maximum {effectiveMaxWeeks} weeks based on available mass</small>
+        </div>
+
+        <div className="fuel-summary">
+          <h4>Fuel Mass Breakdown:</h4>
+          <table>
+            <tbody>
+              <tr>
+                <td>Jump Fuel (per jump):</td>
+                <td>{jumpFuel.toFixed(1)} tons</td>
+                <td><small>({jumpDrive.performance > 0 ? `J-${jumpDrive.performance}` : 'No Jump Drive'} × 0.1 × {shipTonnage}t)</small></td>
+              </tr>
+              <tr>
+                <td>Maneuver Fuel ({fuelWeeks} weeks):</td>
+                <td>{maneuverFuel.toFixed(1)} tons</td>
+                <td><small>({maneuverDrive.performance > 0 ? `M-${maneuverDrive.performance}` : 'No Maneuver Drive'} × 0.01 × {shipTonnage}t × {fuelWeeks/2})</small></td>
+              </tr>
+              <tr className="total-row">
+                <td><strong>Total Fuel Mass:</strong></td>
+                <td><strong>{totalFuelMass.toFixed(1)} tons</strong></td>
+                <td><small>{((totalFuelMass / shipTonnage) * 100).toFixed(1)}% of ship mass</small></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
 
       <div className="validation-info">
         <h3>Requirements:</h3>
@@ -152,6 +215,9 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, onUpd
           </li>
           <li className={powerRequirementsMet ? 'valid' : 'invalid'}>
             ✓ Power Plant provides sufficient power for Jump and Maneuver drives
+          </li>
+          <li className={fuelFitsInShip ? 'valid' : 'invalid'}>
+            ✓ Fuel requirements fit within available ship mass
           </li>
           <li className={allEnginesConfigured ? 'valid' : 'invalid'}>
             ✓ All engines have valid drive selection with automatic mass and cost
