@@ -1,6 +1,6 @@
 import React from 'react';
 import type { Ship } from '../types/ship';
-import { TECH_LEVELS } from '../data/constants';
+import { TECH_LEVELS, HULL_SIZES } from '../data/constants';
 
 interface ShipPanelProps {
   ship: Ship;
@@ -41,16 +41,18 @@ const ShipPanel: React.FC<ShipPanelProps> = ({ ship, onUpdate }) => {
       </div>
 
       <div className="form-group">
-        <label htmlFor="tonnage">Tonnage *</label>
-        <input
+        <label htmlFor="tonnage">Hull Size *</label>
+        <select
           id="tonnage"
-          type="number"
-          min="100"
           value={ship.tonnage}
-          onChange={(e) => handleInputChange('tonnage', parseInt(e.target.value) || 100)}
-          placeholder="Minimum 100 tons"
-        />
-        <small>Minimum 100 tons</small>
+          onChange={(e) => handleInputChange('tonnage', parseInt(e.target.value))}
+        >
+          {HULL_SIZES.map(hull => (
+            <option key={hull.tonnage} value={hull.tonnage}>
+              {hull.tonnage} tons (Hull {hull.code}) - {hull.cost} MCr
+            </option>
+          ))}
+        </select>
       </div>
 
       <div className="form-group">
@@ -89,7 +91,7 @@ const ShipPanel: React.FC<ShipPanelProps> = ({ ship, onUpdate }) => {
             ✓ Tech level is required
           </li>
           <li className={ship.tonnage >= 100 ? 'valid' : 'invalid'}>
-            ✓ Tonnage must be at least 100
+            ✓ Hull size is required
           </li>
           <li className={ship.configuration ? 'valid' : 'invalid'}>
             ✓ Configuration is required

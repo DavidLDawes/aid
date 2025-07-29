@@ -1,5 +1,23 @@
 export const TECH_LEVELS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
 
+export const HULL_SIZES = [
+  { tonnage: 100, code: '1', cost: 2 },
+  { tonnage: 200, code: '2', cost: 8 },
+  { tonnage: 300, code: '3', cost: 12 },
+  { tonnage: 400, code: '4', cost: 16 },
+  { tonnage: 500, code: '5', cost: 32 },
+  { tonnage: 600, code: '6', cost: 48 },
+  { tonnage: 700, code: '7', cost: 64 },
+  { tonnage: 800, code: '8', cost: 80 },
+  { tonnage: 900, code: '9', cost: 90 },
+  { tonnage: 1000, code: 'A', cost: 100 },
+  { tonnage: 1200, code: 'C', cost: 120 },
+  { tonnage: 1400, code: 'E', cost: 140 },
+  { tonnage: 1600, code: 'G', cost: 160 },
+  { tonnage: 1800, code: 'J', cost: 180 },
+  { tonnage: 2000, code: 'L', cost: 200 }
+];
+
 export const WEAPON_TYPES = [
   { name: 'Pulse Laser Turret', mass: 2, cost: 1.5 },
   { name: 'Dual Pulse Laser Turret', mass: 2, cost: 2 },
