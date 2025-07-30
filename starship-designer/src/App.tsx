@@ -253,7 +253,7 @@ function App() {
       case 7:
         return <CargoPanel cargo={shipDesign.cargo} remainingMass={mass.remaining} onUpdate={(cargo) => updateShipDesign({ cargo })} />;
       case 8:
-        return <VehiclesPanel vehicles={shipDesign.vehicles} onUpdate={(vehicles) => updateShipDesign({ vehicles })} />;
+        return <VehiclesPanel vehicles={shipDesign.vehicles} shipTechLevel={shipDesign.ship.tech_level} onUpdate={(vehicles) => updateShipDesign({ vehicles })} />;
       case 9:
         return <DronesPanel drones={shipDesign.drones} onUpdate={(drones) => updateShipDesign({ drones })} />;
       case 10:
