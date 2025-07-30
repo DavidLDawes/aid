@@ -1,6 +1,6 @@
 import React from 'react';
 import type { Fitting } from '../types/ship';
-import { getBridgeMassAndCost } from '../data/constants';
+import { getBridgeMassAndCost, COMMS_SENSORS_TYPES } from '../data/constants';
 
 interface FittingsPanelProps {
   fittings: Fitting[];
@@ -12,6 +12,7 @@ const FittingsPanel: React.FC<FittingsPanelProps> = ({ fittings, shipTonnage, on
   const hasBridge = fittings.some(f => f.fitting_type === 'bridge');
   const hasHalfBridge = fittings.some(f => f.fitting_type === 'half_bridge');
   const launchTubes = fittings.filter(f => f.fitting_type === 'launch_tube');
+  const commsSensors = fittings.find(f => f.fitting_type === 'comms_sensors');
 
   const setBridgeType = (isHalfBridge: boolean) => {
     const { mass, cost } = getBridgeMassAndCost(shipTonnage, isHalfBridge);
@@ -58,6 +59,19 @@ const FittingsPanel: React.FC<FittingsPanelProps> = ({ fittings, shipTonnage, on
       const tubeIndex = fittings.slice(0, i + 1).filter(fit => fit.fitting_type === 'launch_tube').length - 1;
       return tubeIndex !== index;
     });
+    onUpdate(newFittings);
+  };
+
+  const setCommsSensorsType = (sensorType: typeof COMMS_SENSORS_TYPES[0]) => {
+    const newFittings = fittings.filter(f => f.fitting_type !== 'comms_sensors');
+    
+    newFittings.push({
+      fitting_type: 'comms_sensors',
+      comms_sensors_type: sensorType.type as any,
+      mass: sensorType.mass,
+      cost: sensorType.cost
+    });
+
     onUpdate(newFittings);
   };
 
@@ -118,6 +132,30 @@ const FittingsPanel: React.FC<FittingsPanelProps> = ({ fittings, shipTonnage, on
         <button onClick={addLaunchTube} className="add-btn">
           Add Launch Tube
         </button>
+      </div>
+
+      <div className="form-group">
+        <h3>Comms & Sensors</h3>
+        <p>Communications and sensor systems for the starship. Standard is included by default.</p>
+        
+        <div className="radio-group">
+          {COMMS_SENSORS_TYPES.map(sensorType => (
+            <label key={sensorType.type}>
+              <input
+                type="radio"
+                checked={commsSensors?.comms_sensors_type === sensorType.type || (!commsSensors && sensorType.type === 'standard')}
+                onChange={() => setCommsSensorsType(sensorType)}
+              />
+              {sensorType.name} ({sensorType.mass} tons, {sensorType.cost} MCr)
+            </label>
+          ))}
+        </div>
+        
+        {commsSensors && (
+          <div className="selected-summary">
+            <p><strong>Selected:</strong> {COMMS_SENSORS_TYPES.find(t => t.type === commsSensors.comms_sensors_type)?.name} - {commsSensors.mass} tons, {commsSensors.cost} MCr</p>
+          </div>
+        )}
       </div>
 
       <div className="validation-info">
