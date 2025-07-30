@@ -1,3 +1,8 @@
+# Traveller Starship Designer
+New atttempt at a Starship Designer, build with Claude. Used a Wizard UI, plan on doing:
+* Traveller SRD Ships - WIP, coming along
+* Traveller SRD Capital Ships - TODO
+
 # React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
