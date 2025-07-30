@@ -247,7 +247,7 @@ function App() {
           onSandReloadsUpdate={(sand_reloads) => updateShipDesign({ ship: { ...shipDesign.ship, sand_reloads } })}
         />;
       case 5:
-        return <BerthsPanel berths={shipDesign.berths} onUpdate={(berths) => updateShipDesign({ berths })} />;
+        return <BerthsPanel berths={shipDesign.berths} staffRequirements={staff} onUpdate={(berths) => updateShipDesign({ berths })} />;
       case 6:
         return <FacilitiesPanel facilities={shipDesign.facilities} onUpdate={(facilities) => updateShipDesign({ facilities })} />;
       case 7:
