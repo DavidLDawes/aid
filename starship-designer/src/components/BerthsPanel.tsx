@@ -22,8 +22,8 @@ const BerthsPanel: React.FC<BerthsPanelProps> = ({ berths, staffRequirements, on
       const berthData: Berth = {
         berth_type: berthType.type as Berth['berth_type'],
         quantity: newQuantity,
-        mass: berthType.mass * newQuantity,
-        cost: berthType.cost * newQuantity
+        mass: berthType.mass,
+        cost: berthType.cost
       };
       
       if (existingIndex >= 0) {
@@ -115,8 +115,8 @@ const BerthsPanel: React.FC<BerthsPanelProps> = ({ berths, staffRequirements, on
                 <tr key={berth.berth_type}>
                   <td>{BERTH_TYPES.find(bt => bt.type === berth.berth_type)?.name || berth.berth_type}</td>
                   <td>{berth.quantity}</td>
-                  <td>{berth.mass.toFixed(1)}</td>
-                  <td>{berth.cost.toFixed(2)}</td>
+                  <td>{(berth.mass * berth.quantity).toFixed(1)}</td>
+                  <td>{(berth.cost * berth.quantity).toFixed(2)}</td>
                 </tr>
               ))}
             </tbody>
