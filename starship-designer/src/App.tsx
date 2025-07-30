@@ -19,7 +19,7 @@ import './App.css';
 function App() {
   const [currentPanel, setCurrentPanel] = useState(0);
   const [shipDesign, setShipDesign] = useState<ShipDesign>({
-    ship: { name: '', tech_level: 'A', tonnage: 100, configuration: 'standard', fuel_weeks: 2, description: '' },
+    ship: { name: '', tech_level: 'A', tonnage: 100, configuration: 'standard', fuel_weeks: 2, missile_reloads: 0, description: '' },
     engines: [],
     fittings: [],
     weapons: [],
@@ -75,6 +75,9 @@ function App() {
     const fuelMass = calculateTotalFuelMass(shipDesign.ship.tonnage, jumpPerformance, maneuverPerformance, shipDesign.ship.fuel_weeks);
     used += fuelMass;
 
+    // Add missile reload mass
+    used += shipDesign.ship.missile_reloads;
+
     const total = shipDesign.ship.tonnage;
     const remaining = total - used;
     
@@ -115,6 +118,9 @@ function App() {
     
     // Add drone costs
     total += shipDesign.drones.reduce((sum, drone) => sum + (drone.cost * drone.quantity), 0);
+
+    // Add missile reload costs (1 MCr per ton)
+    total += shipDesign.ship.missile_reloads;
 
     return { total };
   };
@@ -209,7 +215,14 @@ function App() {
       case 2:
         return <FittingsPanel fittings={shipDesign.fittings} shipTonnage={shipDesign.ship.tonnage} onUpdate={(fittings) => updateShipDesign({ fittings })} />;
       case 3:
-        return <WeaponsPanel weapons={shipDesign.weapons} shipTonnage={shipDesign.ship.tonnage} onUpdate={(weapons) => updateShipDesign({ weapons })} />;
+        return <WeaponsPanel 
+          weapons={shipDesign.weapons} 
+          shipTonnage={shipDesign.ship.tonnage} 
+          missileReloads={shipDesign.ship.missile_reloads}
+          remainingMass={mass.remaining + shipDesign.ship.missile_reloads}
+          onUpdate={(weapons) => updateShipDesign({ weapons })} 
+          onMissileReloadsUpdate={(missile_reloads) => updateShipDesign({ ship: { ...shipDesign.ship, missile_reloads } })}
+        />;
       case 4:
         return <DefensesPanel 
           defenses={shipDesign.defenses} 

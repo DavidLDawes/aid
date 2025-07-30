@@ -5,6 +5,7 @@ export interface Ship {
   tonnage: number;
   configuration: 'standard' | 'streamlined' | 'distributed';
   fuel_weeks: number;
+  missile_reloads: number;
   description?: string;
 }
 
