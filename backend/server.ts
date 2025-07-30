@@ -114,8 +114,8 @@ app.post('/api/ships', async (req, res) => {
       if (fittings && fittings.length > 0) {
         for (const fitting of fittings) {
           await db.execute(
-            'INSERT INTO fittings (ship_id, fitting_type, mass, cost, launch_vehicle_mass) VALUES (?, ?, ?, ?, ?)',
-            [shipId, fitting.fitting_type, fitting.mass, fitting.cost, fitting.launch_vehicle_mass || null]
+            'INSERT INTO fittings (ship_id, fitting_type, mass, cost, launch_vehicle_mass, comms_sensors_type) VALUES (?, ?, ?, ?, ?, ?)',
+            [shipId, fitting.fitting_type, fitting.mass, fitting.cost, fitting.launch_vehicle_mass || null, fitting.comms_sensors_type || null]
           );
         }
       }

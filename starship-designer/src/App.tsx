@@ -21,7 +21,14 @@ function App() {
   const [shipDesign, setShipDesign] = useState<ShipDesign>({
     ship: { name: '', tech_level: 'A', tonnage: 100, configuration: 'standard', fuel_weeks: 2, missile_reloads: 0, sand_reloads: 0, description: '' },
     engines: [],
-    fittings: [],
+    fittings: [
+      {
+        fitting_type: 'comms_sensors',
+        comms_sensors_type: 'standard',
+        mass: 0,
+        cost: 0
+      }
+    ],
     weapons: [],
     defenses: [],
     berths: [],

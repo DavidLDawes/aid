@@ -21,10 +21,11 @@ export interface Engine {
 
 export interface Fitting {
   id?: number;
-  fitting_type: 'bridge' | 'half_bridge' | 'launch_tube';
+  fitting_type: 'bridge' | 'half_bridge' | 'launch_tube' | 'comms_sensors';
   mass: number;
   cost: number;
   launch_vehicle_mass?: number;
+  comms_sensors_type?: 'standard' | 'basic_civilian' | 'basic_military' | 'advanced' | 'very_advanced';
 }
 
 export interface Weapon {

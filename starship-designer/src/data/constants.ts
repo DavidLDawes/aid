@@ -461,6 +461,14 @@ export function getBridgeMassAndCost(shipTonnage: number, isHalfBridge: boolean)
   return { mass: bridgeMass, cost: bridgeMass * 0.5 };
 }
 
+export const COMMS_SENSORS_TYPES = [
+  { name: 'Standard', type: 'standard', mass: 0, cost: 0 },
+  { name: 'Basic Civilian', type: 'basic_civilian', mass: 1, cost: 0.05 },
+  { name: 'Basic Military', type: 'basic_military', mass: 2, cost: 1 },
+  { name: 'Advanced', type: 'advanced', mass: 3, cost: 2 },
+  { name: 'Very Advanced', type: 'very_advanced', mass: 5, cost: 4 }
+];
+
 export function getWeaponMountLimit(shipTonnage: number): number {
   return Math.floor(shipTonnage / 100);
 }
