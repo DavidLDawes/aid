@@ -5,12 +5,23 @@ import { WEAPON_TYPES, getWeaponMountLimit } from '../data/constants';
 interface WeaponsPanelProps {
   weapons: Weapon[];
   shipTonnage: number;
+  missileReloads: number;
+  remainingMass: number;
   onUpdate: (weapons: Weapon[]) => void;
+  onMissileReloadsUpdate: (reloads: number) => void;
 }
 
-const WeaponsPanel: React.FC<WeaponsPanelProps> = ({ weapons, shipTonnage, onUpdate }) => {
+const WeaponsPanel: React.FC<WeaponsPanelProps> = ({ weapons, shipTonnage, missileReloads, remainingMass, onUpdate, onMissileReloadsUpdate }) => {
   const mountLimit = getWeaponMountLimit(shipTonnage);
   const usedMounts = weapons.reduce((sum, weapon) => sum + weapon.quantity, 0);
+  
+  // Check if any missile launchers are installed
+  const hasMissileLaunchers = weapons.some(weapon => 
+    weapon.weapon_name.toLowerCase().includes('missile launcher') && weapon.quantity > 0
+  );
+  
+  // Calculate maximum missile reloads based on remaining mass
+  const maxMissileReloads = Math.floor(remainingMass - missileReloads);
 
   const addWeapon = (weaponType: typeof WEAPON_TYPES[0]) => {
     const existingWeapon = weapons.find(w => w.weapon_name === weaponType.name);
@@ -75,6 +86,35 @@ const WeaponsPanel: React.FC<WeaponsPanelProps> = ({ weapons, shipTonnage, onUpd
           );
         })}
       </div>
+
+      {hasMissileLaunchers && (
+        <div className="missile-reloads-section">
+          <h3>Missile Reloads</h3>
+          <p>Missile launchers detected. You can allocate tonnage for missile reloads.</p>
+          <div className="form-group">
+            <label htmlFor="missile-reloads">Missile Reload Tonnage</label>
+            <input
+              id="missile-reloads"
+              type="number"
+              min="0"
+              max={maxMissileReloads + missileReloads}
+              value={missileReloads}
+              onChange={(e) => onMissileReloadsUpdate(Math.max(0, parseInt(e.target.value) || 0))}
+            />
+            <small>
+              0 - {maxMissileReloads + missileReloads} tons available. 
+              Cost: {missileReloads} MCr (1 MCr per ton)
+            </small>
+          </div>
+          
+          {missileReloads > 0 && (
+            <div className="missile-summary">
+              <p><strong>Missile Reloads:</strong> {missileReloads} tons ({missileReloads} MCr)</p>
+              <p><small>Provides additional missile ammunition for extended operations</small></p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
