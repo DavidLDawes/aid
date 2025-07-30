@@ -19,7 +19,7 @@ import './App.css';
 function App() {
   const [currentPanel, setCurrentPanel] = useState(0);
   const [shipDesign, setShipDesign] = useState<ShipDesign>({
-    ship: { name: '', tech_level: 'A', tonnage: 100, configuration: 'standard', fuel_weeks: 2, missile_reloads: 0, description: '' },
+    ship: { name: '', tech_level: 'A', tonnage: 100, configuration: 'standard', fuel_weeks: 2, missile_reloads: 0, sand_reloads: 0, description: '' },
     engines: [],
     fittings: [],
     weapons: [],
@@ -78,6 +78,9 @@ function App() {
     // Add missile reload mass
     used += shipDesign.ship.missile_reloads;
 
+    // Add sand reload mass
+    used += shipDesign.ship.sand_reloads;
+
     const total = shipDesign.ship.tonnage;
     const remaining = total - used;
     
@@ -121,6 +124,9 @@ function App() {
 
     // Add missile reload costs (1 MCr per ton)
     total += shipDesign.ship.missile_reloads;
+
+    // Add sand reload costs (0.1 MCr per ton)
+    total += shipDesign.ship.sand_reloads * 0.1;
 
     return { total };
   };
@@ -228,7 +234,10 @@ function App() {
           defenses={shipDesign.defenses} 
           shipTonnage={shipDesign.ship.tonnage} 
           weaponsCount={shipDesign.weapons.reduce((sum, weapon) => sum + weapon.quantity, 0)}
+          sandReloads={shipDesign.ship.sand_reloads}
+          remainingMass={mass.remaining + shipDesign.ship.sand_reloads}
           onUpdate={(defenses) => updateShipDesign({ defenses })} 
+          onSandReloadsUpdate={(sand_reloads) => updateShipDesign({ ship: { ...shipDesign.ship, sand_reloads } })}
         />;
       case 5:
         return <BerthsPanel berths={shipDesign.berths} onUpdate={(berths) => updateShipDesign({ berths })} />;
