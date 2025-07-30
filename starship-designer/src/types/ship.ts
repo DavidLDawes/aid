@@ -35,7 +35,7 @@ export interface Weapon {
 
 export interface Defense {
   id?: number;
-  defense_type: 'armor' | 'point_defense_laser' | 'sand_caster_single' | 'sand_caster_dual' | 'sand_caster_triple' | 'reflec';
+  defense_type: 'sandcaster_turret' | 'dual_sandcaster_turret' | 'triple_sandcaster_turret' | 'point_defense_laser_turret' | 'dual_point_defense_laser_turret';
   mass: number;
   cost: number;
   quantity: number;

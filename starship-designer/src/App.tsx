@@ -131,8 +131,7 @@ function App() {
     const weaponCount = shipDesign.weapons
       .filter(weapon => weapon.weapon_name !== 'Hard Point')
       .reduce((sum, weapon) => sum + weapon.quantity, 0);
-    const defenseCount = shipDesign.defenses.filter(d => d.defense_type !== 'armor' && d.defense_type !== 'reflec')
-      .reduce((sum, defense) => sum + defense.quantity, 0);
+    const defenseCount = shipDesign.defenses.reduce((sum, defense) => sum + defense.quantity, 0);
     const gunners = weaponCount + defenseCount;
     
     const subtotal = pilot + navigator + engineers + gunners;
@@ -212,7 +211,12 @@ function App() {
       case 3:
         return <WeaponsPanel weapons={shipDesign.weapons} shipTonnage={shipDesign.ship.tonnage} onUpdate={(weapons) => updateShipDesign({ weapons })} />;
       case 4:
-        return <DefensesPanel defenses={shipDesign.defenses} shipTonnage={shipDesign.ship.tonnage} onUpdate={(defenses) => updateShipDesign({ defenses })} />;
+        return <DefensesPanel 
+          defenses={shipDesign.defenses} 
+          shipTonnage={shipDesign.ship.tonnage} 
+          weaponsCount={shipDesign.weapons.reduce((sum, weapon) => sum + weapon.quantity, 0)}
+          onUpdate={(defenses) => updateShipDesign({ defenses })} 
+        />;
       case 5:
         return <BerthsPanel berths={shipDesign.berths} onUpdate={(berths) => updateShipDesign({ berths })} />;
       case 6:

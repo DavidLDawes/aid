@@ -378,10 +378,11 @@ export const WEAPON_TYPES = [
 ];
 
 export const DEFENSE_TYPES = [
-  { name: 'Point Defense Laser Turret', type: 'point_defense_laser', mass: 1, cost: 1 },
-  { name: 'Sand Caster Turret', type: 'sand_caster_single', mass: 1, cost: 1.3 },
-  { name: 'Dual Sand Caster Turret', type: 'sand_caster_dual', mass: 1, cost: 1.5 },
-  { name: 'Triple Sand Caster Turret', type: 'sand_caster_triple', mass: 1, cost: 1.8 }
+  { name: 'Sandcaster Turret', type: 'sandcaster_turret', mass: 1, cost: 1.3 },
+  { name: 'Dual Sandcaster Turret', type: 'dual_sandcaster_turret', mass: 1, cost: 1.5 },
+  { name: 'Triple Sandcaster Turret', type: 'triple_sandcaster_turret', mass: 1, cost: 1.8 },
+  { name: 'Point Defense Laser Turret', type: 'point_defense_laser_turret', mass: 1, cost: 1 },
+  { name: 'Dual Point Defense Laser Turret', type: 'dual_point_defense_laser_turret', mass: 1, cost: 1.5 }
 ];
 
 export const BERTH_TYPES = [
