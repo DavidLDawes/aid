@@ -62,7 +62,7 @@ export interface Facility {
 
 export interface Cargo {
   id?: number;
-  cargo_type: 'supply_bay' | 'cargo_bay' | 'cold_storage' | 'dry_goods' | 'secure_storage' | 'data_storage';
+  cargo_type: 'cargo_bay' | 'spares' | 'cold_storage_bay' | 'data_storage_bay' | 'secure_storage_bay' | 'vacuum_bay' | 'livestock_bay' | 'live_plant_bay';
   tonnage: number;
   cost: number;
 }

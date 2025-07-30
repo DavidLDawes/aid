@@ -428,12 +428,14 @@ export const DRONE_TYPES = [
 ];
 
 export const CARGO_TYPES = [
-  { name: 'Supply Bay', type: 'supply_bay', costPerTon: 0, flatCost: 0.5 },
-  { name: 'Cargo Bay', type: 'cargo_bay', costPerTon: 0, flatCost: 0 },
-  { name: 'Cold Storage', type: 'cold_storage', costPerTon: 0.01, flatCost: 0 },
-  { name: 'Dry Goods', type: 'dry_goods', costPerTon: 0, flatCost: 0 },
-  { name: 'Secure Storage', type: 'secure_storage', costPerTon: 0, flatCost: 2 },
-  { name: 'Data Storage', type: 'data_storage', costPerTon: 1, flatCost: 0 }
+  { name: 'Cargo Bay', type: 'cargo_bay', costPerTon: 0 },
+  { name: 'Spares', type: 'spares', costPerTon: 0.5 },
+  { name: 'Cold Storage Bay', type: 'cold_storage_bay', costPerTon: 0.2 },
+  { name: 'Data Storage Bay', type: 'data_storage_bay', costPerTon: 0.3 },
+  { name: 'Secure Storage Bay', type: 'secure_storage_bay', costPerTon: 0.7 },
+  { name: 'Vacuum Bay', type: 'vacuum_bay', costPerTon: 0.2 },
+  { name: 'Livestock Bay', type: 'livestock_bay', costPerTon: 2 },
+  { name: 'Live Plant Bay', type: 'live_plant_bay', costPerTon: 1 }
 ];
 
 export function getBridgeMassAndCost(shipTonnage: number, isHalfBridge: boolean) {
