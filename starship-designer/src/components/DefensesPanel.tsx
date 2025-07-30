@@ -32,7 +32,7 @@ const DefensesPanel: React.FC<DefensesPanelProps> = ({ defenses, shipTonnage, we
     if (existingDefense) {
       const newDefenses = defenses.map(d =>
         d.defense_type === defenseType.type
-          ? { ...d, quantity: d.quantity + 1, mass: defenseType.mass * (d.quantity + 1), cost: defenseType.cost * (d.quantity + 1) }
+          ? { ...d, quantity: d.quantity + 1 }
           : d
       );
       onUpdate(newDefenses);
@@ -48,15 +48,11 @@ const DefensesPanel: React.FC<DefensesPanelProps> = ({ defenses, shipTonnage, we
   };
 
   const removeDefense = (defenseType: string) => {
-    const newDefenses = defenses.map(d => {
-      if (d.defense_type === defenseType) {
-        if (d.quantity <= 1) {
-          return null;
-        }
-        return { ...d, quantity: d.quantity - 1, mass: d.mass - DEFENSE_TYPES.find(dt => dt.type === defenseType)!.mass, cost: d.cost - DEFENSE_TYPES.find(dt => dt.type === defenseType)!.cost };
-      }
-      return d;
-    }).filter(Boolean) as Defense[];
+    const newDefenses = defenses.map(d =>
+      d.defense_type === defenseType
+        ? { ...d, quantity: Math.max(0, d.quantity - 1) }
+        : d
+    ).filter(d => d.quantity > 0);
     onUpdate(newDefenses);
   };
 
