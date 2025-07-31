@@ -40,7 +40,7 @@ function App() {
 
   const panels = [
     'Ship', 'Engines', 'Fittings', 'Weapons', 'Defenses', 
-    'Berths', 'Rec/Health', 'Cargo', 'Vehicles', 'Drones', 
+    'Rec/Health', 'Cargo', 'Vehicles', 'Drones', 'Berths',
     'Staff', 'Ship Design'
   ];
 
@@ -176,7 +176,7 @@ function App() {
       case 2: // Fittings
         return shipDesign.fittings.some(f => f.fitting_type === 'bridge' || f.fitting_type === 'half_bridge');
       
-      case 6: // Rec/Health
+      case 5: // Rec/Health
         return shipDesign.facilities.some(f => f.facility_type === 'commissary');
       
       default:
@@ -247,15 +247,15 @@ function App() {
           onSandReloadsUpdate={(sand_reloads) => updateShipDesign({ ship: { ...shipDesign.ship, sand_reloads } })}
         />;
       case 5:
-        return <BerthsPanel berths={shipDesign.berths} staffRequirements={staff} onUpdate={(berths) => updateShipDesign({ berths })} />;
-      case 6:
         return <FacilitiesPanel facilities={shipDesign.facilities} onUpdate={(facilities) => updateShipDesign({ facilities })} />;
-      case 7:
+      case 6:
         return <CargoPanel cargo={shipDesign.cargo} remainingMass={mass.remaining} onUpdate={(cargo) => updateShipDesign({ cargo })} />;
-      case 8:
+      case 7:
         return <VehiclesPanel vehicles={shipDesign.vehicles} shipTechLevel={shipDesign.ship.tech_level} onUpdate={(vehicles) => updateShipDesign({ vehicles })} />;
-      case 9:
+      case 8:
         return <DronesPanel drones={shipDesign.drones} onUpdate={(drones) => updateShipDesign({ drones })} />;
+      case 9:
+        return <BerthsPanel berths={shipDesign.berths} staffRequirements={staff} onUpdate={(berths) => updateShipDesign({ berths })} />;
       case 10:
         return <StaffPanel staffRequirements={staff} berths={shipDesign.berths} />;
       case 11:
