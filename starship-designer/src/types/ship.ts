@@ -88,6 +88,7 @@ export interface StaffRequirements {
   navigator: number;
   engineers: number;
   gunners: number;
+  service: number;
   stewards: number;
   total: number;
 }

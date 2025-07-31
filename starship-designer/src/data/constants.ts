@@ -410,27 +410,27 @@ export const FACILITY_TYPES = [
 ];
 
 export const VEHICLE_TYPES = [
-  { name: 'Honey Badger 4 ton Off-Roader', type: 'honey_badger_off_roader', mass: 4, cost: 0.052436, techLevel: 12 },
-  { name: 'All-Terrain Vehicle tracked', type: 'atv_tracked', mass: 10, cost: 0.195, techLevel: 12 },
-  { name: 'All-Terrain Vehicle wheeled', type: 'atv_wheeled', mass: 10, cost: 0.23, techLevel: 12 },
-  { name: 'Air/Raft Truck', type: 'air_raft_truck', mass: 5, cost: 0.55, techLevel: 12 },
-  { name: 'Open Top Air/Raft', type: 'open_top_air_raft', mass: 4, cost: 0.045, techLevel: 8 },
-  { name: 'Fire Scorpion 65 ton Quad Walker', type: 'fire_scorpion_walker', mass: 65, cost: 18, techLevel: 10 },
-  { name: 'Socrates Field Car', type: 'socrates_field_car', mass: 5, cost: 0.143, techLevel: 9 },
-  { name: '6 ton UFO Floating Home', type: 'ufo_floating_home', mass: 6, cost: 0.05, techLevel: 8 },
-  { name: 'Sealed Air/Raft (4 ton)', type: 'sealed_air_raft_4t', mass: 4, cost: 0.09, techLevel: 12 },
-  { name: 'Iderati Pattern Armored Fighting Vehicle', type: 'iderati_afv', mass: 10, cost: 0.6, techLevel: 12 },
-  { name: '22 ton AAT Infantry Support Vehicle', type: 'aat_infantry_support', mass: 22, cost: 2, techLevel: 14 },
-  { name: 'Sealed Air/Raft (3 ton)', type: 'sealed_air_raft_3t', mass: 3, cost: 0.07, techLevel: 12 },
-  { name: 'Pug 4x4 4 ton Armored Car', type: 'pug_armored_car', mass: 4, cost: 0.025, techLevel: 6 },
-  { name: '1.5 ton Custom Exploration G/Bike', type: 'exploration_gbike', mass: 1.5, cost: 0.08, techLevel: 10 },
-  { name: 'Awesome AWS-8Q 80 ton Walker', type: 'awesome_walker', mass: 80, cost: 22, techLevel: 10 },
-  { name: 'Socrates Field Car (Variant)', type: 'socrates_field_car_variant', mass: 5, cost: 0.168, techLevel: 9 },
-  { name: 'Armored Fighting Vehicle', type: 'armored_fighting_vehicle', mass: 10, cost: 0.198, techLevel: 12 },
-  { name: 'Centurion Security Robot', type: 'centurion_security_robot', mass: 0.5, cost: 0.12, techLevel: 12 },
-  { name: '0.5 ton Robodog Assault Bot', type: 'robodog_assault_bot', mass: 0.5, cost: 0.012, techLevel: 8 },
-  { name: 'Fury Helicopter Gunship (Refit)', type: 'fury_helicopter_gunship', mass: 8, cost: 1.2, techLevel: 8 },
-  { name: 'ATLAS Combat Droid 1.0 ton', type: 'atlas_combat_droid', mass: 1, cost: 0.024, techLevel: 8 }
+  { name: 'Honey Badger 4 ton Off-Roader', type: 'honey_badger_off_roader', mass: 4, cost: 0.052436, techLevel: 12, serviceStaff: 1 },
+  { name: 'All-Terrain Vehicle tracked', type: 'atv_tracked', mass: 10, cost: 0.195, techLevel: 12, serviceStaff: 1 },
+  { name: 'All-Terrain Vehicle wheeled', type: 'atv_wheeled', mass: 10, cost: 0.23, techLevel: 12, serviceStaff: 1 },
+  { name: 'Air/Raft Truck', type: 'air_raft_truck', mass: 5, cost: 0.55, techLevel: 12, serviceStaff: 1 },
+  { name: 'Open Top Air/Raft', type: 'open_top_air_raft', mass: 4, cost: 0.045, techLevel: 8, serviceStaff: 1 },
+  { name: 'Fire Scorpion 65 ton Quad Walker', type: 'fire_scorpion_walker', mass: 65, cost: 18, techLevel: 10, serviceStaff: 3 },
+  { name: 'Socrates Field Car', type: 'socrates_field_car', mass: 5, cost: 0.143, techLevel: 9, serviceStaff: 1 },
+  { name: '6 ton UFO Floating Home', type: 'ufo_floating_home', mass: 6, cost: 0.05, techLevel: 8, serviceStaff: 1 },
+  { name: 'Sealed Air/Raft (4 ton)', type: 'sealed_air_raft_4t', mass: 4, cost: 0.09, techLevel: 12, serviceStaff: 1 },
+  { name: 'Iderati Pattern Armored Fighting Vehicle', type: 'iderati_afv', mass: 10, cost: 0.6, techLevel: 12, serviceStaff: 1 },
+  { name: '22 ton AAT Infantry Support Vehicle', type: 'aat_infantry_support', mass: 22, cost: 2, techLevel: 14, serviceStaff: 1 },
+  { name: 'Sealed Air/Raft (3 ton)', type: 'sealed_air_raft_3t', mass: 3, cost: 0.07, techLevel: 12, serviceStaff: 1 },
+  { name: 'Pug 4x4 4 ton Armored Car', type: 'pug_armored_car', mass: 4, cost: 0.025, techLevel: 6, serviceStaff: 1 },
+  { name: '1.5 ton Custom Exploration G/Bike', type: 'exploration_gbike', mass: 1.5, cost: 0.08, techLevel: 10, serviceStaff: 1 },
+  { name: 'Awesome AWS-8Q 80 ton Walker', type: 'awesome_walker', mass: 80, cost: 22, techLevel: 10, serviceStaff: 4 },
+  { name: 'Socrates Field Car (Variant)', type: 'socrates_field_car_variant', mass: 5, cost: 0.168, techLevel: 9, serviceStaff: 1 },
+  { name: 'Armored Fighting Vehicle', type: 'armored_fighting_vehicle', mass: 10, cost: 0.198, techLevel: 12, serviceStaff: 1 },
+  { name: 'Centurion Security Robot', type: 'centurion_security_robot', mass: 0.5, cost: 0.12, techLevel: 12, serviceStaff: 1 },
+  { name: '0.5 ton Robodog Assault Bot', type: 'robodog_assault_bot', mass: 0.5, cost: 0.012, techLevel: 8, serviceStaff: 0.25 },
+  { name: 'Fury Helicopter Gunship (Refit)', type: 'fury_helicopter_gunship', mass: 8, cost: 1.2, techLevel: 8, serviceStaff: 1 },
+  { name: 'ATLAS Combat Droid 1.0 ton', type: 'atlas_combat_droid', mass: 1, cost: 0.024, techLevel: 8, serviceStaff: 0.5 }
 ];
 
 export const DRONE_TYPES = [
@@ -496,4 +496,26 @@ export function convertTechLevelToNumber(techLevel: string): number {
 export function getAvailableVehicles(shipTechLevel: string): typeof VEHICLE_TYPES {
   const shipTL = convertTechLevelToNumber(shipTechLevel);
   return VEHICLE_TYPES.filter(vehicle => vehicle.techLevel <= shipTL);
+}
+
+export function calculateVehicleServiceStaff(vehicles: { vehicle_type: string; quantity: number }[]): number {
+  let totalServiceStaff = 0;
+  
+  for (const vehicle of vehicles) {
+    const vehicleType = VEHICLE_TYPES.find(vt => vt.type === vehicle.vehicle_type);
+    if (vehicleType) {
+      if (vehicleType.serviceStaff === 0.25) {
+        // Robodog: 0.25 per unit, rounded up per 4 units (1-4=1, 5-8=2, etc)
+        totalServiceStaff += Math.ceil((vehicle.quantity * vehicleType.serviceStaff));
+      } else if (vehicleType.serviceStaff === 0.5) {
+        // ATLAS: 0.5 per unit, rounded up per 2 units (1-2=1, 3-4=2, etc)  
+        totalServiceStaff += Math.ceil((vehicle.quantity * vehicleType.serviceStaff));
+      } else {
+        // Standard vehicles: 1 staff per unit (or 3/4 for walkers)
+        totalServiceStaff += vehicle.quantity * vehicleType.serviceStaff;
+      }
+    }
+  }
+  
+  return totalServiceStaff;
 }

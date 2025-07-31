@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { ShipDesign, Ship, Engine, Fitting, Weapon, Defense, Berth, Facility, Cargo, Vehicle, Drone, MassCalculation, CostCalculation, StaffRequirements } from './types/ship';
-import { calculateTotalFuelMass } from './data/constants';
+import { calculateTotalFuelMass, calculateVehicleServiceStaff } from './data/constants';
 import ShipPanel from './components/ShipPanel';
 import EnginesPanel from './components/EnginesPanel';
 import FittingsPanel from './components/FittingsPanel';
@@ -153,14 +153,17 @@ function App() {
     const defenseCount = shipDesign.defenses.reduce((sum, defense) => sum + defense.quantity, 0);
     const gunners = weaponCount + defenseCount;
     
-    const subtotal = pilot + navigator + engineers + gunners;
+    // Service staff: for vehicle maintenance
+    const service = calculateVehicleServiceStaff(shipDesign.vehicles);
+    
+    const subtotal = pilot + navigator + engineers + gunners + service;
     
     // Stewards: 1 per 8 crew, rounded up
     const stewards = Math.ceil(subtotal / 8);
     
     const total = subtotal + stewards;
     
-    return { pilot, navigator, engineers, gunners, stewards, total };
+    return { pilot, navigator, engineers, gunners, service, stewards, total };
   };
 
   const isCurrentPanelValid = (): boolean => {

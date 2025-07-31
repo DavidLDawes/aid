@@ -1,6 +1,6 @@
 import React from 'react';
 import type { Vehicle } from '../types/ship';
-import { getAvailableVehicles } from '../data/constants';
+import { getAvailableVehicles, calculateVehicleServiceStaff } from '../data/constants';
 
 interface VehiclesPanelProps {
   vehicles: Vehicle[];
@@ -10,6 +10,7 @@ interface VehiclesPanelProps {
 
 const VehiclesPanel: React.FC<VehiclesPanelProps> = ({ vehicles, shipTechLevel, onUpdate }) => {
   const availableVehicles = getAvailableVehicles(shipTechLevel);
+  const totalServiceStaff = calculateVehicleServiceStaff(vehicles);
 
   const addVehicle = (vehicleType: typeof availableVehicles[0]) => {
     const existingVehicle = vehicles.find(v => v.vehicle_type === vehicleType.type);
@@ -42,6 +43,7 @@ const VehiclesPanel: React.FC<VehiclesPanelProps> = ({ vehicles, shipTechLevel, 
   return (
     <div className="panel-content">
       <p>Configure vehicles carried by the starship. Only vehicles compatible with TL-{shipTechLevel} are available.</p>
+      <p><strong>Total Service Staff Required:</strong> {totalServiceStaff}</p>
       
       <div className="component-list">
         {availableVehicles.map(vehicleType => {
@@ -53,6 +55,7 @@ const VehiclesPanel: React.FC<VehiclesPanelProps> = ({ vehicles, shipTechLevel, 
               <div className="component-info">
                 <h4>{vehicleType.name}</h4>
                 <p>Mass: {vehicleType.mass} tons, Cost: {vehicleType.cost} MCr, TL: {vehicleType.techLevel}</p>
+                <p>Service Staff: {vehicleType.serviceStaff} per vehicle</p>
               </div>
               <div className="quantity-control">
                 <button 
@@ -85,17 +88,33 @@ const VehiclesPanel: React.FC<VehiclesPanelProps> = ({ vehicles, shipTechLevel, 
                 <th>Quantity</th>
                 <th>Mass (t)</th>
                 <th>Cost (MCr)</th>
+                <th>Service Staff</th>
               </tr>
             </thead>
             <tbody>
-              {vehicles.map(vehicle => (
-                <tr key={vehicle.vehicle_type}>
-                  <td>{availableVehicles.find(vt => vt.type === vehicle.vehicle_type)?.name || vehicle.vehicle_type}</td>
-                  <td>{vehicle.quantity}</td>
-                  <td>{(vehicle.mass * vehicle.quantity).toFixed(1)}</td>
-                  <td>{(vehicle.cost * vehicle.quantity).toFixed(3)}</td>
-                </tr>
-              ))}
+              {vehicles.map(vehicle => {
+                const vehicleType = availableVehicles.find(vt => vt.type === vehicle.vehicle_type);
+                let serviceStaff = 0;
+                if (vehicleType) {
+                  if (vehicleType.serviceStaff === 0.25) {
+                    serviceStaff = Math.ceil(vehicle.quantity * vehicleType.serviceStaff);
+                  } else if (vehicleType.serviceStaff === 0.5) {
+                    serviceStaff = Math.ceil(vehicle.quantity * vehicleType.serviceStaff);
+                  } else {
+                    serviceStaff = vehicle.quantity * vehicleType.serviceStaff;
+                  }
+                }
+                
+                return (
+                  <tr key={vehicle.vehicle_type}>
+                    <td>{vehicleType?.name || vehicle.vehicle_type}</td>
+                    <td>{vehicle.quantity}</td>
+                    <td>{(vehicle.mass * vehicle.quantity).toFixed(1)}</td>
+                    <td>{(vehicle.cost * vehicle.quantity).toFixed(3)}</td>
+                    <td>{serviceStaff}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}
