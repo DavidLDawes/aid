@@ -156,12 +156,13 @@ function App() {
     // Service staff: for vehicle maintenance
     const service = calculateVehicleServiceStaff(shipDesign.vehicles);
     
-    const subtotal = pilot + navigator + engineers + gunners + service;
+    // Stewards: 1 per 8 staterooms (staterooms + luxury staterooms), rounded up
+    const totalStaterooms = shipDesign.berths
+      .filter(berth => berth.berth_type === 'staterooms' || berth.berth_type === 'luxury_staterooms')
+      .reduce((sum, berth) => sum + berth.quantity, 0);
+    const stewards = Math.ceil(totalStaterooms / 8);
     
-    // Stewards: 1 per 8 crew, rounded up
-    const stewards = Math.ceil(subtotal / 8);
-    
-    const total = subtotal + stewards;
+    const total = pilot + navigator + engineers + gunners + service + stewards;
     
     return { pilot, navigator, engineers, gunners, service, stewards, total };
   };
