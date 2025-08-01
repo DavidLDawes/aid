@@ -429,10 +429,7 @@ export const VEHICLE_TYPES = [
   { name: 'Awesome AWS-8Q 80 ton Walker', type: 'awesome_walker', mass: 80, cost: 22, techLevel: 10, serviceStaff: 4 },
   { name: 'Socrates Field Car (Variant)', type: 'socrates_field_car_variant', mass: 5, cost: 0.168, techLevel: 9, serviceStaff: 1 },
   { name: 'Armored Fighting Vehicle', type: 'armored_fighting_vehicle', mass: 10, cost: 0.198, techLevel: 12, serviceStaff: 1 },
-  { name: 'Centurion Security Robot', type: 'centurion_security_robot', mass: 0.5, cost: 0.12, techLevel: 12, serviceStaff: 1 },
-  { name: '0.5 ton Robodog Assault Bot', type: 'robodog_assault_bot', mass: 0.5, cost: 0.012, techLevel: 8, serviceStaff: 0.25 },
-  { name: 'Fury Helicopter Gunship (Refit)', type: 'fury_helicopter_gunship', mass: 8, cost: 1.2, techLevel: 8, serviceStaff: 1 },
-  { name: 'ATLAS Combat Droid 1.0 ton', type: 'atlas_combat_droid', mass: 1, cost: 0.024, techLevel: 8, serviceStaff: 0.5 }
+  { name: 'Fury Helicopter Gunship (Refit)', type: 'fury_helicopter_gunship', mass: 8, cost: 1.2, techLevel: 8, serviceStaff: 1 }
 ];
 
 export const DRONE_TYPES = [
@@ -440,7 +437,10 @@ export const DRONE_TYPES = [
   { name: 'Repair', type: 'repair', mass: 10, cost: 1 },
   { name: 'Rescue', type: 'rescue', mass: 10, cost: 0.5 },
   { name: 'Sensor', type: 'sensor', mass: 1, cost: 1 },
-  { name: 'Comms', type: 'comms', mass: 0.1, cost: 0.2 }
+  { name: 'Comms', type: 'comms', mass: 0.1, cost: 0.2 },
+  { name: 'Centurion Security Robot', type: 'centurion_security_robot', mass: 0.5, cost: 0.12 },
+  { name: '0.5 ton Robodog Assault Bot', type: 'robodog_assault_bot', mass: 0.5, cost: 0.012 },
+  { name: 'ATLAS Combat Droid 1.0 ton', type: 'atlas_combat_droid', mass: 1, cost: 0.024 }
 ];
 
 export const CARGO_TYPES = [
@@ -520,6 +520,32 @@ export function calculateVehicleServiceStaff(vehicles: { vehicle_type: string; q
   }
   
   return totalServiceStaff;
+}
+
+export function calculateDroneServiceStaff(drones: { drone_type: string; quantity: number }[]): number {
+  let totalDroneTonnage = 0;
+  let heavyDroneTonnage = 0; // 10 ton drones
+  let lightDroneTonnage = 0; // less than 10 ton drones
+  
+  for (const drone of drones) {
+    const droneType = DRONE_TYPES.find(dt => dt.type === drone.drone_type);
+    if (droneType) {
+      const droneTonnage = droneType.mass * drone.quantity;
+      if (droneType.mass >= 10) {
+        heavyDroneTonnage += droneTonnage;
+      } else {
+        lightDroneTonnage += droneTonnage;
+      }
+    }
+  }
+  
+  // Heavy drones (10+ tons): 1 staff per 100 tons
+  const heavyDroneStaff = Math.ceil(heavyDroneTonnage / 100);
+  
+  // Light drones (<10 tons): 1 staff per 20 tons
+  const lightDroneStaff = Math.ceil(lightDroneTonnage / 20);
+  
+  return heavyDroneStaff + lightDroneStaff;
 }
 
 export function calculateMedicalStaff(facilities: { facility_type: string; quantity: number }[]): { nurses: number; surgeons: number; techs: number } {

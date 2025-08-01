@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { ShipDesign, MassCalculation, CostCalculation, StaffRequirements } from './types/ship';
-import { calculateTotalFuelMass, calculateVehicleServiceStaff, calculateMedicalStaff } from './data/constants';
+import { calculateTotalFuelMass, calculateVehicleServiceStaff, calculateDroneServiceStaff, calculateMedicalStaff } from './data/constants';
 import { databaseService } from './services/database';
 import SelectShipPanel from './components/SelectShipPanel';
 import ShipPanel from './components/ShipPanel';
@@ -171,8 +171,10 @@ function App() {
     const defenseCount = shipDesign.defenses.reduce((sum, defense) => sum + defense.quantity, 0);
     const gunners = weaponCount + defenseCount;
     
-    // Service staff: for vehicle maintenance
-    const service = calculateVehicleServiceStaff(shipDesign.vehicles);
+    // Service staff: for vehicle and drone maintenance
+    const vehicleService = calculateVehicleServiceStaff(shipDesign.vehicles);
+    const droneService = calculateDroneServiceStaff(shipDesign.drones);
+    const service = vehicleService + droneService;
     
     // Stewards: 1 per 8 staterooms (staterooms + luxury staterooms), rounded up
     const totalStaterooms = shipDesign.berths
