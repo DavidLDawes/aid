@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
-import type { ShipDesign, Ship, Engine, Fitting, Weapon, Defense, Berth, Facility, Cargo, Vehicle, Drone, MassCalculation, CostCalculation, StaffRequirements } from './types/ship';
+import { useState, useEffect } from 'react';
+import type { ShipDesign, MassCalculation, CostCalculation, StaffRequirements } from './types/ship';
 import { calculateTotalFuelMass, calculateVehicleServiceStaff, calculateMedicalStaff } from './data/constants';
+import { databaseService } from './services/database';
+import SelectShipPanel from './components/SelectShipPanel';
 import ShipPanel from './components/ShipPanel';
 import EnginesPanel from './components/EnginesPanel';
 import FittingsPanel from './components/FittingsPanel';
@@ -17,6 +19,7 @@ import MassSidebar from './components/MassSidebar';
 import './App.css';
 
 function App() {
+  const [showSelectShip, setShowSelectShip] = useState(true);
   const [currentPanel, setCurrentPanel] = useState(0);
   const [shipDesign, setShipDesign] = useState<ShipDesign>({
     ship: { name: '', tech_level: 'A', tonnage: 100, configuration: 'standard', fuel_weeks: 2, missile_reloads: 0, sand_reloads: 0, description: '' },
@@ -43,6 +46,21 @@ function App() {
     'Rec/Health', 'Cargo', 'Vehicles', 'Drones', 'Berths',
     'Staff', 'Ship Design'
   ];
+
+  useEffect(() => {
+    checkExistingShips();
+  }, []);
+
+  const checkExistingShips = async () => {
+    try {
+      await databaseService.initialize();
+      const hasShips = await databaseService.hasAnyShips();
+      setShowSelectShip(hasShips);
+    } catch (error) {
+      console.error('Error checking existing ships:', error);
+      setShowSelectShip(false);
+    }
+  };
 
   const calculateMass = (): MassCalculation => {
     let used = 0;
@@ -219,7 +237,27 @@ function App() {
     setShipDesign(prev => ({ ...prev, ...updates }));
   };
 
+  const handleNewShip = () => {
+    setShowSelectShip(false);
+    setCurrentPanel(0);
+  };
+
+  const handleLoadShip = (loadedShipDesign: ShipDesign) => {
+    setShipDesign(loadedShipDesign);
+    setShowSelectShip(false);
+    setCurrentPanel(0);
+  };
+
+  const handleBackToShipSelect = () => {
+    setShowSelectShip(true);
+    setCurrentPanel(0);
+  };
+
   const renderCurrentPanel = () => {
+    if (showSelectShip) {
+      return <SelectShipPanel onNewShip={handleNewShip} onLoadShip={handleLoadShip} />;
+    }
+
     const mass = calculateMass();
     const cost = calculateCost();
     const staff = calculateStaffRequirements();
@@ -269,7 +307,7 @@ function App() {
       case 10:
         return <StaffPanel staffRequirements={staff} berths={shipDesign.berths} />;
       case 11:
-        return <SummaryPanel shipDesign={shipDesign} mass={mass} cost={cost} staff={staff} />;
+        return <SummaryPanel shipDesign={shipDesign} mass={mass} cost={cost} staff={staff} onBackToShipSelect={handleBackToShipSelect} />;
       default:
         return null;
     }
@@ -279,36 +317,43 @@ function App() {
     <div className="app">
       <header className="app-header">
         <h1>Starship Designer</h1>
-        <nav className="panel-nav">
-          {panels.map((panel, index) => (
-            <button
-              key={panel}
-              className={`nav-button ${index === currentPanel ? 'active' : ''} ${index < currentPanel ? 'completed' : ''}`}
-              onClick={() => setCurrentPanel(index)}
-              disabled={index > currentPanel + 1}
-            >
-              {panel}
-            </button>
-          ))}
-        </nav>
+        {!showSelectShip && (
+          <nav className="panel-nav">
+            {panels.map((panel, index) => (
+              <button
+                key={panel}
+                className={`nav-button ${index === currentPanel ? 'active' : ''} ${index < currentPanel ? 'completed' : ''}`}
+                onClick={() => setCurrentPanel(index)}
+                disabled={index > currentPanel + 1}
+              >
+                {panel}
+              </button>
+            ))}
+          </nav>
+        )}
       </header>
 
       <div className="app-content">
         <main className="main-panel">
-          <h2>{panels[currentPanel]}</h2>
+          <h2>{showSelectShip ? 'Select Ship' : panels[currentPanel]}</h2>
           {renderCurrentPanel()}
           
-          <div className="panel-controls">
-            <button onClick={prevPanel} disabled={currentPanel === 0}>
-              Previous
-            </button>
-            <button onClick={nextPanel} disabled={currentPanel === panels.length - 1 || !canAdvance()}>
-              Next
-            </button>
-          </div>
+          {!showSelectShip && (
+            <div className="panel-controls">
+              <button onClick={prevPanel} disabled={currentPanel === 0}>
+                Previous
+              </button>
+              <button onClick={nextPanel} disabled={currentPanel === panels.length - 1 || !canAdvance()}>
+                Next
+              </button>
+              <button onClick={handleBackToShipSelect} className="back-to-select">
+                Back to Ship Select
+              </button>
+            </div>
+          )}
         </main>
 
-        {currentPanel >= 1 && (
+        {!showSelectShip && currentPanel >= 1 && (
           <MassSidebar mass={calculateMass()} cost={calculateCost()} />
         )}
       </div>
