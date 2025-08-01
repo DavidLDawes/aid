@@ -53,9 +53,7 @@ const VehiclesPanel: React.FC<VehiclesPanelProps> = ({ vehicles, shipTechLevel, 
           return (
             <div key={vehicleType.type} className="component-item">
               <div className="component-info">
-                <h4>{vehicleType.name}</h4>
-                <p>Mass: {vehicleType.mass} tons, Cost: {vehicleType.cost} MCr, TL: {vehicleType.techLevel}</p>
-                <p>Service Staff: {vehicleType.serviceStaff} per vehicle</p>
+                <h4>{vehicleType.name}, {vehicleType.mass} tons, {vehicleType.cost} MCr, TL: {vehicleType.techLevel}, Service Staff: {vehicleType.serviceStaff}</h4>
               </div>
               <div className="quantity-control">
                 <button 

@@ -106,8 +106,7 @@ const FittingsPanel: React.FC<FittingsPanelProps> = ({ fittings, shipTonnage, on
         {launchTubes.map((tube, index) => (
           <div key={index} className="component-item">
             <div className="component-info">
-              <h4>Launch Tube {index + 1}</h4>
-              <p>Mass: {tube.mass} tons, Cost: {tube.cost} MCr</p>
+              <h4>Launch Tube {index + 1}, {tube.mass} tons, {tube.cost} MCr</h4>
             </div>
             <div className="component-controls">
               <label>

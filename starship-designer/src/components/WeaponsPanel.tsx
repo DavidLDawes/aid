@@ -64,8 +64,7 @@ const WeaponsPanel: React.FC<WeaponsPanelProps> = ({ weapons, shipTonnage, missi
           return (
             <div key={weaponType.name} className="component-item">
               <div className="component-info">
-                <h4>{weaponType.name}</h4>
-                <p>Mass: {weaponType.mass} tons, Cost: {weaponType.cost} MCr</p>
+                <h4>{weaponType.name}, {weaponType.mass} tons, {weaponType.cost} MCr</h4>
               </div>
               <div className="quantity-control">
                 <button 
