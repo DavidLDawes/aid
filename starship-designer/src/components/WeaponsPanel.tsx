@@ -277,6 +277,7 @@ const WeaponsPanel: React.FC<WeaponsPanelProps> = ({ weapons, shipTonnage, missi
           )}
         </div>
       )}
+
     </div>
   );
 };

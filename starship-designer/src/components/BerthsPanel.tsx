@@ -62,37 +62,38 @@ const BerthsPanel: React.FC<BerthsPanelProps> = ({ berths, staffRequirements, on
         </p>
       </div>
 
-      <div className="berth-selection">
-        <h3>Berth Options</h3>
-        {BERTH_TYPES.map(berthType => {
-          const quantity = getBerthQuantity(berthType.type);
-          const isStateroom = berthType.type === 'staterooms' || berthType.type === 'luxury_staterooms';
-          
-          return (
-            <div key={berthType.type} className="berth-item">
-              <div className="berth-info">
-                <h4>{berthType.name} {berthType.required && '(Required)'}, {berthType.mass} tons, {berthType.cost} MCr each</h4>
-                {quantity > 0 && (
-                  <p><strong>Total:</strong> {(berthType.mass * quantity).toFixed(1)} tons, {(berthType.cost * quantity).toFixed(2)} MCr</p>
-                )}
+      <div className="berths-grouped-layout">
+        <div className="berth-group-row">
+          {BERTH_TYPES.map(berthType => {
+            const quantity = getBerthQuantity(berthType.type);
+            
+            return (
+              <div key={berthType.type} className="component-item">
+                <div className="component-info">
+                  <h4>{berthType.name} {berthType.required && '(Required)'}</h4>
+                  <p>{berthType.mass} tons, {berthType.cost} MCr each</p>
+                  {quantity > 0 && (
+                    <p><strong>Total:</strong> {(berthType.mass * quantity).toFixed(1)} tons, {(berthType.cost * quantity).toFixed(2)} MCr</p>
+                  )}
+                </div>
+                <div className="quantity-control">
+                  <button 
+                    onClick={() => updateBerthQuantity(berthType, Math.max(0, quantity - 1))}
+                    disabled={quantity === 0}
+                  >
+                    -
+                  </button>
+                  <span>{quantity}</span>
+                  <button 
+                    onClick={() => updateBerthQuantity(berthType, quantity + 1)}
+                  >
+                    +
+                  </button>
+                </div>
               </div>
-              <div className="quantity-control">
-                <button 
-                  onClick={() => updateBerthQuantity(berthType, Math.max(0, quantity - 1))}
-                  disabled={quantity === 0}
-                >
-                  -
-                </button>
-                <span>{quantity}</span>
-                <button 
-                  onClick={() => updateBerthQuantity(berthType, quantity + 1)}
-                >
-                  +
-                </button>
-              </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
 
       <div className="berth-summary">
@@ -131,6 +132,7 @@ const BerthsPanel: React.FC<BerthsPanelProps> = ({ berths, staffRequirements, on
           </li>
         </ul>
       </div>
+
     </div>
   );
 };

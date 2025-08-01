@@ -102,6 +102,7 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
           </button>
         )}
       </div>
+
     </div>
   );
 };

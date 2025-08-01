@@ -24,6 +24,7 @@ const StaffPanel: React.FC<StaffPanelProps> = ({ staffRequirements, berths }) =>
       </div>
       
       <p>Staff accommodation validation coming soon...</p>
+
     </div>
   );
 };

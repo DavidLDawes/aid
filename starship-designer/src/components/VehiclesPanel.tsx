@@ -130,6 +130,18 @@ const VehiclesPanel: React.FC<VehiclesPanelProps> = ({ vehicles, shipTechLevel, 
           </table>
         )}
       </div>
+
+      <div className="vehicle-attribution">
+        <p>
+          <a 
+            href="https://drive.google.com/drive/folders/1DKuxqeL2wTd8Hh9rsScdXkm2WdMubYps" 
+            target="_blank" 
+            rel="noopener noreferrer"
+          >
+            Vehicles from the MgT2 collection, jut used their data.
+          </a>
+        </p>
+      </div>
     </div>
   );
 };

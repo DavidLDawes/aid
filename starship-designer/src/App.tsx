@@ -345,17 +345,31 @@ function App() {
           {renderCurrentPanel()}
           
           {!showSelectShip && (
-            <div className="panel-controls">
-              <button onClick={prevPanel} disabled={currentPanel === 0}>
-                Previous
-              </button>
-              <button onClick={nextPanel} disabled={currentPanel === panels.length - 1 || !canAdvance()}>
-                Next
-              </button>
-              <button onClick={handleBackToShipSelect} className="back-to-select">
-                Back to Ship Select
-              </button>
-            </div>
+            <>
+              <div className="panel-controls">
+                <button onClick={prevPanel} disabled={currentPanel === 0}>
+                  Previous
+                </button>
+                <button onClick={nextPanel} disabled={currentPanel === panels.length - 1 || !canAdvance()}>
+                  Next
+                </button>
+                <button onClick={handleBackToShipSelect} className="back-to-select">
+                  Back to Ship Select
+                </button>
+              </div>
+              
+              <div className="panel-attribution">
+                <p>
+                  <a 
+                    href="https://www.traveller-srd.com/core-rules/spacecraft-design/" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                  >
+                    Based on the Traveller SRD Spacecraft Design page, as best as I can.
+                  </a>
+                </p>
+              </div>
+            </>
           )}
         </main>
 
