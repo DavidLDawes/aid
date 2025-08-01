@@ -401,8 +401,6 @@ export const FACILITY_TYPES = [
   { name: 'Officers Mess & Bar', type: 'officers_mess_bar', mass: 4, cost: 0.3 },
   { name: 'First Aid Station', type: 'first_aid_station', mass: 0.5, cost: 0.1 },
   { name: 'Autodoc', type: 'autodoc', mass: 1.5, cost: 0.05 },
-  { name: 'Med Bay', type: 'med_bay', mass: 4, cost: 2 },
-  { name: 'Surgical Ward', type: 'surgical_ward', mass: 8, cost: 8 },
   { name: 'Medical Bay', type: 'medical_bay', mass: 4, cost: 2 },
   { name: 'Surgical Bay', type: 'surgical_bay', mass: 5, cost: 8 },
   { name: 'Medical Garden', type: 'medical_garden', mass: 4, cost: 1 },

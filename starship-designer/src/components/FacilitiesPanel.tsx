@@ -10,16 +10,18 @@ interface FacilitiesPanelProps {
 const FacilitiesPanel: React.FC<FacilitiesPanelProps> = ({ facilities, onUpdate }) => {
   const hasCommissary = facilities.some(f => f.facility_type === 'commissary');
 
-  const addCommissary = () => {
+  // Auto-add commissary if it doesn't exist
+  React.useEffect(() => {
     if (!hasCommissary) {
-      onUpdate([...facilities, {
+      const newFacilities = [...facilities, {
         facility_type: 'commissary',
         quantity: 1,
         mass: 2,
         cost: 0.2
-      }]);
+      }];
+      onUpdate(newFacilities);
     }
-  };
+  }, [hasCommissary, facilities, onUpdate]);
 
   const addFacility = (facilityType: typeof FACILITY_TYPES[0]) => {
     const existingFacility = facilities.find(f => f.facility_type === facilityType.type);
@@ -53,37 +55,127 @@ const FacilitiesPanel: React.FC<FacilitiesPanelProps> = ({ facilities, onUpdate 
     <div className="panel-content">
       <p>Recreation and health facilities. Commissary is required.</p>
       
-      {!hasCommissary && (
-        <button onClick={addCommissary}>Add Required Commissary</button>
-      )}
       
-      <div className="component-list">
-        {FACILITY_TYPES.map(facilityType => {
-          const currentFacility = facilities.find(f => f.facility_type === facilityType.type);
-          const quantity = currentFacility?.quantity || 0;
+      <div className="facilities-grouped-layout">
+        {/* Row 1: Recreation Facilities */}
+        <div className="facility-group-row">
+          {FACILITY_TYPES.filter(f => ['gym', 'spa', 'garden'].includes(f.type)).map(facilityType => {
+            const currentFacility = facilities.find(f => f.facility_type === facilityType.type);
+            const quantity = currentFacility?.quantity || 0;
 
-          return (
-            <div key={facilityType.type} className="component-item">
-              <div className="component-info">
-                <h4>{facilityType.name}, {facilityType.mass} tons, {facilityType.cost} MCr</h4>
+            return (
+              <div key={facilityType.type} className="component-item">
+                <div className="component-info">
+                  <h4>{facilityType.name}, {facilityType.mass} tons, {facilityType.cost} MCr</h4>
+                </div>
+                <div className="quantity-control">
+                  <button 
+                    onClick={() => removeFacility(facilityType.type)}
+                    disabled={quantity === 0}
+                  >
+                    -
+                  </button>
+                  <span>{quantity}</span>
+                  <button 
+                    onClick={() => addFacility(facilityType)}
+                  >
+                    +
+                  </button>
+                </div>
               </div>
-              <div className="quantity-control">
-                <button 
-                  onClick={() => removeFacility(facilityType.type)}
-                  disabled={quantity === 0}
-                >
-                  -
-                </button>
-                <span>{quantity}</span>
-                <button 
-                  onClick={() => addFacility(facilityType)}
-                >
-                  +
-                </button>
+            );
+          })}
+        </div>
+
+        {/* Row 2: Food & Social Facilities */}
+        <div className="facility-group-row">
+          {FACILITY_TYPES.filter(f => ['commissary', 'kitchens', 'officers_mess_bar'].includes(f.type)).map(facilityType => {
+            const currentFacility = facilities.find(f => f.facility_type === facilityType.type);
+            const quantity = currentFacility?.quantity || 0;
+
+            return (
+              <div key={facilityType.type} className="component-item">
+                <div className="component-info">
+                  <h4>{facilityType.name}, {facilityType.mass} tons, {facilityType.cost} MCr</h4>
+                </div>
+                <div className="quantity-control">
+                  <button 
+                    onClick={() => removeFacility(facilityType.type)}
+                    disabled={quantity === 0}
+                  >
+                    -
+                  </button>
+                  <span>{quantity}</span>
+                  <button 
+                    onClick={() => addFacility(facilityType)}
+                  >
+                    +
+                  </button>
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
+
+        {/* Row 3: Medical Facilities */}
+        <div className="facility-group-row">
+          {FACILITY_TYPES.filter(f => ['first_aid_station', 'autodoc', 'medical_bay', 'surgical_bay', 'medical_garden'].includes(f.type)).map(facilityType => {
+            const currentFacility = facilities.find(f => f.facility_type === facilityType.type);
+            const quantity = currentFacility?.quantity || 0;
+
+            return (
+              <div key={facilityType.type} className="component-item">
+                <div className="component-info">
+                  <h4>{facilityType.name}, {facilityType.mass} tons, {facilityType.cost} MCr</h4>
+                </div>
+                <div className="quantity-control">
+                  <button 
+                    onClick={() => removeFacility(facilityType.type)}
+                    disabled={quantity === 0}
+                  >
+                    -
+                  </button>
+                  <span>{quantity}</span>
+                  <button 
+                    onClick={() => addFacility(facilityType)}
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Remaining Facilities */}
+        <div className="facility-group-row">
+          {FACILITY_TYPES.filter(f => !['gym', 'spa', 'garden', 'commissary', 'kitchens', 'officers_mess_bar', 'first_aid_station', 'autodoc', 'medical_bay', 'surgical_bay', 'medical_garden'].includes(f.type)).map(facilityType => {
+            const currentFacility = facilities.find(f => f.facility_type === facilityType.type);
+            const quantity = currentFacility?.quantity || 0;
+
+            return (
+              <div key={facilityType.type} className="component-item">
+                <div className="component-info">
+                  <h4>{facilityType.name}, {facilityType.mass} tons, {facilityType.cost} MCr</h4>
+                </div>
+                <div className="quantity-control">
+                  <button 
+                    onClick={() => removeFacility(facilityType.type)}
+                    disabled={quantity === 0}
+                  >
+                    -
+                  </button>
+                  <span>{quantity}</span>
+                  <button 
+                    onClick={() => addFacility(facilityType)}
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
       
       <div className="validation-info">
