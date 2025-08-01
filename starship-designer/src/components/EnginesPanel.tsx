@@ -13,7 +13,21 @@ interface EnginesPanelProps {
 const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, fuelWeeks, onUpdate, onFuelWeeksUpdate }) => {
 
   const getEngine = (type: Engine['engine_type']): Engine => {
-    return engines.find(e => e.engine_type === type) || {
+    const defaultEngine = engines.find(e => e.engine_type === type);
+    if (defaultEngine) return defaultEngine;
+    
+    // For maneuver drive, if not configured, return M-0 performance
+    if (type === 'maneuver_drive') {
+      return {
+        engine_type: type,
+        drive_code: 'M-0',
+        performance: 0,
+        mass: 0,
+        cost: 0
+      };
+    }
+    
+    return {
       engine_type: type,
       drive_code: '',
       performance: 1,
@@ -53,22 +67,34 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, fuelW
         
         <div className="form-row">
           <div className="form-group">
-            <label>Drive Selection *</label>
+            <label>Drive Selection {type === 'maneuver_drive' ? '' : '*'}</label>
             <select
               value={engine.drive_code}
               onChange={(e) => {
-                const selectedEngine = availableEngines.find(eng => eng.code === e.target.value);
-                if (selectedEngine) {
+                if (e.target.value === 'M-0' && type === 'maneuver_drive') {
                   updateEngine(type, { 
-                    drive_code: selectedEngine.code,
-                    performance: selectedEngine.performance,
-                    mass: selectedEngine.mass,
-                    cost: selectedEngine.cost
+                    drive_code: 'M-0',
+                    performance: 0,
+                    mass: 0,
+                    cost: 0
                   });
+                } else {
+                  const selectedEngine = availableEngines.find(eng => eng.code === e.target.value);
+                  if (selectedEngine) {
+                    updateEngine(type, { 
+                      drive_code: selectedEngine.code,
+                      performance: selectedEngine.performance,
+                      mass: selectedEngine.mass,
+                      cost: selectedEngine.cost
+                    });
+                  }
                 }
               }}
             >
               <option value="">Select a drive...</option>
+              {type === 'maneuver_drive' && (
+                <option value="M-0">None (M-0 performance, 0 tons, 0 MCr)</option>
+              )}
               {availableEngines.map(availEngine => (
                 <option key={availEngine.code} value={availEngine.code}>
                   {availEngine.label}
@@ -121,14 +147,17 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, fuelW
     : 12;
   const effectiveMaxWeeks = Math.min(12, Math.max(2, maxPossibleWeeks));
   
-  const allEnginesConfigured = engines.length === 3 && 
-    engines.every(e => e.drive_code && e.performance >= 1 && e.performance <= 10 && e.mass > 0 && e.cost > 0) &&
+  const requiredEnginesConfigured = 
+    engines.some(e => e.engine_type === 'power_plant' && e.drive_code && e.performance >= 1) &&
+    engines.some(e => e.engine_type === 'jump_drive' && e.drive_code && e.performance >= 1);
+  
+  const allEnginesConfigured = requiredEnginesConfigured &&
     powerRequirementsMet &&
     fuelFitsInShip;
 
   return (
     <div className="panel-content">
-      <p>Configure the three required engine types for your starship.</p>
+      <p>Configure the engine types for your starship. Power Plant and Jump Drive are required. Maneuver Drive is optional (defaults to M-0).</p>
       <p><small><strong>Note:</strong> Jump and Maneuver drives require a Power Plant with equal or higher performance rating.</small></p>
       
       <div className="engines-horizontal-layout">
@@ -142,7 +171,7 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, fuelW
         <div className="fuel-horizontal-layout">
           <div className="fuel-selection">
             <div className="form-group">
-              <label htmlFor="fuel-weeks">Maneuver Drive Fuel Duration</label>
+              <label htmlFor="fuel-weeks">Power Plant Fuel Duration</label>
               <select
                 id="fuel-weeks"
                 value={fuelWeeks}
@@ -189,8 +218,8 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, fuelW
           <li className={engines.some(e => e.engine_type === 'power_plant') ? 'valid' : 'invalid'}>
             ✓ Power Plant configured
           </li>
-          <li className={engines.some(e => e.engine_type === 'maneuver_drive') ? 'valid' : 'invalid'}>
-            ✓ Maneuver Drive configured
+          <li className={'valid'}>
+            ✓ Maneuver Drive configured (M-0 if none selected)
           </li>
           <li className={engines.some(e => e.engine_type === 'jump_drive') ? 'valid' : 'invalid'}>
             ✓ Jump Drive configured
@@ -202,7 +231,7 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, fuelW
             ✓ Fuel requirements fit within available ship mass
           </li>
           <li className={allEnginesConfigured ? 'valid' : 'invalid'}>
-            ✓ All engines have valid drive selection with automatic mass and cost
+            ✓ Required engines have valid drive selection with automatic mass and cost
           </li>
         </ul>
       </div>
@@ -220,15 +249,19 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, fuelW
             </tr>
           </thead>
           <tbody>
-            {engines.map(engine => (
-              <tr key={engine.engine_type}>
-                <td>{engine.engine_type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</td>
-                <td>{engine.drive_code || '-'}</td>
-                <td>{engine.performance} ({engine.engine_type === 'jump_drive' ? 'J' : engine.engine_type === 'maneuver_drive' ? 'M' : 'P'}-{engine.performance})</td>
-                <td>{engine.mass.toFixed(1)}</td>
-                <td>{engine.cost.toFixed(2)}</td>
-              </tr>
-            ))}
+            {/* Always show all three engine types */}
+            {['power_plant', 'maneuver_drive', 'jump_drive'].map(engineType => {
+              const engine = getEngine(engineType as Engine['engine_type']);
+              return (
+                <tr key={engineType}>
+                  <td>{engineType.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</td>
+                  <td>{engine.drive_code || '-'}</td>
+                  <td>{engine.performance} ({engineType === 'jump_drive' ? 'J' : engineType === 'maneuver_drive' ? 'M' : 'P'}-{engine.performance})</td>
+                  <td>{engine.mass.toFixed(1)}</td>
+                  <td>{engine.cost.toFixed(2)}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
