@@ -1111,3 +1111,96 @@
   color: #2980b9;
   text-decoration: underline;
 }
+
+.ship-title-line {
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #3498db;
+}
+
+.ship-title-line h3 {
+  margin: 0;
+  color: #2c3e50;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.ship-components-table {
+  margin-bottom: 2rem;
+}
+
+.ship-components-table table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: white;
+  border: 1px solid #dee2e6;
+}
+
+.ship-components-table th {
+  background-color: #34495e;
+  color: white;
+  padding: 0.75rem;
+  text-align: left;
+  font-weight: 600;
+  border-bottom: 2px solid #2c3e50;
+  border-right: 1px solid #2c3e50;
+  vertical-align: top;
+}
+
+.ship-components-table th:last-child {
+  border-right: none;
+}
+
+.ship-components-table td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #e9ecef;
+  border-right: 1px solid #e9ecef;
+  color: #2c3e50;
+  vertical-align: top;
+}
+
+.ship-components-table td:last-child {
+  border-right: none;
+}
+
+.ship-components-table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+.ship-components-table th:nth-child(1),
+.ship-components-table td:nth-child(1) {
+  width: 15%;
+  font-weight: 600;
+}
+
+.ship-components-table th:nth-child(2),
+.ship-components-table td:nth-child(2) {
+  width: 45%;
+}
+
+.ship-components-table th:nth-child(3),
+.ship-components-table td:nth-child(3) {
+  width: 20%;
+  text-align: right;
+}
+
+.ship-components-table th:nth-child(4),
+.ship-components-table td:nth-child(4) {
+  width: 20%;
+  text-align: right;
+}
+
+.fittings-controls {
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid #e9ecef;
+}
+
+.fittings-controls .form-group {
+  margin-bottom: 2rem;
+}
+
+.fittings-controls h3 {
+  color: #2c3e50;
+  margin-bottom: 1rem;
+}
