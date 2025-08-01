@@ -69,8 +69,7 @@ const DefensesPanel: React.FC<DefensesPanelProps> = ({ defenses, shipTonnage, we
           return (
             <div key={defenseType.type} className="component-item">
               <div className="component-info">
-                <h4>{defenseType.name}</h4>
-                <p>Mass: {defenseType.mass} tons, Cost: {defenseType.cost} MCr</p>
+                <h4>{defenseType.name}, {defenseType.mass} tons, {defenseType.cost} MCr</h4>
               </div>
               <div className="quantity-control">
                 <button 

@@ -58,8 +58,7 @@ const CargoPanel: React.FC<CargoPanelProps> = ({ cargo, remainingMass, onUpdate 
           return (
             <div key={cargoType.type} className="cargo-item">
               <div className="cargo-info">
-                <h4>{cargoType.name}</h4>
-                <p>Cost: {cargoType.costPerTon} MCr per ton</p>
+                <h4>{cargoType.name}, {cargoType.costPerTon} MCr per ton</h4>
                 {tonnage > 0 && (
                   <p><strong>Total:</strong> {tonnage} tons, {(cargoType.costPerTon * tonnage).toFixed(2)} MCr</p>
                 )}

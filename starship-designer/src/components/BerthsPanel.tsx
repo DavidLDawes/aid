@@ -71,8 +71,7 @@ const BerthsPanel: React.FC<BerthsPanelProps> = ({ berths, staffRequirements, on
           return (
             <div key={berthType.type} className="berth-item">
               <div className="berth-info">
-                <h4>{berthType.name} {berthType.required && '(Required)'}</h4>
-                <p>{berthType.mass} tons, {berthType.cost} MCr each</p>
+                <h4>{berthType.name} {berthType.required && '(Required)'}, {berthType.mass} tons, {berthType.cost} MCr each</h4>
                 {quantity > 0 && (
                   <p><strong>Total:</strong> {(berthType.mass * quantity).toFixed(1)} tons, {(berthType.cost * quantity).toFixed(2)} MCr</p>
                 )}
