@@ -324,6 +324,30 @@
   margin-bottom: 1.5rem;
 }
 
+.weapons-grouped-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.weapon-group-row {
+  display: grid;
+  gap: 1rem;
+}
+
+.weapon-group-row:nth-child(1),
+.weapon-group-row:nth-child(2),
+.weapon-group-row:nth-child(5) {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.weapon-group-row:nth-child(3),
+.weapon-group-row:nth-child(4),
+.weapon-group-row:nth-child(6) {
+  grid-template-columns: repeat(2, 1fr);
+}
+
 .engine-summary {
   margin-top: 2rem;
   background-color: #f8f9fa;
@@ -569,5 +593,14 @@
   .ship-config-description-row {
     grid-template-columns: 1fr;
     gap: 1rem;
+  }
+  
+  .weapon-group-row:nth-child(1),
+  .weapon-group-row:nth-child(2),
+  .weapon-group-row:nth-child(3),
+  .weapon-group-row:nth-child(4),
+  .weapon-group-row:nth-child(5),
+  .weapon-group-row:nth-child(6) {
+    grid-template-columns: 1fr;
   }
 }

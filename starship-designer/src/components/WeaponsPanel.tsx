@@ -55,35 +55,198 @@ const WeaponsPanel: React.FC<WeaponsPanelProps> = ({ weapons, shipTonnage, missi
     <div className="panel-content">
       <p>Available weapon mounts: {mountLimit} (Used: {usedMounts}, Remaining: {mountLimit - usedMounts})</p>
       
-      <div className="component-list">
-        {WEAPON_TYPES.map(weaponType => {
-          const currentWeapon = weapons.find(w => w.weapon_name === weaponType.name);
-          const quantity = currentWeapon?.quantity || 0;
-          const canAdd = usedMounts < mountLimit;
+      <div className="weapons-grouped-layout">
+        {/* Pulse Laser Group */}
+        <div className="weapon-group-row">
+          {WEAPON_TYPES.filter(w => w.name.includes('Pulse Laser')).map(weaponType => {
+            const currentWeapon = weapons.find(w => w.weapon_name === weaponType.name);
+            const quantity = currentWeapon?.quantity || 0;
+            const canAdd = usedMounts < mountLimit;
 
-          return (
-            <div key={weaponType.name} className="component-item">
-              <div className="component-info">
-                <h4>{weaponType.name}, {weaponType.mass} tons, {weaponType.cost} MCr</h4>
+            return (
+              <div key={weaponType.name} className="component-item">
+                <div className="component-info">
+                  <h4>{weaponType.name}, {weaponType.mass} tons, {weaponType.cost} MCr</h4>
+                </div>
+                <div className="quantity-control">
+                  <button 
+                    onClick={() => removeWeapon(weaponType.name)}
+                    disabled={quantity === 0}
+                  >
+                    -
+                  </button>
+                  <span>{quantity}</span>
+                  <button 
+                    onClick={() => addWeapon(weaponType)}
+                    disabled={!canAdd}
+                  >
+                    +
+                  </button>
+                </div>
               </div>
-              <div className="quantity-control">
-                <button 
-                  onClick={() => removeWeapon(weaponType.name)}
-                  disabled={quantity === 0}
-                >
-                  -
-                </button>
-                <span>{quantity}</span>
-                <button 
-                  onClick={() => addWeapon(weaponType)}
-                  disabled={!canAdd}
-                >
-                  +
-                </button>
+            );
+          })}
+        </div>
+
+        {/* Beam Laser Group */}
+        <div className="weapon-group-row">
+          {WEAPON_TYPES.filter(w => w.name.includes('Beam Laser')).map(weaponType => {
+            const currentWeapon = weapons.find(w => w.weapon_name === weaponType.name);
+            const quantity = currentWeapon?.quantity || 0;
+            const canAdd = usedMounts < mountLimit;
+
+            return (
+              <div key={weaponType.name} className="component-item">
+                <div className="component-info">
+                  <h4>{weaponType.name}, {weaponType.mass} tons, {weaponType.cost} MCr</h4>
+                </div>
+                <div className="quantity-control">
+                  <button 
+                    onClick={() => removeWeapon(weaponType.name)}
+                    disabled={quantity === 0}
+                  >
+                    -
+                  </button>
+                  <span>{quantity}</span>
+                  <button 
+                    onClick={() => addWeapon(weaponType)}
+                    disabled={!canAdd}
+                  >
+                    +
+                  </button>
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
+
+        {/* Plasma Beam Group */}
+        <div className="weapon-group-row">
+          {WEAPON_TYPES.filter(w => w.name.includes('Plasma Beam')).map(weaponType => {
+            const currentWeapon = weapons.find(w => w.weapon_name === weaponType.name);
+            const quantity = currentWeapon?.quantity || 0;
+            const canAdd = usedMounts < mountLimit;
+
+            return (
+              <div key={weaponType.name} className="component-item">
+                <div className="component-info">
+                  <h4>{weaponType.name}, {weaponType.mass} tons, {weaponType.cost} MCr</h4>
+                </div>
+                <div className="quantity-control">
+                  <button 
+                    onClick={() => removeWeapon(weaponType.name)}
+                    disabled={quantity === 0}
+                  >
+                    -
+                  </button>
+                  <span>{quantity}</span>
+                  <button 
+                    onClick={() => addWeapon(weaponType)}
+                    disabled={!canAdd}
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Fusion Gun Group */}
+        <div className="weapon-group-row">
+          {WEAPON_TYPES.filter(w => w.name.includes('Fusion Gun')).map(weaponType => {
+            const currentWeapon = weapons.find(w => w.weapon_name === weaponType.name);
+            const quantity = currentWeapon?.quantity || 0;
+            const canAdd = usedMounts < mountLimit;
+
+            return (
+              <div key={weaponType.name} className="component-item">
+                <div className="component-info">
+                  <h4>{weaponType.name}, {weaponType.mass} tons, {weaponType.cost} MCr</h4>
+                </div>
+                <div className="quantity-control">
+                  <button 
+                    onClick={() => removeWeapon(weaponType.name)}
+                    disabled={quantity === 0}
+                  >
+                    -
+                  </button>
+                  <span>{quantity}</span>
+                  <button 
+                    onClick={() => addWeapon(weaponType)}
+                    disabled={!canAdd}
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Missile Launcher Group */}
+        <div className="weapon-group-row">
+          {WEAPON_TYPES.filter(w => w.name.includes('Missile Launcher')).map(weaponType => {
+            const currentWeapon = weapons.find(w => w.weapon_name === weaponType.name);
+            const quantity = currentWeapon?.quantity || 0;
+            const canAdd = usedMounts < mountLimit;
+
+            return (
+              <div key={weaponType.name} className="component-item">
+                <div className="component-info">
+                  <h4>{weaponType.name}, {weaponType.mass} tons, {weaponType.cost} MCr</h4>
+                </div>
+                <div className="quantity-control">
+                  <button 
+                    onClick={() => removeWeapon(weaponType.name)}
+                    disabled={quantity === 0}
+                  >
+                    -
+                  </button>
+                  <span>{quantity}</span>
+                  <button 
+                    onClick={() => addWeapon(weaponType)}
+                    disabled={!canAdd}
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Hard Point and Particle Beam Group */}
+        <div className="weapon-group-row">
+          {WEAPON_TYPES.filter(w => w.name === 'Hard Point' || w.name === 'Particle Beam Barbette').map(weaponType => {
+            const currentWeapon = weapons.find(w => w.weapon_name === weaponType.name);
+            const quantity = currentWeapon?.quantity || 0;
+            const canAdd = usedMounts < mountLimit;
+
+            return (
+              <div key={weaponType.name} className="component-item">
+                <div className="component-info">
+                  <h4>{weaponType.name}, {weaponType.mass} tons, {weaponType.cost} MCr</h4>
+                </div>
+                <div className="quantity-control">
+                  <button 
+                    onClick={() => removeWeapon(weaponType.name)}
+                    disabled={quantity === 0}
+                  >
+                    -
+                  </button>
+                  <span>{quantity}</span>
+                  <button 
+                    onClick={() => addWeapon(weaponType)}
+                    disabled={!canAdd}
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {hasMissileLaunchers && (
