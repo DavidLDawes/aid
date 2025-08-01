@@ -318,14 +318,14 @@
 
 .ship-basic-info-row {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
   gap: 1rem;
   margin-bottom: 1.5rem;
 }
 
-.ship-config-description-row {
+.ship-description-row {
   display: grid;
-  grid-template-columns: 1fr 2fr;
+  grid-template-columns: 1fr;
   gap: 1rem;
   margin-bottom: 1.5rem;
 }
@@ -714,7 +714,7 @@
     gap: 1rem;
   }
   
-  .ship-config-description-row {
+  .ship-description-row {
     grid-template-columns: 1fr;
     gap: 1rem;
   }

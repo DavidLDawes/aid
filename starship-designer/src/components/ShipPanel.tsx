@@ -55,9 +55,7 @@ const ShipPanel: React.FC<ShipPanelProps> = ({ ship, onUpdate }) => {
             ))}
           </select>
         </div>
-      </div>
 
-      <div className="ship-config-description-row">
         <div className="form-group">
           <label htmlFor="configuration">Configuration *</label>
           <select
@@ -70,7 +68,9 @@ const ShipPanel: React.FC<ShipPanelProps> = ({ ship, onUpdate }) => {
             <option value="distributed">Distributed (multiple sections, atmosphere/gravity incompatible)</option>
           </select>
         </div>
+      </div>
 
+      <div className="ship-description-row">
         <div className="form-group">
           <label htmlFor="description">Description (Optional)</label>
           <textarea
