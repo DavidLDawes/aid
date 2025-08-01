@@ -1,14 +1,16 @@
 import React from 'react';
 import type { Cargo } from '../types/ship';
 import { CARGO_TYPES } from '../data/constants';
+import { calculateMonthsBetweenService, getSparesIncrement } from '../utils/sparesCalculation';
 
 interface CargoPanelProps {
   cargo: Cargo[];
   remainingMass: number;
+  shipTonnage: number;
   onUpdate: (cargo: Cargo[]) => void;
 }
 
-const CargoPanel: React.FC<CargoPanelProps> = ({ cargo, remainingMass, onUpdate }) => {
+const CargoPanel: React.FC<CargoPanelProps> = ({ cargo, remainingMass, shipTonnage, onUpdate }) => {
   const updateCargoTonnage = (cargoType: typeof CARGO_TYPES[0], newTonnage: number) => {
     const newCargo = [...cargo];
     const existingIndex = newCargo.findIndex(c => c.cargo_type === cargoType.type);
@@ -44,42 +46,149 @@ const CargoPanel: React.FC<CargoPanelProps> = ({ cargo, remainingMass, onUpdate 
     return cargo.reduce((sum, c) => sum + c.tonnage, 0);
   };
 
+  const getSparesTonnage = (): number => {
+    const sparesItem = cargo.find(c => c.cargo_type === 'spares');
+    return sparesItem?.tonnage || 0;
+  };
+
   return (
     <div className="panel-content">
       <p>Configure cargo storage. Remaining mass: {remainingMass.toFixed(1)} tons</p>
       <p>Total cargo: {getTotalCargoTonnage()} tons</p>
       
-      <div className="cargo-selection">
-        <h3>Cargo Bay Options</h3>
-        {CARGO_TYPES.map(cargoType => {
-          const tonnage = getCargoTonnage(cargoType.type);
-          const maxTonnage = Math.floor(remainingMass + tonnage);
-          
-          return (
-            <div key={cargoType.type} className="cargo-item">
-              <div className="cargo-info">
-                <h4>{cargoType.name}, {cargoType.costPerTon} MCr per ton</h4>
-                {tonnage > 0 && (
-                  <p><strong>Total:</strong> {tonnage} tons, {(cargoType.costPerTon * tonnage).toFixed(2)} MCr</p>
-                )}
+      <div className="cargo-grouped-layout">
+        {/* Row 1: Basic Storage */}
+        <div className="cargo-group-row">
+          {CARGO_TYPES.slice(0, 3).map(cargoType => {
+            const tonnage = getCargoTonnage(cargoType.type);
+            const maxTonnage = Math.floor(remainingMass + tonnage);
+            
+            // Special handling for Spares
+            if (cargoType.type === 'spares') {
+              const increment = getSparesIncrement(tonnage, shipTonnage);
+              return (
+                <div key={cargoType.type} className="component-item">
+                  <div className="component-info">
+                    <h4>{cargoType.name}</h4>
+                    <p>{cargoType.costPerTon} MCr per ton</p>
+                    {tonnage > 0 && (
+                      <p><strong>Total:</strong> {tonnage} tons, {(cargoType.costPerTon * tonnage).toFixed(2)} MCr</p>
+                    )}
+                  </div>
+                  <div className="quantity-control">
+                    <button 
+                      onClick={() => updateCargoTonnage(cargoType, Math.max(0, tonnage - increment))}
+                      disabled={tonnage === 0}
+                    >
+                      -
+                    </button>
+                    <span>{tonnage} tons</span>
+                    <button 
+                      onClick={() => updateCargoTonnage(cargoType, Math.min(maxTonnage, tonnage + increment))}
+                      disabled={tonnage + increment > maxTonnage}
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              );
+            }
+            
+            return (
+              <div key={cargoType.type} className="component-item">
+                <div className="component-info">
+                  <h4>{cargoType.name}</h4>
+                  <p>{cargoType.costPerTon} MCr per ton</p>
+                  {tonnage > 0 && (
+                    <p><strong>Total:</strong> {tonnage} tons, {(cargoType.costPerTon * tonnage).toFixed(2)} MCr</p>
+                  )}
+                </div>
+                <div className="tonnage-control">
+                  <label>
+                    Tonnage:
+                    <input
+                      type="number"
+                      min="0"
+                      max={maxTonnage}
+                      value={tonnage}
+                      onChange={(e) => updateCargoTonnage(cargoType, Math.max(0, Math.min(maxTonnage, parseInt(e.target.value) || 0)))}
+                      style={{ width: '60px', marginLeft: '0.5rem' }}
+                    />
+                    <small>/{maxTonnage}</small>
+                  </label>
+                </div>
               </div>
-              <div className="tonnage-control">
-                <label>
-                  Tonnage:
-                  <input
-                    type="number"
-                    min="0"
-                    max={maxTonnage}
-                    value={tonnage}
-                    onChange={(e) => updateCargoTonnage(cargoType, Math.max(0, Math.min(maxTonnage, parseInt(e.target.value) || 0)))}
-                    style={{ width: '80px', marginLeft: '0.5rem' }}
-                  />
-                  / {maxTonnage} tons
-                </label>
+            );
+          })}
+        </div>
+
+        {/* Row 2: Specialized Storage */}
+        <div className="cargo-group-row">
+          {CARGO_TYPES.slice(3, 6).map(cargoType => {
+            const tonnage = getCargoTonnage(cargoType.type);
+            const maxTonnage = Math.floor(remainingMass + tonnage);
+            
+            return (
+              <div key={cargoType.type} className="component-item">
+                <div className="component-info">
+                  <h4>{cargoType.name}</h4>
+                  <p>{cargoType.costPerTon} MCr per ton</p>
+                  {tonnage > 0 && (
+                    <p><strong>Total:</strong> {tonnage} tons, {(cargoType.costPerTon * tonnage).toFixed(2)} MCr</p>
+                  )}
+                </div>
+                <div className="tonnage-control">
+                  <label>
+                    Tonnage:
+                    <input
+                      type="number"
+                      min="0"
+                      max={maxTonnage}
+                      value={tonnage}
+                      onChange={(e) => updateCargoTonnage(cargoType, Math.max(0, Math.min(maxTonnage, parseInt(e.target.value) || 0)))}
+                      style={{ width: '60px', marginLeft: '0.5rem' }}
+                    />
+                    <small>/{maxTonnage}</small>
+                  </label>
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
+
+        {/* Row 3: Life Support Storage */}
+        <div className="cargo-group-row">
+          {CARGO_TYPES.slice(6, 8).map(cargoType => {
+            const tonnage = getCargoTonnage(cargoType.type);
+            const maxTonnage = Math.floor(remainingMass + tonnage);
+            
+            return (
+              <div key={cargoType.type} className="component-item">
+                <div className="component-info">
+                  <h4>{cargoType.name}</h4>
+                  <p>{cargoType.costPerTon} MCr per ton</p>
+                  {tonnage > 0 && (
+                    <p><strong>Total:</strong> {tonnage} tons, {(cargoType.costPerTon * tonnage).toFixed(2)} MCr</p>
+                  )}
+                </div>
+                <div className="tonnage-control">
+                  <label>
+                    Tonnage:
+                    <input
+                      type="number"
+                      min="0"
+                      max={maxTonnage}
+                      value={tonnage}
+                      onChange={(e) => updateCargoTonnage(cargoType, Math.max(0, Math.min(maxTonnage, parseInt(e.target.value) || 0)))}
+                      style={{ width: '60px', marginLeft: '0.5rem' }}
+                    />
+                    <small>/{maxTonnage}</small>
+                  </label>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       <div className="cargo-summary">
@@ -108,6 +217,16 @@ const CargoPanel: React.FC<CargoPanelProps> = ({ cargo, remainingMass, onUpdate 
             </tbody>
           </table>
         )}
+      </div>
+
+      <div className="service-interval">
+        <h3>Maintenance Schedule</h3>
+        <div className="service-info">
+          <p><strong>Months Between Service:</strong> {calculateMonthsBetweenService(getSparesTonnage(), shipTonnage)}</p>
+          <p className="service-calculation">
+            Based on: 1 + {getSparesTonnage()} spares ÷ {shipTonnage} ship tons × 100 = 1 + {Math.floor(getSparesTonnage() / shipTonnage * 100)}
+          </p>
+        </div>
       </div>
     </div>
   );
