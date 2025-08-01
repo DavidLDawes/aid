@@ -264,7 +264,11 @@ function App() {
 
     switch (currentPanel) {
       case 0:
-        return <ShipPanel ship={shipDesign.ship} onUpdate={(ship) => updateShipDesign({ ship })} />;
+        return <ShipPanel 
+          ship={shipDesign.ship} 
+          onUpdate={(ship) => updateShipDesign({ ship })} 
+          onLoadExistingShip={(loadedShipDesign) => setShipDesign(loadedShipDesign)}
+        />;
       case 1:
         return <EnginesPanel 
           engines={shipDesign.engines} 

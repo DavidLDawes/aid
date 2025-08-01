@@ -472,6 +472,137 @@
   font-style: italic;
 }
 
+.ship-name-input-container {
+  position: relative;
+}
+
+.ship-name-input-container input.name-conflict {
+  border-color: #ffc107;
+  background-color: #fff3cd;
+}
+
+.name-check-status {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.8rem;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.name-check-status.checking {
+  color: #6c757d;
+}
+
+.name-check-status.conflict {
+  color: #856404;
+}
+
+.ship-name-conflict-dialog {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.conflict-dialog-content {
+  background-color: white;
+  border-radius: 8px;
+  padding: 2rem;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.conflict-dialog-content h3 {
+  margin: 0 0 1rem 0;
+  color: #2c3e50;
+  border-bottom: 2px solid #f39c12;
+  padding-bottom: 0.5rem;
+}
+
+.existing-ship-info {
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+  padding: 1rem;
+  margin: 1rem 0;
+}
+
+.existing-ship-info p {
+  margin: 0 0 0.5rem 0;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.existing-ship-info ul {
+  margin: 0;
+  padding-left: 1.5rem;
+}
+
+.existing-ship-info li {
+  margin: 0.25rem 0;
+  color: #495057;
+}
+
+.conflict-dialog-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 1.5rem;
+}
+
+.conflict-dialog-actions button {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 140px;
+}
+
+.load-existing-btn {
+  background-color: #3498db;
+  color: white;
+}
+
+.load-existing-btn:hover:not(:disabled) {
+  background-color: #2980b9;
+}
+
+.load-existing-btn:disabled {
+  background-color: #bdc3c7;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.change-name-btn {
+  background-color: #27ae60;
+  color: white;
+}
+
+.change-name-btn:hover {
+  background-color: #229954;
+}
+
+.keep-name-btn {
+  background-color: #f39c12;
+  color: white;
+}
+
+.keep-name-btn:hover {
+  background-color: #e67e22;
+}
+
 .engine-summary {
   margin-top: 2rem;
   background-color: #f8f9fa;

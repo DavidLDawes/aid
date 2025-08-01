@@ -248,6 +248,46 @@ class DatabaseService {
       request.onsuccess = () => resolve(request.result > 0);
     });
   }
+
+  async getShipByName(name: string): Promise<StoredShipDesign | null> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction(['ships'], 'readonly');
+      const store = transaction.objectStore('ships');
+      const nameIndex = store.index('name');
+      const request = nameIndex.get(name);
+
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        const ship = request.result;
+        if (ship) {
+          resolve({
+            ...ship,
+            createdAt: new Date(ship.createdAt),
+            updatedAt: new Date(ship.updatedAt)
+          });
+        } else {
+          resolve(null);
+        }
+      };
+    });
+  }
+
+  async shipNameExists(name: string): Promise<boolean> {
+    if (!this.db) throw new Error('Database not initialized');
+    if (!name.trim()) return false;
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction(['ships'], 'readonly');
+      const store = transaction.objectStore('ships');
+      const nameIndex = store.index('name');
+      const request = nameIndex.get(name.trim());
+
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => resolve(!!request.result);
+    });
+  }
 }
 
 export const databaseService = new DatabaseService();

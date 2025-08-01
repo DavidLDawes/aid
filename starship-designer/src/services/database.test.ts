@@ -138,8 +138,6 @@ describe('Database Service', () => {
     });
 
     it('should check if any ships exist', async () => {
-      const hasShipsBefore = await databaseService.hasAnyShips();
-      
       await databaseService.saveShip(mockShipDesign);
       
       const hasShipsAfter = await databaseService.hasAnyShips();
@@ -153,6 +151,37 @@ describe('Database Service', () => {
       
       const retrievedShip = await databaseService.getShipById(shipId);
       expect(retrievedShip).toBeNull();
+    });
+
+    it('should get ship by name', async () => {
+      await databaseService.saveShip(mockShipDesign);
+      
+      const retrievedShip = await databaseService.getShipByName('Test Ship');
+      expect(retrievedShip).not.toBeNull();
+      expect(retrievedShip?.ship.name).toBe('Test Ship');
+    });
+
+    it('should return null for non-existent ship name', async () => {
+      const retrievedShip = await databaseService.getShipByName('Non-existent Ship');
+      expect(retrievedShip).toBeNull();
+    });
+
+    it('should check if ship name exists', async () => {
+      await databaseService.saveShip(mockShipDesign);
+      
+      const exists = await databaseService.shipNameExists('Test Ship');
+      expect(exists).toBe(true);
+      
+      const notExists = await databaseService.shipNameExists('Non-existent Ship');
+      expect(notExists).toBe(false);
+    });
+
+    it('should return false for empty ship names', async () => {
+      const exists1 = await databaseService.shipNameExists('');
+      const exists2 = await databaseService.shipNameExists('   ');
+      
+      expect(exists1).toBe(false);
+      expect(exists2).toBe(false);
     });
   });
 });
