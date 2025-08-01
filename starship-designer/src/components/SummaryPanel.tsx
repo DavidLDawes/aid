@@ -14,6 +14,8 @@ interface SummaryPanelProps {
 const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, staff, onBackToShipSelect }) => {
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [showCsvModal, setShowCsvModal] = useState(false);
+  const [csvData, setCsvData] = useState<string>('');
 
   // Calculate fuel breakdown for display
   const jumpDrive = shipDesign.engines.find(e => e.engine_type === 'jump_drive');
@@ -44,6 +46,223 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
     } finally {
       setSaving(false);
     }
+  };
+
+  const generateCsvData = () => {
+    const lines: string[] = [];
+    
+    // First line: ship info from the title line
+    const shipInfoLine = `${shipDesign.ship.name}, ${shipDesign.ship.configuration} configuration, ${shipDesign.ship.tonnage} tons, Tech Level ${shipDesign.ship.tech_level}`;
+    lines.push(shipInfoLine);
+    
+    // Second line: CSV headers
+    lines.push('Category,Item,Mass,Cost');
+    
+    // Generate all table rows
+    const allRows: { category: string; item: string; mass: number; cost: number }[] = [];
+    
+    // Engines
+    const validEngines = shipDesign.engines.filter(engine => 
+      !(engine.engine_type === 'maneuver_drive' && engine.performance === 0)
+    );
+    validEngines.forEach((engine, index) => {
+      const engineName = engine.engine_type === 'power_plant' ? 'Power Plant' :
+                       engine.engine_type === 'jump_drive' ? 'Jump Drive' :
+                       'Maneuver Drive';
+      const performanceCode = engine.engine_type === 'power_plant' ? 'P' :
+                            engine.engine_type === 'jump_drive' ? 'J' :
+                            'M';
+      
+      allRows.push({
+        category: index === 0 ? 'Engines' : '',
+        item: `${engineName} ${performanceCode}-${engine.performance}`,
+        mass: engine.mass,
+        cost: engine.cost
+      });
+    });
+    
+    // Fittings
+    let fittingRowIndex = 0;
+    const hasBridge = shipDesign.fittings.some(f => f.fitting_type === 'bridge');
+    const hasHalfBridge = shipDesign.fittings.some(f => f.fitting_type === 'half_bridge');
+    const launchTubes = shipDesign.fittings.filter(f => f.fitting_type === 'launch_tube');
+    const commsSensors = shipDesign.fittings.find(f => f.fitting_type === 'comms_sensors');
+    
+    if (hasBridge || hasHalfBridge) {
+      const bridgeType = hasBridge ? 'Bridge' : 'Half Bridge';
+      const bridgeData = shipDesign.fittings.find(f => f.fitting_type === 'bridge' || f.fitting_type === 'half_bridge');
+      if (bridgeData) {
+        allRows.push({
+          category: fittingRowIndex === 0 ? 'Fittings' : '',
+          item: bridgeType,
+          mass: bridgeData.mass,
+          cost: bridgeData.cost
+        });
+        fittingRowIndex++;
+      }
+    }
+    
+    launchTubes.forEach((tube) => {
+      allRows.push({
+        category: fittingRowIndex === 0 ? 'Fittings' : '',
+        item: `Launch Tube (${tube.launch_vehicle_mass || 1} ton vehicle)`,
+        mass: tube.mass,
+        cost: tube.cost
+      });
+      fittingRowIndex++;
+    });
+    
+    if (commsSensors) {
+      const sensorType = COMMS_SENSORS_TYPES.find(t => t.type === commsSensors.comms_sensors_type);
+      allRows.push({
+        category: fittingRowIndex === 0 ? 'Fittings' : '',
+        item: `${sensorType?.name || 'Standard'} Comms & Sensors`,
+        mass: commsSensors.mass,
+        cost: commsSensors.cost
+      });
+    }
+    
+    // Weapons
+    const activeWeapons = shipDesign.weapons.filter(weapon => weapon.quantity > 0);
+    activeWeapons.forEach((weapon, index) => {
+      const weaponDisplay = weapon.quantity === 1 ? weapon.weapon_name : `${weapon.weapon_name} (x${weapon.quantity})`;
+      allRows.push({
+        category: index === 0 ? 'Weapons' : '',
+        item: weaponDisplay,
+        mass: weapon.mass * weapon.quantity,
+        cost: weapon.cost * weapon.quantity
+      });
+    });
+    
+    // Defenses
+    let defenseRowIndex = 0;
+    const activeDefenses = shipDesign.defenses.filter(defense => defense.quantity > 0);
+    const hasSand = shipDesign.ship.sand_reloads > 0;
+    
+    if (activeDefenses.length > 0 || hasSand) {
+      activeDefenses.forEach((defense) => {
+        const defenseType = DEFENSE_TYPES.find(dt => dt.type === defense.defense_type);
+        const defenseName = defenseType?.name || defense.defense_type;
+        const defenseDisplay = defense.quantity === 1 ? defenseName : `${defenseName} (x${defense.quantity})`;
+        
+        allRows.push({
+          category: defenseRowIndex === 0 ? 'Defenses' : '',
+          item: defenseDisplay,
+          mass: defense.mass * defense.quantity,
+          cost: defense.cost * defense.quantity
+        });
+        defenseRowIndex++;
+      });
+      
+      if (hasSand) {
+        allRows.push({
+          category: defenseRowIndex === 0 ? 'Defenses' : '',
+          item: 'Sand',
+          mass: shipDesign.ship.sand_reloads,
+          cost: 0
+        });
+      }
+    }
+    
+    // Berths
+    const activeBerths = shipDesign.berths.filter(berth => berth.quantity > 0);
+    activeBerths.forEach((berth, index) => {
+      const berthType = BERTH_TYPES.find(bt => bt.type === berth.berth_type);
+      const berthName = berthType?.name || berth.berth_type;
+      const berthDisplay = berth.quantity === 1 ? berthName : `${berthName} (x${berth.quantity})`;
+      
+      allRows.push({
+        category: index === 0 ? 'Berths' : '',
+        item: berthDisplay,
+        mass: berth.mass * berth.quantity,
+        cost: berth.cost * berth.quantity
+      });
+    });
+    
+    // Rec/Health
+    const activeFacilities = shipDesign.facilities.filter(facility => facility.quantity > 0);
+    if (activeFacilities.length > 0) {
+      const sortedFacilities = activeFacilities.sort((a, b) => {
+        if (a.facility_type === 'commissary') return -1;
+        if (b.facility_type === 'commissary') return 1;
+        return 0;
+      });
+      
+      sortedFacilities.forEach((facility, index) => {
+        const facilityType = FACILITY_TYPES.find(ft => ft.type === facility.facility_type);
+        const facilityName = facilityType?.name || facility.facility_type;
+        const facilityDisplay = facility.quantity === 1 ? facilityName : `${facilityName} (x${facility.quantity})`;
+        
+        allRows.push({
+          category: index === 0 ? 'Rec/Health' : '',
+          item: facilityDisplay,
+          mass: facility.mass * facility.quantity,
+          cost: facility.cost * facility.quantity
+        });
+      });
+    }
+    
+    // Cargo
+    const activeCargo = shipDesign.cargo.filter(cargo => cargo.tonnage > 0);
+    activeCargo.forEach((cargo, index) => {
+      const cargoType = CARGO_TYPES.find(ct => ct.type === cargo.cargo_type);
+      const cargoName = cargoType?.name || cargo.cargo_type;
+      
+      allRows.push({
+        category: index === 0 ? 'Cargo' : '',
+        item: cargoName,
+        mass: cargo.tonnage,
+        cost: cargo.cost
+      });
+    });
+    
+    // Vehicles
+    const activeVehicles = shipDesign.vehicles.filter(vehicle => vehicle.quantity > 0);
+    activeVehicles.forEach((vehicle, index) => {
+      const vehicleType = VEHICLE_TYPES.find(vt => vt.type === vehicle.vehicle_type);
+      let vehicleName = vehicleType?.name || vehicle.vehicle_type;
+      vehicleName = vehicleName.replace(/\b\d+(\.\d+)?\s+ton\s+/gi, '');
+      const vehicleDisplay = vehicle.quantity === 1 ? vehicleName : `${vehicleName} (x${vehicle.quantity})`;
+      
+      allRows.push({
+        category: index === 0 ? 'Vehicles' : '',
+        item: vehicleDisplay,
+        mass: vehicle.mass * vehicle.quantity,
+        cost: vehicle.cost * vehicle.quantity
+      });
+    });
+    
+    // Drones
+    const activeDrones = shipDesign.drones.filter(drone => drone.quantity > 0);
+    activeDrones.forEach((drone, index) => {
+      const droneType = DRONE_TYPES.find(dt => dt.type === drone.drone_type);
+      let droneName = droneType?.name || drone.drone_type;
+      droneName = droneName.replace(/\b\d+(\.\d+)?\s+ton\s+/gi, '');
+      const droneDisplay = drone.quantity === 1 ? droneName : `${droneName} (x${drone.quantity})`;
+      
+      allRows.push({
+        category: index === 0 ? 'Drones' : '',
+        item: droneDisplay,
+        mass: drone.mass * drone.quantity,
+        cost: drone.cost * drone.quantity
+      });
+    });
+    
+    // Add all rows to CSV
+    allRows.forEach(row => {
+      lines.push(`${row.category},${row.item},${row.mass.toFixed(1)},${row.cost.toFixed(2)}`);
+    });
+    
+    // Add totals row
+    lines.push(`Total,,${mass.used.toFixed(1)},${cost.total.toFixed(2)}`);
+    
+    return lines.join('\n');
+  };
+
+  const handleCsvExport = () => {
+    const csvContent = generateCsvData();
+    setCsvData(csvContent);
+    setShowCsvModal(true);
   };
 
   return (
@@ -406,12 +625,45 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
         >
           {saving ? 'Saving...' : 'Save Design'}
         </button>
+        <button className="load-btn" onClick={handleCsvExport}>
+          CSV
+        </button>
         {onBackToShipSelect && (
           <button className="load-btn" onClick={onBackToShipSelect}>
             Load Different Ship
           </button>
         )}
       </div>
+
+      {/* CSV Modal */}
+      {showCsvModal && (
+        <div className="ship-name-conflict-dialog">
+          <div className="conflict-dialog-content">
+            <h3>CSV Export</h3>
+            <textarea
+              value={csvData}
+              readOnly
+              style={{
+                width: '100%',
+                height: '400px',
+                fontFamily: 'monospace',
+                fontSize: '12px',
+                padding: '10px',
+                border: '1px solid #ccc',
+                borderRadius: '4px'
+              }}
+            />
+            <div className="conflict-dialog-actions">
+              <button 
+                className="change-name-btn" 
+                onClick={() => setShowCsvModal(false)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
