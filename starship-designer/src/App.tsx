@@ -160,9 +160,30 @@ function App() {
     const pilot = 1;
     const navigator = 1;
     
-    // Engineers: 1 per 100 tons of engines, rounded up
-    const totalEnginesWeight = shipDesign.engines.reduce((sum, engine) => sum + engine.mass, 0);
-    const engineers = Math.ceil(totalEnginesWeight / 100);
+    // Engineers: Based on ship tonnage and engine mass
+    let engineers = 0;
+    const shipTonnage = shipDesign.ship.tonnage;
+    
+    if (shipTonnage === 100) {
+      engineers = 1;
+    } else if (shipTonnage === 200 || shipTonnage === 300) {
+      engineers = 2;
+    } else if (shipTonnage >= 400) {
+      // At least one engineer per engine
+      const engineCount = shipDesign.engines.length;
+      engineers = Math.max(engineCount, 1);
+      
+      // Additional engineers for engines larger than 100 tons
+      for (const engine of shipDesign.engines) {
+        if (engine.mass > 100) {
+          engineers += Math.ceil(engine.mass / 100) - 1; // -1 because we already counted 1 engineer per engine
+        }
+      }
+    } else {
+      // For other ship sizes, use original logic as fallback
+      const totalEnginesWeight = shipDesign.engines.reduce((sum, engine) => sum + engine.mass, 0);
+      engineers = Math.ceil(totalEnginesWeight / 100);
+    }
     
     // Gunners: 1 per weapon/turret mount
     const weaponCount = shipDesign.weapons
