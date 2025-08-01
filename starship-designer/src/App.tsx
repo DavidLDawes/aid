@@ -201,7 +201,9 @@ function App() {
                shipDesign.ship.tonnage >= 100;
       
       case 1: // Engines
-        return shipDesign.engines.length === 3; // Power plant, maneuver, jump
+        return shipDesign.engines.some(e => e.engine_type === 'power_plant' && e.drive_code && e.performance >= 1) &&
+               shipDesign.engines.some(e => e.engine_type === 'jump_drive' && e.drive_code && e.performance >= 1);
+        // Maneuver drive is optional (defaults to M-0)
       
       case 2: // Fittings
         return shipDesign.fittings.some(f => f.fitting_type === 'bridge' || f.fitting_type === 'half_bridge');
