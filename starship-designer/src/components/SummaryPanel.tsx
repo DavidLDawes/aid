@@ -379,6 +379,7 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
       </div>
       
       <div className="summary-section">
+        <h4>Crew</h4>
         <p><strong>Pilot:</strong> {staff.pilot}</p>
         <p><strong>Navigator:</strong> {staff.navigator}</p>
         <p><strong>Engineers:</strong> {staff.engineers}</p>
@@ -388,7 +389,7 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
         {staff.nurses > 0 && <p><strong>Nurses:</strong> {staff.nurses}</p>}
         {staff.surgeons > 0 && <p><strong>Surgeons:</strong> {staff.surgeons}</p>}
         {staff.techs > 0 && <p><strong>Medical Techs:</strong> {staff.techs}</p>}
-        <p><strong>Total Staff:</strong> {staff.total}</p>
+        <p><strong>Total:</strong> {staff.total}</p>
       </div>
 
       {saveMessage && (
