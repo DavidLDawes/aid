@@ -522,6 +522,32 @@ export function calculateVehicleServiceStaff(vehicles: { vehicle_type: string; q
   return totalServiceStaff;
 }
 
+export function calculateDroneServiceStaff(drones: { drone_type: string; quantity: number }[]): number {
+  let totalDroneTonnage = 0;
+  let heavyDroneTonnage = 0; // 10 ton drones
+  let lightDroneTonnage = 0; // less than 10 ton drones
+  
+  for (const drone of drones) {
+    const droneType = DRONE_TYPES.find(dt => dt.type === drone.drone_type);
+    if (droneType) {
+      const droneTonnage = droneType.mass * drone.quantity;
+      if (droneType.mass >= 10) {
+        heavyDroneTonnage += droneTonnage;
+      } else {
+        lightDroneTonnage += droneTonnage;
+      }
+    }
+  }
+  
+  // Heavy drones (10+ tons): 1 staff per 100 tons
+  const heavyDroneStaff = Math.ceil(heavyDroneTonnage / 100);
+  
+  // Light drones (<10 tons): 1 staff per 20 tons
+  const lightDroneStaff = Math.ceil(lightDroneTonnage / 20);
+  
+  return heavyDroneStaff + lightDroneStaff;
+}
+
 export function calculateMedicalStaff(facilities: { facility_type: string; quantity: number }[]): { nurses: number; surgeons: number; techs: number } {
   let nurses = 0;
   let surgeons = 0;
