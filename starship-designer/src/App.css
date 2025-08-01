@@ -129,6 +129,7 @@
   margin-top: 2rem;
   padding-top: 2rem;
   border-top: 1px solid #ecf0f1;
+  flex-wrap: wrap;
 }
 
 .panel-controls button {
@@ -146,8 +147,13 @@
   color: white;
 }
 
-.panel-controls button:last-child {
+.panel-controls button:nth-child(2) {
   background-color: #3498db;
+  color: white;
+}
+
+.panel-controls .back-to-select {
+  background-color: #6c757d;
   color: white;
 }
 
@@ -662,4 +668,139 @@
   .facility-group-row:nth-child(4) {
     grid-template-columns: 1fr;
   }
+}
+
+.select-ship-panel {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.ship-selection {
+  margin-bottom: 2rem;
+}
+
+.ship-dropdown {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid #bdc3c7;
+  border-radius: 4px;
+  font-size: 1rem;
+  background-color: white;
+  margin-top: 0.5rem;
+}
+
+.ship-dropdown:focus {
+  outline: none;
+  border-color: #3498db;
+}
+
+.ship-preview {
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.ship-preview h3 {
+  margin: 0 0 1rem 0;
+  color: #2c3e50;
+  border-bottom: 1px solid #dee2e6;
+  padding-bottom: 0.5rem;
+}
+
+.ship-details p {
+  margin: 0.5rem 0;
+  color: #495057;
+}
+
+.ship-details strong {
+  color: #2c3e50;
+}
+
+.panel-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.load-ship-button, .new-ship-button {
+  padding: 1rem 2rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 150px;
+}
+
+.load-ship-button {
+  background-color: #3498db;
+  color: white;
+}
+
+.load-ship-button:hover:not(:disabled) {  
+  background-color: #2980b9;
+  transform: translateY(-1px);
+}
+
+.load-ship-button:disabled {
+  background-color: #bdc3c7;
+  cursor: not-allowed;
+  opacity: 0.6;
+  transform: none;
+}
+
+.new-ship-button {
+  background-color: #27ae60;
+  color: white;
+}
+
+.new-ship-button:hover {
+  background-color: #229954;
+  transform: translateY(-1px);
+}
+
+.error-message {
+  background-color: #f8d7da;
+  color: #721c24;
+  padding: 1rem;
+  border: 1px solid #f5c6cb;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+
+.error-message button {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-top: 0.5rem;
+}
+
+.error-message button:hover {
+  background-color: #c82333;
+}
+
+.save-message {
+  padding: 1rem;
+  border-radius: 4px;
+  margin: 1rem 0;
+  font-weight: 500;
+}
+
+.save-message.success {
+  background-color: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.save-message.error {
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
 }

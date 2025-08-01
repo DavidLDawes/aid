@@ -13,12 +13,13 @@ const FacilitiesPanel: React.FC<FacilitiesPanelProps> = ({ facilities, onUpdate 
   // Auto-add commissary if it doesn't exist
   React.useEffect(() => {
     if (!hasCommissary) {
-      const newFacilities = [...facilities, {
+      const commissaryFacility: Facility = {
         facility_type: 'commissary',
         quantity: 1,
         mass: 2,
         cost: 0.2
-      }];
+      };
+      const newFacilities = [...facilities, commissaryFacility];
       onUpdate(newFacilities);
     }
   }, [hasCommissary, facilities, onUpdate]);
