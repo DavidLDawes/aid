@@ -137,24 +137,23 @@ const FittingsPanel: React.FC<FittingsPanelProps> = ({ fittings, shipTonnage, on
         <h3>Comms & Sensors</h3>
         <p>Communications and sensor systems for the starship. Standard is included by default.</p>
         
-        <div className="radio-group">
+        <label htmlFor="comms-sensors">Comms & Sensors Type</label>
+        <select
+          id="comms-sensors"
+          value={commsSensors?.comms_sensors_type || 'standard'}
+          onChange={(e) => {
+            const selectedType = COMMS_SENSORS_TYPES.find(t => t.type === e.target.value);
+            if (selectedType) {
+              setCommsSensorsType(selectedType);
+            }
+          }}
+        >
           {COMMS_SENSORS_TYPES.map(sensorType => (
-            <label key={sensorType.type}>
-              <input
-                type="radio"
-                checked={commsSensors?.comms_sensors_type === sensorType.type || (!commsSensors && sensorType.type === 'standard')}
-                onChange={() => setCommsSensorsType(sensorType)}
-              />
+            <option key={sensorType.type} value={sensorType.type}>
               {sensorType.name} ({sensorType.mass} tons, {sensorType.cost} MCr)
-            </label>
+            </option>
           ))}
-        </div>
-        
-        {commsSensors && (
-          <div className="selected-summary">
-            <p><strong>Selected:</strong> {COMMS_SENSORS_TYPES.find(t => t.type === commsSensors.comms_sensors_type)?.name} - {commsSensors.mass} tons, {commsSensors.cost} MCr</p>
-          </div>
-        )}
+        </select>
       </div>
 
       <div className="validation-info">
