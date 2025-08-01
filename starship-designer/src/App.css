@@ -247,17 +247,81 @@
   color: #e74c3c;
 }
 
+.engines-horizontal-layout {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
 .engine-group {
   background-color: #f8f9fa;
   border: 1px solid #e9ecef;
   border-radius: 4px;
   padding: 1.5rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 0;
 }
 
 .engine-group h3 {
   margin: 0 0 1rem 0;
   color: #2c3e50;
+}
+
+.fuel-horizontal-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+
+.fuel-selection {
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+  padding: 1.5rem;
+}
+
+.fuel-summary {
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+  padding: 1.5rem;
+}
+
+.fuel-summary h4 {
+  margin: 0 0 1rem 0;
+  color: #2c3e50;
+}
+
+.fuel-summary table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.fuel-summary th,
+.fuel-summary td {
+  padding: 0.5rem;
+  text-align: left;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.fuel-summary .total-row {
+  border-top: 2px solid #2c3e50;
+  font-weight: 600;
+}
+
+.ship-basic-info-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.ship-config-description-row {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
 }
 
 .engine-summary {
@@ -486,5 +550,24 @@
   
   .summary-actions {
     flex-direction: column;
+  }
+  
+  .engines-horizontal-layout {
+    grid-template-columns: 1fr;
+  }
+  
+  .fuel-horizontal-layout {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .ship-basic-info-row {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .ship-config-description-row {
+    grid-template-columns: 1fr;
+    gap: 1rem;
   }
 }
