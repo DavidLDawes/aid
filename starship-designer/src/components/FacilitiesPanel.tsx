@@ -65,7 +65,12 @@ const FacilitiesPanel: React.FC<FacilitiesPanelProps> = ({ facilities, onUpdate 
           return (
             <div key={facilityType.type} className="component-item">
               <div className="component-info">
+<<<<<<< HEAD
                 <h4>{facilityType.name}, {facilityType.mass} tons, {facilityType.cost} MCr</h4>
+=======
+                <h4>{facilityType.name}</h4>
+                <p>Mass: {facilityType.mass} tons, Cost: {facilityType.cost} MCr</p>
+>>>>>>> main
               </div>
               <div className="quantity-control">
                 <button 
