@@ -28,3 +28,4 @@ jobs:
         npm install
         cd ../starship-designer
         npm install
+        npm run test:run 

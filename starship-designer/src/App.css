@@ -401,6 +401,77 @@
   gap: 1rem;
 }
 
+.cargo-grouped-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.cargo-group-row {
+  display: grid;
+  gap: 1rem;
+}
+
+.cargo-group-row:nth-child(1),
+.cargo-group-row:nth-child(2) {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.cargo-group-row:nth-child(3) {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.tonnage-control {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.tonnage-control label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.tonnage-control input {
+  padding: 0.25rem;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.tonnage-control small {
+  color: #6c757d;
+  font-size: 0.8rem;
+}
+
+.service-interval {
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+  padding: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.service-interval h3 {
+  margin: 0 0 1rem 0;
+  color: #2c3e50;
+  border-bottom: 1px solid #dee2e6;
+  padding-bottom: 0.5rem;
+}
+
+.service-info p {
+  margin: 0.5rem 0;
+}
+
+.service-calculation {
+  color: #6c757d;
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
 .engine-summary {
   margin-top: 2rem;
   background-color: #f8f9fa;
@@ -666,6 +737,12 @@
   .facility-group-row:nth-child(2),
   .facility-group-row:nth-child(3),
   .facility-group-row:nth-child(4) {
+    grid-template-columns: 1fr;
+  }
+  
+  .cargo-group-row:nth-child(1),
+  .cargo-group-row:nth-child(2),
+  .cargo-group-row:nth-child(3) {
     grid-template-columns: 1fr;
   }
 }
