@@ -348,6 +348,26 @@
   grid-template-columns: repeat(2, 1fr);
 }
 
+.defenses-grouped-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.defense-group-row {
+  display: grid;
+  gap: 1rem;
+}
+
+.defense-group-row:nth-child(1) {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.defense-group-row:nth-child(2) {
+  grid-template-columns: repeat(2, 1fr);
+}
+
 .engine-summary {
   margin-top: 2rem;
   background-color: #f8f9fa;
@@ -601,6 +621,11 @@
   .weapon-group-row:nth-child(4),
   .weapon-group-row:nth-child(5),
   .weapon-group-row:nth-child(6) {
+    grid-template-columns: 1fr;
+  }
+  
+  .defense-group-row:nth-child(1),
+  .defense-group-row:nth-child(2) {
     grid-template-columns: 1fr;
   }
 }

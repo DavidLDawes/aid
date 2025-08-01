@@ -60,35 +60,70 @@ const DefensesPanel: React.FC<DefensesPanelProps> = ({ defenses, shipTonnage, we
     <div className="panel-content">
       <p>Available defense turret mounts: {maxMountLimit} (Used: {weaponsCount + currentTurretCount}, Remaining: {availableSlots})</p>
       
-      <div className="component-list">
-        {DEFENSE_TYPES.map(defenseType => {
-          const currentDefense = defenses.find(d => d.defense_type === defenseType.type);
-          const quantity = currentDefense?.quantity || 0;
-          const canAdd = availableSlots > 0;
+      <div className="defenses-grouped-layout">
+        {/* Sandcaster Turret Group */}
+        <div className="defense-group-row">
+          {DEFENSE_TYPES.filter(d => d.name.includes('Sandcaster')).map(defenseType => {
+            const currentDefense = defenses.find(d => d.defense_type === defenseType.type);
+            const quantity = currentDefense?.quantity || 0;
+            const canAdd = availableSlots > 0;
 
-          return (
-            <div key={defenseType.type} className="component-item">
-              <div className="component-info">
-                <h4>{defenseType.name}, {defenseType.mass} tons, {defenseType.cost} MCr</h4>
+            return (
+              <div key={defenseType.type} className="component-item">
+                <div className="component-info">
+                  <h4>{defenseType.name}, {defenseType.mass} tons, {defenseType.cost} MCr</h4>
+                </div>
+                <div className="quantity-control">
+                  <button 
+                    onClick={() => removeDefense(defenseType.type)}
+                    disabled={quantity === 0}
+                  >
+                    -
+                  </button>
+                  <span>{quantity}</span>
+                  <button 
+                    onClick={() => addDefense(defenseType)}
+                    disabled={!canAdd}
+                  >
+                    +
+                  </button>
+                </div>
               </div>
-              <div className="quantity-control">
-                <button 
-                  onClick={() => removeDefense(defenseType.type)}
-                  disabled={quantity === 0}
-                >
-                  -
-                </button>
-                <span>{quantity}</span>
-                <button 
-                  onClick={() => addDefense(defenseType)}
-                  disabled={!canAdd}
-                >
-                  +
-                </button>
+            );
+          })}
+        </div>
+
+        {/* Point Defense Laser Turret Group */}
+        <div className="defense-group-row">
+          {DEFENSE_TYPES.filter(d => d.name.includes('Point Defense')).map(defenseType => {
+            const currentDefense = defenses.find(d => d.defense_type === defenseType.type);
+            const quantity = currentDefense?.quantity || 0;
+            const canAdd = availableSlots > 0;
+
+            return (
+              <div key={defenseType.type} className="component-item">
+                <div className="component-info">
+                  <h4>{defenseType.name}, {defenseType.mass} tons, {defenseType.cost} MCr</h4>
+                </div>
+                <div className="quantity-control">
+                  <button 
+                    onClick={() => removeDefense(defenseType.type)}
+                    disabled={quantity === 0}
+                  >
+                    -
+                  </button>
+                  <span>{quantity}</span>
+                  <button 
+                    onClick={() => addDefense(defenseType)}
+                    disabled={!canAdd}
+                  >
+                    +
+                  </button>
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
 
       {hasSandcasters && (
