@@ -310,6 +310,20 @@
   font-weight: 600;
 }
 
+.ship-basic-info-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.ship-config-description-row {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
 .engine-summary {
   margin-top: 2rem;
   background-color: #f8f9fa;
@@ -543,6 +557,16 @@
   }
   
   .fuel-horizontal-layout {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .ship-basic-info-row {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .ship-config-description-row {
     grid-template-columns: 1fr;
     gap: 1rem;
   }
