@@ -399,6 +399,10 @@ export const FACILITY_TYPES = [
   { name: 'Commissary', type: 'commissary', mass: 2, cost: 0.2, required: true },
   { name: 'Kitchens', type: 'kitchens', mass: 3, cost: 0.4 },
   { name: 'Officers Mess & Bar', type: 'officers_mess_bar', mass: 4, cost: 0.3 },
+  { name: 'First Aid Station', type: 'first_aid_station', mass: 0.5, cost: 0.1 },
+  { name: 'Autodoc', type: 'autodoc', mass: 1.5, cost: 0.05 },
+  { name: 'Med Bay', type: 'med_bay', mass: 4, cost: 2 },
+  { name: 'Surgical Ward', type: 'surgical_ward', mass: 8, cost: 8 },
   { name: 'Medical Bay', type: 'medical_bay', mass: 4, cost: 2 },
   { name: 'Surgical Bay', type: 'surgical_bay', mass: 5, cost: 8 },
   { name: 'Medical Garden', type: 'medical_garden', mass: 4, cost: 1 },
@@ -518,4 +522,22 @@ export function calculateVehicleServiceStaff(vehicles: { vehicle_type: string; q
   }
   
   return totalServiceStaff;
+}
+
+export function calculateMedicalStaff(facilities: { facility_type: string; quantity: number }[]): { nurses: number; surgeons: number; techs: number } {
+  let nurses = 0;
+  let surgeons = 0;
+  let techs = 0;
+  
+  for (const facility of facilities) {
+    if (facility.facility_type === 'med_bay') {
+      nurses += facility.quantity;
+    } else if (facility.facility_type === 'surgical_ward') {
+      surgeons += facility.quantity;
+      techs += facility.quantity;
+      nurses += facility.quantity;
+    }
+  }
+  
+  return { nurses, surgeons, techs };
 }
