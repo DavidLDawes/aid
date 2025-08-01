@@ -113,6 +113,7 @@ const DronesPanel: React.FC<DronesPanelProps> = ({ drones, onUpdate }) => {
           </table>
         )}
       </div>
+
     </div>
   );
 };

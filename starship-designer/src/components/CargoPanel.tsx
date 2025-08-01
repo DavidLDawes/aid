@@ -228,6 +228,7 @@ const CargoPanel: React.FC<CargoPanelProps> = ({ cargo, remainingMass, shipTonna
           </p>
         </div>
       </div>
+
     </div>
   );
 };

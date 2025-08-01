@@ -164,6 +164,7 @@ const FittingsPanel: React.FC<FittingsPanelProps> = ({ fittings, shipTonnage, on
           </li>
         </ul>
       </div>
+
     </div>
   );
 };

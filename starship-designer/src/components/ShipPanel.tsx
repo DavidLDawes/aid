@@ -242,6 +242,7 @@ const ShipPanel: React.FC<ShipPanelProps> = ({ ship, onUpdate, onLoadExistingShi
           </li>
         </ul>
       </div>
+
     </div>
   );
 };

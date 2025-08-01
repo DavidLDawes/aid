@@ -154,6 +154,7 @@ const DefensesPanel: React.FC<DefensesPanelProps> = ({ defenses, shipTonnage, we
           )}
         </div>
       )}
+
     </div>
   );
 };

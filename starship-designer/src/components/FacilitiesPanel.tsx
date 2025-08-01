@@ -187,6 +187,7 @@ const FacilitiesPanel: React.FC<FacilitiesPanelProps> = ({ facilities, onUpdate 
           </li>
         </ul>
       </div>
+
     </div>
   );
 };

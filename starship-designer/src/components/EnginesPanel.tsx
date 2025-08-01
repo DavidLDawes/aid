@@ -232,6 +232,7 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, fuelW
           </tbody>
         </table>
       </div>
+
     </div>
   );
 };
