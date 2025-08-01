@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { ShipDesign, Ship, Engine, Fitting, Weapon, Defense, Berth, Facility, Cargo, Vehicle, Drone, MassCalculation, CostCalculation, StaffRequirements } from './types/ship';
-import { calculateTotalFuelMass, calculateVehicleServiceStaff } from './data/constants';
+import { calculateTotalFuelMass, calculateVehicleServiceStaff, calculateMedicalStaff } from './data/constants';
 import ShipPanel from './components/ShipPanel';
 import EnginesPanel from './components/EnginesPanel';
 import FittingsPanel from './components/FittingsPanel';
@@ -162,9 +162,15 @@ function App() {
       .reduce((sum, berth) => sum + berth.quantity, 0);
     const stewards = Math.ceil(totalStaterooms / 8);
     
-    const total = pilot + navigator + engineers + gunners + service + stewards;
+    // Medical staff: based on medical facilities
+    const medicalStaff = calculateMedicalStaff(shipDesign.facilities);
+    const nurses = medicalStaff.nurses;
+    const surgeons = medicalStaff.surgeons;
+    const techs = medicalStaff.techs;
     
-    return { pilot, navigator, engineers, gunners, service, stewards, total };
+    const total = pilot + navigator + engineers + gunners + service + stewards + nurses + surgeons + techs;
+    
+    return { pilot, navigator, engineers, gunners, service, stewards, nurses, surgeons, techs, total };
   };
 
   const isCurrentPanelValid = (): boolean => {

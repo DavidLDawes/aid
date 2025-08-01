@@ -54,7 +54,7 @@ export interface Berth {
 
 export interface Facility {
   id?: number;
-  facility_type: 'gym' | 'spa' | 'garden' | 'commissary' | 'kitchens' | 'officers_mess_bar' | 'medical_bay' | 'surgical_bay' | 'medical_garden' | 'library' | 'range' | 'club' | 'park' | 'shrine';
+  facility_type: 'gym' | 'spa' | 'garden' | 'commissary' | 'kitchens' | 'officers_mess_bar' | 'first_aid_station' | 'autodoc' | 'med_bay' | 'surgical_ward' | 'medical_bay' | 'surgical_bay' | 'medical_garden' | 'library' | 'range' | 'club' | 'park' | 'shrine';
   quantity: number;
   mass: number;
   cost: number;
@@ -90,6 +90,9 @@ export interface StaffRequirements {
   gunners: number;
   service: number;
   stewards: number;
+  nurses: number;
+  surgeons: number;
+  techs: number;
   total: number;
 }
 

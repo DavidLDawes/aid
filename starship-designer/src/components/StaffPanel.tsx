@@ -17,6 +17,9 @@ const StaffPanel: React.FC<StaffPanelProps> = ({ staffRequirements, berths }) =>
         <p>Gunners: {staffRequirements.gunners}</p>
         <p>Service (Vehicle Maintenance): {staffRequirements.service}</p>
         <p>Stewards: {staffRequirements.stewards}</p>
+        <p>Nurses: {staffRequirements.nurses}</p>
+        <p>Surgeons: {staffRequirements.surgeons}</p>
+        <p>Techs: {staffRequirements.techs}</p>
         <p><strong>Total Staff: {staffRequirements.total}</strong></p>
       </div>
       
