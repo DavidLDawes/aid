@@ -422,6 +422,32 @@
   grid-template-columns: repeat(2, 1fr);
 }
 
+.vehicles-grouped-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.vehicle-group-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.drones-grouped-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.drone-group-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
 .tonnage-control {
   display: flex;
   flex-direction: column;
@@ -874,6 +900,14 @@
   .cargo-group-row:nth-child(1),
   .cargo-group-row:nth-child(2),
   .cargo-group-row:nth-child(3) {
+    grid-template-columns: 1fr;
+  }
+  
+  .vehicle-group-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .drone-group-row {
     grid-template-columns: 1fr;
   }
 }

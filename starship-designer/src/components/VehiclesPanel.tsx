@@ -40,38 +40,51 @@ const VehiclesPanel: React.FC<VehiclesPanelProps> = ({ vehicles, shipTechLevel, 
     onUpdate(newVehicles);
   };
 
+  const groupedVehicles = [];
+  for (let i = 0; i < availableVehicles.length; i += 3) {
+    groupedVehicles.push(availableVehicles.slice(i, i + 3));
+  }
+
   return (
     <div className="panel-content">
       <p>Configure vehicles carried by the starship. Only vehicles compatible with TL-{shipTechLevel} are available.</p>
       <p><strong>Total Service Staff Required:</strong> {totalServiceStaff}</p>
       
-      <div className="component-list">
-        {availableVehicles.map(vehicleType => {
-          const currentVehicle = vehicles.find(v => v.vehicle_type === vehicleType.type);
-          const quantity = currentVehicle?.quantity || 0;
+      <div className="vehicles-grouped-layout">
+        {groupedVehicles.map((vehicleGroup, groupIndex) => (
+          <div key={groupIndex} className="vehicle-group-row">
+            {vehicleGroup.map(vehicleType => {
+              const currentVehicle = vehicles.find(v => v.vehicle_type === vehicleType.type);
+              const quantity = currentVehicle?.quantity || 0;
 
-          return (
-            <div key={vehicleType.type} className="component-item">
-              <div className="component-info">
-                <h4>{vehicleType.name}, {vehicleType.mass} tons, {vehicleType.cost} MCr, TL: {vehicleType.techLevel}, Service Staff: {vehicleType.serviceStaff}</h4>
-              </div>
-              <div className="quantity-control">
-                <button 
-                  onClick={() => removeVehicle(vehicleType.type)}
-                  disabled={quantity === 0}
-                >
-                  -
-                </button>
-                <span>{quantity}</span>
-                <button 
-                  onClick={() => addVehicle(vehicleType)}
-                >
-                  +
-                </button>
-              </div>
-            </div>
-          );
-        })}
+              return (
+                <div key={vehicleType.type} className="component-item">
+                  <div className="component-info">
+                    <h4>{vehicleType.name}</h4>
+                    <p>{vehicleType.mass} tons, {vehicleType.cost} MCr</p>
+                    {quantity > 0 && (
+                      <p><strong>Total:</strong> {(vehicleType.mass * quantity).toFixed(1)} tons, {(vehicleType.cost * quantity).toFixed(3)} MCr</p>
+                    )}
+                  </div>
+                  <div className="quantity-control">
+                    <button 
+                      onClick={() => removeVehicle(vehicleType.type)}
+                      disabled={quantity === 0}
+                    >
+                      -
+                    </button>
+                    <span>{quantity}</span>
+                    <button 
+                      onClick={() => addVehicle(vehicleType)}
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ))}
       </div>
 
       <div className="vehicle-summary">
