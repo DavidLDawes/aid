@@ -9,7 +9,7 @@ export interface StoredShipDesign extends ShipDesign {
 class DatabaseService {
   private db: IDBDatabase | null = null;
   private readonly dbName = 'StarshipDesignerDB';
-  private readonly version = 1;
+  private readonly version = 2;
 
   async initialize(): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -21,14 +21,59 @@ class DatabaseService {
         resolve();
       };
 
-      request.onupgradeneeded = (event) => {
+      request.onupgradeneeded = async (event) => {
         const db = (event.target as IDBOpenDBRequest).result;
+        const transaction = (event.target as IDBOpenDBRequest).transaction!;
+        const oldVersion = event.oldVersion;
 
-        if (!db.objectStoreNames.contains('ships')) {
-          const shipStore = db.createObjectStore('ships', { keyPath: 'id', autoIncrement: true });
-          shipStore.createIndex('name', 'ship.name', { unique: false });
-          shipStore.createIndex('createdAt', 'createdAt', { unique: false });
+        // Version 1: Initial database creation
+        if (oldVersion < 1) {
+          if (!db.objectStoreNames.contains('ships')) {
+            const shipStore = db.createObjectStore('ships', { keyPath: 'id', autoIncrement: true });
+            shipStore.createIndex('name', 'ship.name', { unique: false });
+            shipStore.createIndex('createdAt', 'createdAt', { unique: false });
+          }
         }
+
+        // Version 2: Add unique constraint and clean up duplicates
+        if (oldVersion < 2) {
+          const shipStore = transaction.objectStore('ships');
+          
+          // First, clean up duplicate "Fat Trader" ships
+          await this.cleanupDuplicateFatTraders(shipStore);
+          
+          // Delete the old non-unique index
+          if (shipStore.indexNames.contains('name')) {
+            shipStore.deleteIndex('name');
+          }
+          
+          // Create new unique index for ship names
+          shipStore.createIndex('name', 'ship.name', { unique: true });
+        }
+      };
+    });
+  }
+
+  private async cleanupDuplicateFatTraders(shipStore: IDBObjectStore): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const nameIndex = shipStore.index('name');
+      const request = nameIndex.getAll('Fat Trader');
+      
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        const fatTraders = request.result;
+        
+        if (fatTraders.length > 1) {
+          // Sort by creation date and keep the oldest one
+          fatTraders.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+          
+          // Delete all but the first (oldest) one
+          for (let i = 1; i < fatTraders.length; i++) {
+            shipStore.delete(fatTraders[i].id);
+          }
+        }
+        
+        resolve();
       };
     });
   }
@@ -84,17 +129,37 @@ class DatabaseService {
       const transaction = this.db!.transaction(['ships'], 'readwrite');
       const store = transaction.objectStore('ships');
       
-      const now = new Date();
-      const shipToSave = {
-        ...shipDesign,
-        createdAt: now,
-        updatedAt: now
+      // First check if a ship with this name already exists
+      const nameIndex = store.index('name');
+      const checkRequest = nameIndex.get(shipDesign.ship.name);
+      
+      checkRequest.onerror = () => reject(checkRequest.error);
+      checkRequest.onsuccess = () => {
+        if (checkRequest.result) {
+          reject(new Error(`A ship named "${shipDesign.ship.name}" already exists. Please choose a different name.`));
+          return;
+        }
+        
+        // Name is unique, proceed with saving
+        const now = new Date();
+        const shipToSave = {
+          ...shipDesign,
+          createdAt: now,
+          updatedAt: now
+        };
+
+        const request = store.add(shipToSave);
+        
+        request.onerror = () => {
+          // Handle the case where the unique constraint fails at the database level
+          if (request.error?.name === 'ConstraintError') {
+            reject(new Error(`A ship named "${shipDesign.ship.name}" already exists. Please choose a different name.`));
+          } else {
+            reject(request.error);
+          }
+        };
+        request.onsuccess = () => resolve(request.result as number);
       };
-
-      const request = store.add(shipToSave);
-
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => resolve(request.result as number);
     });
   }
 
@@ -115,16 +180,45 @@ class DatabaseService {
           return;
         }
 
-        const updatedShip = {
-          ...shipDesign,
-          id,
-          createdAt: existingShip.createdAt,
-          updatedAt: new Date()
-        };
+        // Check if name is changing and if new name already exists
+        if (existingShip.ship.name !== shipDesign.ship.name) {
+          const nameIndex = store.index('name');
+          const checkRequest = nameIndex.get(shipDesign.ship.name);
+          
+          checkRequest.onerror = () => reject(checkRequest.error);
+          checkRequest.onsuccess = () => {
+            if (checkRequest.result) {
+              reject(new Error(`A ship named "${shipDesign.ship.name}" already exists. Please choose a different name.`));
+              return;
+            }
+            
+            // Name is unique, proceed with update
+            performUpdate();
+          };
+        } else {
+          // Name hasn't changed, proceed with update
+          performUpdate();
+        }
 
-        const putRequest = store.put(updatedShip);
-        putRequest.onerror = () => reject(putRequest.error);
-        putRequest.onsuccess = () => resolve();
+        function performUpdate() {
+          const updatedShip = {
+            ...shipDesign,
+            id,
+            createdAt: existingShip.createdAt,
+            updatedAt: new Date()
+          };
+
+          const putRequest = store.put(updatedShip);
+          putRequest.onerror = () => {
+            // Handle the case where the unique constraint fails at the database level
+            if (putRequest.error?.name === 'ConstraintError') {
+              reject(new Error(`A ship named "${shipDesign.ship.name}" already exists. Please choose a different name.`));
+            } else {
+              reject(putRequest.error);
+            }
+          };
+          putRequest.onsuccess = () => resolve();
+        }
       };
     });
   }
@@ -152,6 +246,46 @@ class DatabaseService {
 
       request.onerror = () => reject(request.error);
       request.onsuccess = () => resolve(request.result > 0);
+    });
+  }
+
+  async getShipByName(name: string): Promise<StoredShipDesign | null> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction(['ships'], 'readonly');
+      const store = transaction.objectStore('ships');
+      const nameIndex = store.index('name');
+      const request = nameIndex.get(name);
+
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        const ship = request.result;
+        if (ship) {
+          resolve({
+            ...ship,
+            createdAt: new Date(ship.createdAt),
+            updatedAt: new Date(ship.updatedAt)
+          });
+        } else {
+          resolve(null);
+        }
+      };
+    });
+  }
+
+  async shipNameExists(name: string): Promise<boolean> {
+    if (!this.db) throw new Error('Database not initialized');
+    if (!name.trim()) return false;
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction(['ships'], 'readonly');
+      const store = transaction.objectStore('ships');
+      const nameIndex = store.index('name');
+      const request = nameIndex.get(name.trim());
+
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => resolve(!!request.result);
     });
   }
 }

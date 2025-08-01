@@ -38,8 +38,9 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
       setTimeout(() => setSaveMessage(null), 3000);
     } catch (error) {
       console.error('Error saving ship:', error);
-      setSaveMessage('Failed to save ship design. Please try again.');
-      setTimeout(() => setSaveMessage(null), 3000);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to save ship design. Please try again.';
+      setSaveMessage(errorMessage);
+      setTimeout(() => setSaveMessage(null), 5000);
     } finally {
       setSaving(false);
     }
