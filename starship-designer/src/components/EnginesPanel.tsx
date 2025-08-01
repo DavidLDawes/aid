@@ -83,31 +83,6 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, fuelW
             )}
           </div>
 
-          {engine.drive_code && (
-            <>
-              <div className="form-group">
-                <label>Mass (tons)</label>
-                <input
-                  type="number"
-                  value={engine.mass}
-                  readOnly
-                  disabled
-                />
-                <small>Set by drive selection</small>
-              </div>
-
-              <div className="form-group">
-                <label>Cost (MCr)</label>
-                <input
-                  type="number"
-                  value={engine.cost}
-                  readOnly
-                  disabled
-                />
-                <small>Set by drive selection</small>
-              </div>
-            </>
-          )}
         </div>
         
         {engine.drive_code && (
@@ -156,49 +131,55 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, fuelW
       <p>Configure the three required engine types for your starship.</p>
       <p><small><strong>Note:</strong> Jump and Maneuver drives require a Power Plant with equal or higher performance rating.</small></p>
       
-      {renderEngineInput('power_plant', 'Power Plant')}
-      {renderEngineInput('maneuver_drive', 'Maneuver Drive')}
-      {renderEngineInput('jump_drive', 'Jump Drive')}
+      <div className="engines-horizontal-layout">
+        {renderEngineInput('power_plant', 'Power Plant')}
+        {renderEngineInput('maneuver_drive', 'Maneuver Drive')}
+        {renderEngineInput('jump_drive', 'Jump Drive')}
+      </div>
 
       <div className="fuel-section">
         <h3>Fuel Requirements</h3>
-        <div className="form-group">
-          <label htmlFor="fuel-weeks">Maneuver Drive Fuel Duration</label>
-          <select
-            id="fuel-weeks"
-            value={fuelWeeks}
-            onChange={(e) => onFuelWeeksUpdate(parseInt(e.target.value))}
-          >
-            {Array.from({length: effectiveMaxWeeks - 1}, (_, i) => i + 2).map(weeks => (
-              <option key={weeks} value={weeks}>
-                {weeks} weeks
-              </option>
-            ))}
-          </select>
-          <small>Maximum {effectiveMaxWeeks} weeks based on available mass</small>
-        </div>
+        <div className="fuel-horizontal-layout">
+          <div className="fuel-selection">
+            <div className="form-group">
+              <label htmlFor="fuel-weeks">Maneuver Drive Fuel Duration</label>
+              <select
+                id="fuel-weeks"
+                value={fuelWeeks}
+                onChange={(e) => onFuelWeeksUpdate(parseInt(e.target.value))}
+              >
+                {Array.from({length: effectiveMaxWeeks - 1}, (_, i) => i + 2).map(weeks => (
+                  <option key={weeks} value={weeks}>
+                    {weeks} weeks
+                  </option>
+                ))}
+              </select>
+              <small>Maximum {effectiveMaxWeeks} weeks based on available mass</small>
+            </div>
+          </div>
 
-        <div className="fuel-summary">
-          <h4>Fuel Mass Breakdown:</h4>
-          <table>
-            <tbody>
-              <tr>
-                <td>Jump Fuel (per jump):</td>
-                <td>{jumpFuel.toFixed(1)} tons</td>
-                <td><small>({jumpDrive.performance > 0 ? `J-${jumpDrive.performance}` : 'No Jump Drive'} × 0.1 × {shipTonnage}t)</small></td>
-              </tr>
-              <tr>
-                <td>Maneuver Fuel ({fuelWeeks} weeks):</td>
-                <td>{maneuverFuel.toFixed(1)} tons</td>
-                <td><small>({maneuverDrive.performance > 0 ? `M-${maneuverDrive.performance}` : 'No Maneuver Drive'} × 0.01 × {shipTonnage}t × {fuelWeeks/2})</small></td>
-              </tr>
-              <tr className="total-row">
-                <td><strong>Total Fuel Mass:</strong></td>
-                <td><strong>{totalFuelMass.toFixed(1)} tons</strong></td>
-                <td><small>{((totalFuelMass / shipTonnage) * 100).toFixed(1)}% of ship mass</small></td>
-              </tr>
-            </tbody>
-          </table>
+          <div className="fuel-summary">
+            <h4>Fuel Mass Breakdown:</h4>
+            <table>
+              <tbody>
+                <tr>
+                  <td>Jump Fuel (per jump):</td>
+                  <td>{jumpFuel.toFixed(1)} tons</td>
+                  <td><small>({jumpDrive.performance > 0 ? `J-${jumpDrive.performance}` : 'No Jump Drive'} × 0.1 × {shipTonnage}t)</small></td>
+                </tr>
+                <tr>
+                  <td>Maneuver Fuel ({fuelWeeks} weeks):</td>
+                  <td>{maneuverFuel.toFixed(1)} tons</td>
+                  <td><small>({maneuverDrive.performance > 0 ? `M-${maneuverDrive.performance}` : 'No Maneuver Drive'} × 0.01 × {shipTonnage}t × {fuelWeeks/2})</small></td>
+                </tr>
+                <tr className="total-row">
+                  <td><strong>Total Fuel Mass:</strong></td>
+                  <td><strong>{totalFuelMass.toFixed(1)} tons</strong></td>
+                  <td><small>{((totalFuelMass / shipTonnage) * 100).toFixed(1)}% of ship mass</small></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
