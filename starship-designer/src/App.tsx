@@ -324,7 +324,12 @@ function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>Starship Designer</h1>
+        <h1>
+          Starship Designer
+          {!showSelectShip && currentPanel > 0 && shipDesign.ship.name.trim() && 
+            `: ${shipDesign.ship.name}`
+          }
+        </h1>
         {!showSelectShip && (
           <nav className="panel-nav">
             {panels.map((panel, index) => (

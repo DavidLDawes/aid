@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import type { Berth, StaffRequirements } from '../types/ship';
 import { BERTH_TYPES } from '../data/constants';
 
@@ -49,13 +49,38 @@ const BerthsPanel: React.FC<BerthsPanelProps> = ({ berths, staffRequirements, on
     return getTotalStaterooms() >= staffRequirements.total;
   };
 
+  const getPassengerCount = (): number => {
+    const totalStaterooms = getTotalStaterooms();
+    const crewCount = staffRequirements.total;
+    return Math.max(0, totalStaterooms - crewCount);
+  };
+
+  // Ensure minimum staterooms match crew requirements
+  useEffect(() => {
+    const totalStaterooms = getTotalStaterooms();
+    const crewCount = staffRequirements.total;
+    
+    if (totalStaterooms < crewCount && crewCount > 0) {
+      const shortfall = crewCount - totalStaterooms;
+      const currentStaterooms = getBerthQuantity('staterooms');
+      
+      updateBerthQuantity(
+        BERTH_TYPES.find(bt => bt.type === 'staterooms')!,
+        currentStaterooms + shortfall
+      );
+    }
+  }, [staffRequirements.total]);
+
   return (
     <div className="panel-content">
       <p>Configure crew and passenger accommodations. Staterooms are required for all crew members.</p>
       
       <div className="berth-requirements">
-        <h3>Crew Requirements</h3>
+        <h3>Accommodations</h3>
         <p><strong>Total Crew:</strong> {staffRequirements.total}</p>
+        {getPassengerCount() >= 1 && (
+          <p><strong>Passengers:</strong> {getPassengerCount()}</p>
+        )}
         <p><strong>Total Staterooms:</strong> {getTotalStaterooms()}</p>
         <p className={hasEnoughStaterooms() ? 'valid' : 'invalid'}>
           {hasEnoughStaterooms() ? '✓ Sufficient staterooms' : '⚠️ Need more staterooms for crew'}
@@ -66,6 +91,9 @@ const BerthsPanel: React.FC<BerthsPanelProps> = ({ berths, staffRequirements, on
         <div className="berth-group-row">
           {BERTH_TYPES.map(berthType => {
             const quantity = getBerthQuantity(berthType.type);
+            const isStateroom = berthType.type === 'staterooms' || berthType.type === 'luxury_staterooms';
+            const totalStaterooms = getTotalStaterooms();
+            const canReduceStaterooms = !isStateroom || (totalStaterooms > staffRequirements.total);
             
             return (
               <div key={berthType.type} className="component-item">
@@ -79,7 +107,7 @@ const BerthsPanel: React.FC<BerthsPanelProps> = ({ berths, staffRequirements, on
                 <div className="quantity-control">
                   <button 
                     onClick={() => updateBerthQuantity(berthType, Math.max(0, quantity - 1))}
-                    disabled={quantity === 0}
+                    disabled={quantity === 0 || (isStateroom && !canReduceStaterooms)}
                   >
                     -
                   </button>
