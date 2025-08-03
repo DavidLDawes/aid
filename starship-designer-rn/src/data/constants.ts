@@ -42,6 +42,11 @@ export const DEFENSE_TYPES = [
   { name: 'Dual Point Defense Laser Turret', type: 'dual_point_defense_laser_turret', mass: 1, cost: 1.5 }
 ];
 
+// Mount limit calculation - weapons and defenses share turret mounts
+export function getWeaponMountLimit(shipTonnage: number): number {
+  return Math.floor(shipTonnage / 100);
+}
+
 export const BERTH_TYPES = [
   { name: 'Staterooms', type: 'staterooms', mass: 4, cost: 0.5, required: true },
   { name: 'Luxury Staterooms', type: 'luxury_staterooms', mass: 5, cost: 0.6, required: false },

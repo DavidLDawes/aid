@@ -26,7 +26,7 @@ export interface Fitting {
 }
 
 export interface Weapon {
-  weapon_name: string;
+  weapon_type: string;
   quantity: number;
   mass: number;
   cost: number;
