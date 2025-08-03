@@ -1,5 +1,5 @@
 // Weapons Screen - Configure ship weapons and turrets
-import React, { useContext } from 'react';
+import React from 'react';
 import { 
   View, 
   Text, 
@@ -9,13 +9,13 @@ import {
   Alert 
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import Icon from 'react-native-vector-icons/MaterialIcons';
-import { ShipDesignContext } from '../context/ShipDesignContext';
+import { MaterialIcons } from '@expo/vector-icons';
+import { useShipDesign } from '../context/ShipDesignContext';
 import { Weapon } from '../types/ship';
 import { WEAPON_TYPES } from '../data/constants';
 
 const WeaponsScreen: React.FC = () => {
-  const { shipDesign, updateShipDesign } = useContext(ShipDesignContext)!;
+  const { shipDesign, updateShipDesign } = useShipDesign();
 
   const addWeapon = () => {
     const newWeapon: Weapon = {
@@ -88,14 +88,14 @@ const WeaponsScreen: React.FC = () => {
         <View style={styles.header}>
           <Text style={styles.title}>Weapons</Text>
           <TouchableOpacity style={styles.addButton} onPress={addWeapon}>
-            <Icon name="add" size={24} color="#fff" />
+            <MaterialIcons name="add" size={24} color="#fff" />
             <Text style={styles.addButtonText}>Add Weapon</Text>
           </TouchableOpacity>
         </View>
 
         {shipDesign.weapons.length === 0 ? (
           <View style={styles.emptyState}>
-            <Icon name="gps-fixed" size={64} color="#bdc3c7" />
+            <MaterialIcons name="gps-fixed" size={64} color="#bdc3c7" />
             <Text style={styles.emptyText}>No weapons configured</Text>
             <Text style={styles.emptySubtext}>Tap "Add Weapon" to get started</Text>
           </View>
@@ -111,7 +111,7 @@ const WeaponsScreen: React.FC = () => {
                       style={styles.removeButton}
                       onPress={() => removeWeapon(index)}
                     >
-                      <Icon name="delete" size={20} color="#e74c3c" />
+                      <MaterialIcons name="delete" size={20} color="#e74c3c" />
                     </TouchableOpacity>
                   </View>
 

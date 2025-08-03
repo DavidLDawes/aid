@@ -11,11 +11,10 @@ export interface Ship {
 }
 
 export interface Engine {
-  engine_type: 'power_plant' | 'jump_drive' | 'maneuver_drive';
-  drive_code?: string;
+  engine_type: 'jump' | 'maneuver' | 'power_plant';
   performance: number;
-  mass: number;
-  cost: number;
+  mass?: number;
+  cost?: number;
 }
 
 export interface Fitting {

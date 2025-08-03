@@ -1,7 +1,8 @@
 // Tab navigation for ship design panels
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import { MaterialIcons } from '@expo/vector-icons';
+import { useShipDesign } from '../context/ShipDesignContext';
 
 // Import screens
 import ShipScreen from '../screens/ShipScreen';
@@ -37,6 +38,9 @@ export type TabParamList = {
 const Tab = createBottomTabNavigator<TabParamList>();
 
 const ShipDesignerTabs: React.FC = () => {
+  const { validateEngineRequirements } = useShipDesign();
+  const engineRequirementsMet = validateEngineRequirements();
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -45,7 +49,7 @@ const ShipDesignerTabs: React.FC = () => {
 
           switch (route.name) {
             case 'Ship':
-              iconName = 'sailing';
+              iconName = 'directions-boat';
               break;
             case 'Engines':
               iconName = 'settings';
@@ -72,7 +76,7 @@ const ShipDesignerTabs: React.FC = () => {
               iconName = 'flight';
               break;
             case 'Berths':
-              iconName = 'bed';
+              iconName = 'hotel';
               break;
             case 'Staff':
               iconName = 'people';
@@ -84,7 +88,11 @@ const ShipDesignerTabs: React.FC = () => {
               iconName = 'help';
           }
 
-          return <Icon name={iconName} size={size} color={color} />;
+          // Disable tabs visually if engine requirements aren't met
+          const isDisabled = !engineRequirementsMet && route.name !== 'Ship' && route.name !== 'Engines';
+          const iconColor = isDisabled ? '#bdc3c7' : color;
+
+          return <MaterialIcons name={iconName} size={size} color={iconColor} />;
         },
         tabBarActiveTintColor: '#3498db',
         tabBarInactiveTintColor: '#7f8c8d',
@@ -102,6 +110,15 @@ const ShipDesignerTabs: React.FC = () => {
         tabBarItemStyle: {
           width: 80
         }
+      })}
+      screenListeners={({ route, navigation }) => ({
+        tabPress: (e) => {
+          // Prevent navigation to tabs other than Ship and Engines if engine requirements aren't met
+          if (!engineRequirementsMet && route.name !== 'Ship' && route.name !== 'Engines') {
+            e.preventDefault();
+            // Could show an alert or toast here
+          }
+        },
       })}
     >
       <Tab.Screen name="Ship" component={ShipScreen} />

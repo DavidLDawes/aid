@@ -1,5 +1,5 @@
 // Engines Screen - Engine configuration for starship design
-import React, { useContext } from 'react';
+import React from 'react';
 import { 
   View, 
   Text, 
@@ -9,18 +9,17 @@ import {
   Alert 
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import Icon from 'react-native-vector-icons/MaterialIcons';
-import { ShipDesignContext } from '../context/ShipDesignContext';
+import { MaterialIcons } from '@expo/vector-icons';
+import { useShipDesign } from '../context/ShipDesignContext';
 import { Engine } from '../types/ship';
 
 const EnginesScreen: React.FC = () => {
-  const { shipDesign, updateShipDesign } = useContext(ShipDesignContext)!;
+  const { shipDesign, updateShipDesign } = useShipDesign();
 
   const addEngine = () => {
     const newEngine: Engine = {
-      engine_type: 'maneuver',
-      performance: 1,
-      quantity: 1
+      engine_type: 'power_plant',
+      performance: 1
     };
 
     updateShipDesign({
@@ -63,9 +62,11 @@ const EnginesScreen: React.FC = () => {
   const calculateEngineMass = (engine: Engine): number => {
     const shipTonnage = shipDesign.ship.tonnage;
     if (engine.engine_type === 'jump') {
-      return (shipTonnage * engine.performance * 0.02) * engine.quantity;
+      return shipTonnage * engine.performance * 0.02;
     } else if (engine.engine_type === 'maneuver') {
-      return (shipTonnage * engine.performance * 0.02) * engine.quantity;
+      return shipTonnage * engine.performance * 0.02;
+    } else if (engine.engine_type === 'power_plant') {
+      return shipTonnage * engine.performance * 0.02;
     }
     return 0;
   };
@@ -73,9 +74,11 @@ const EnginesScreen: React.FC = () => {
   const calculateEngineCost = (engine: Engine): number => {
     const shipTonnage = shipDesign.ship.tonnage;
     if (engine.engine_type === 'jump') {
-      return (shipTonnage * engine.performance * 0.02) * engine.quantity;
+      return shipTonnage * engine.performance * 0.02;
     } else if (engine.engine_type === 'maneuver') {
-      return (shipTonnage * engine.performance * 0.01) * engine.quantity;
+      return shipTonnage * engine.performance * 0.01;
+    } else if (engine.engine_type === 'power_plant') {
+      return shipTonnage * engine.performance * 0.02;
     }
     return 0;
   };
@@ -88,20 +91,59 @@ const EnginesScreen: React.FC = () => {
     return shipDesign.engines.reduce((total, engine) => total + calculateEngineCost(engine), 0);
   };
 
+  const validateEngineRequirements = () => {
+    const powerPlants = shipDesign.engines.filter(e => e.engine_type === 'power_plant');
+    const jumpDrives = shipDesign.engines.filter(e => e.engine_type === 'jump');
+    
+    const errors = [];
+    
+    if (powerPlants.length === 0) {
+      errors.push('At least one Power Plant is required');
+    }
+    
+    if (jumpDrives.length === 0) {
+      errors.push('At least one Jump Drive is required');
+    }
+    
+    if (powerPlants.length > 0) {
+      // Find the highest power plant performance
+      const maxPowerPlantPerformance = Math.max(...powerPlants.map(p => p.performance));
+      
+      // Check all jump drives don't exceed max power plant performance
+      for (const jumpDrive of jumpDrives) {
+        if (jumpDrive.performance > maxPowerPlantPerformance) {
+          errors.push(`Jump Drive performance (${jumpDrive.performance}) cannot exceed highest Power Plant performance (${maxPowerPlantPerformance})`);
+        }
+      }
+      
+      // Check maneuver drives don't exceed max power plant performance
+      const maneuverDrives = shipDesign.engines.filter(e => e.engine_type === 'maneuver');
+      for (const maneuver of maneuverDrives) {
+        if (maneuver.performance > maxPowerPlantPerformance) {
+          errors.push(`Maneuver Drive performance (${maneuver.performance}) cannot exceed highest Power Plant performance (${maxPowerPlantPerformance})`);
+        }
+      }
+    }
+    
+    return errors;
+  };
+
+  const validationErrors = validateEngineRequirements();
+
   return (
     <View style={styles.container}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Text style={styles.title}>Engines</Text>
           <TouchableOpacity style={styles.addButton} onPress={addEngine}>
-            <Icon name="add" size={24} color="#fff" />
+            <MaterialIcons name="add" size={24} color="#fff" />
             <Text style={styles.addButtonText}>Add Engine</Text>
           </TouchableOpacity>
         </View>
 
         {shipDesign.engines.length === 0 ? (
           <View style={styles.emptyState}>
-            <Icon name="settings" size={64} color="#bdc3c7" />
+            <MaterialIcons name="settings" size={64} color="#bdc3c7" />
             <Text style={styles.emptyText}>No engines configured</Text>
             <Text style={styles.emptySubtext}>Tap "Add Engine" to get started</Text>
           </View>
@@ -115,7 +157,7 @@ const EnginesScreen: React.FC = () => {
                     style={styles.removeButton}
                     onPress={() => removeEngine(index)}
                   >
-                    <Icon name="delete" size={20} color="#e74c3c" />
+                    <MaterialIcons name="delete" size={20} color="#e74c3c" />
                   </TouchableOpacity>
                 </View>
 
@@ -126,11 +168,12 @@ const EnginesScreen: React.FC = () => {
                       selectedValue={engine.engine_type}
                       style={styles.picker}
                       onValueChange={(value) => 
-                        updateEngine(index, { ...engine, engine_type: value as 'jump' | 'maneuver' })
+                        updateEngine(index, { ...engine, engine_type: value as 'jump' | 'maneuver' | 'power_plant' })
                       }
                     >
-                      <Picker.Item label="Maneuver Drive" value="maneuver" />
+                      <Picker.Item label="Power Plant" value="power_plant" />
                       <Picker.Item label="Jump Drive" value="jump" />
+                      <Picker.Item label="Maneuver Drive" value="maneuver" />
                     </Picker>
                   </View>
                 </View>
@@ -152,22 +195,6 @@ const EnginesScreen: React.FC = () => {
                   </View>
                 </View>
 
-                <View style={styles.formRow}>
-                  <Text style={styles.label}>Quantity:</Text>
-                  <View style={styles.pickerContainer}>
-                    <Picker
-                      selectedValue={engine.quantity}
-                      style={styles.picker}
-                      onValueChange={(value) => 
-                        updateEngine(index, { ...engine, quantity: value })
-                      }
-                    >
-                      {[1, 2, 3, 4, 5].map(qty => (
-                        <Picker.Item key={qty} label={`${qty}`} value={qty} />
-                      ))}
-                    </Picker>
-                  </View>
-                </View>
 
                 <View style={styles.statsContainer}>
                   <View style={styles.statItem}>
@@ -193,6 +220,18 @@ const EnginesScreen: React.FC = () => {
                 <Text style={styles.totalsValue}>{getTotalCost().toFixed(2)} MCr</Text>
               </View>
             </View>
+
+            {validationErrors.length > 0 && (
+              <View style={styles.validationCard}>
+                <Text style={styles.validationTitle}>⚠️ Engine Requirements</Text>
+                {validationErrors.map((error, index) => (
+                  <Text key={index} style={styles.validationError}>• {error}</Text>
+                ))}
+                <Text style={styles.validationNote}>
+                  Complete engine requirements to access other sections.
+                </Text>
+              </View>
+            )}
           </>
         )}
       </ScrollView>
@@ -341,6 +380,31 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#fff',
+  },
+  validationCard: {
+    backgroundColor: '#fff3cd',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: '#f39c12',
+  },
+  validationTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#856404',
+    marginBottom: 8,
+  },
+  validationError: {
+    fontSize: 14,
+    color: '#856404',
+    marginBottom: 4,
+  },
+  validationNote: {
+    fontSize: 12,
+    color: '#6c757d',
+    fontStyle: 'italic',
+    marginTop: 8,
   },
 });
 

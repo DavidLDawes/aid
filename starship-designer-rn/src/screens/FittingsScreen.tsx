@@ -1,5 +1,5 @@
 // Fittings Screen - Configure ship fittings like bridge, fuel tanks, sensors, etc.
-import React, { useContext } from 'react';
+import React from 'react';
 import { 
   View, 
   Text, 
@@ -8,13 +8,13 @@ import {
   TouchableOpacity 
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import Icon from 'react-native-vector-icons/MaterialIcons';
-import { ShipDesignContext } from '../context/ShipDesignContext';
+import { MaterialIcons } from '@expo/vector-icons';
+import { useShipDesign } from '../context/ShipDesignContext';
 import { Fitting } from '../types/ship';
 import { getBridgeMassAndCost, COMMS_SENSORS_TYPES } from '../data/constants';
 
 const FittingsScreen: React.FC = () => {
-  const { shipDesign, updateShipDesign } = useContext(ShipDesignContext)!;
+  const { shipDesign, updateShipDesign } = useShipDesign();
 
   const updateFitting = (fittingType: string, updatedFitting: Fitting) => {
     const updatedFittings = shipDesign.fittings.map(fitting => 
@@ -92,7 +92,7 @@ const FittingsScreen: React.FC = () => {
         {/* Bridge Section */}
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
-            <Icon name="account-balance" size={24} color="#3498db" />
+            <MaterialIcons name="account-balance" size={24} color="#3498db" />
             <Text style={styles.sectionTitle}>Bridge</Text>
           </View>
 
@@ -133,7 +133,7 @@ const FittingsScreen: React.FC = () => {
         {/* Fuel Tanks Section */}
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
-            <Icon name="local-gas-station" size={24} color="#e67e22" />
+            <MaterialIcons name="local-gas-station" size={24} color="#e67e22" />
             <Text style={styles.sectionTitle}>Fuel Tanks</Text>
           </View>
 
@@ -180,7 +180,7 @@ const FittingsScreen: React.FC = () => {
         {/* Communications & Sensors Section */}
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
-            <Icon name="wifi" size={24} color="#9b59b6" />
+            <MaterialIcons name="wifi" size={24} color="#9b59b6" />
             <Text style={styles.sectionTitle}>Communications & Sensors</Text>
           </View>
 

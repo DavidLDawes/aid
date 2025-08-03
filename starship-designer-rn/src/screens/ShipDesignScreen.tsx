@@ -1,5 +1,5 @@
 // Ship Design Summary Screen - Complete ship design overview with table format
-import React, { useContext } from 'react';
+import React from 'react';
 import { 
   View, 
   Text, 
@@ -9,8 +9,8 @@ import {
   Alert,
   Share
 } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialIcons';
-import { ShipDesignContext } from '../context/ShipDesignContext';
+import { MaterialIcons } from '@expo/vector-icons';
+import { useShipDesign } from '../context/ShipDesignContext';
 import { getBridgeMassAndCost, calculateTotalFuelMass, WEAPON_TYPES, DEFENSE_TYPES, BERTH_TYPES, FACILITY_TYPES, CARGO_TYPES, VEHICLE_TYPES, DRONE_TYPES, COMMS_SENSORS_TYPES } from '../data/constants';
 
 interface TableRow {
@@ -21,7 +21,8 @@ interface TableRow {
 }
 
 const ShipDesignScreen: React.FC = () => {
-  const { shipDesign, staffRequirements } = useContext(ShipDesignContext)!;
+  const { shipDesign, calculateStaffRequirements } = useShipDesign();
+  const staffRequirements = calculateStaffRequirements();
 
   const generateTableData = (): TableRow[] => {
     const rows: TableRow[] = [];
@@ -48,15 +49,19 @@ const ShipDesignScreen: React.FC = () => {
     // Engines
     if (shipDesign.engines.length > 0) {
       shipDesign.engines.forEach(engine => {
-        const mass = (shipDesign.ship.tonnage * engine.performance * 0.02) * engine.quantity;
+        const mass = shipDesign.ship.tonnage * engine.performance * 0.02;
         const cost = engine.engine_type === 'jump' 
-          ? (shipDesign.ship.tonnage * engine.performance * 0.02) * engine.quantity
-          : (shipDesign.ship.tonnage * engine.performance * 0.01) * engine.quantity;
+          ? shipDesign.ship.tonnage * engine.performance * 0.02
+          : engine.engine_type === 'power_plant'
+          ? shipDesign.ship.tonnage * engine.performance * 0.02
+          : shipDesign.ship.tonnage * engine.performance * 0.01;
         
-        const displayQuantity = engine.quantity > 1 ? ` (x${engine.quantity})` : '';
+        const engineName = engine.engine_type === 'jump' ? 'Jump' 
+          : engine.engine_type === 'power_plant' ? 'Power Plant' 
+          : 'Maneuver';
         rows.push({
           category: 'Engines',
-          item: `${engine.engine_type === 'jump' ? 'Jump' : 'Maneuver'} Drive-${engine.performance}${displayQuantity}`,
+          item: `${engineName} Drive-${engine.performance}`,
           mass,
           cost
         });
@@ -248,11 +253,12 @@ const ShipDesignScreen: React.FC = () => {
     if (staffRequirements.gunners > 0) {
       csv += `Crew,Gunners (x${staffRequirements.gunners}),0,0\n`;
     }
-    if (staffRequirements.serviceStaff > 0) {
-      csv += `Crew,Service Staff (x${staffRequirements.serviceStaff}),0,0\n`;
+    if (staffRequirements.service > 0) {
+      csv += `Crew,Service Staff (x${staffRequirements.service}),0,0\n`;
     }
-    if (staffRequirements.medics > 0) {
-      csv += `Crew,Medical Staff (x${staffRequirements.medics}),0,0\n`;
+    const totalMedical = staffRequirements.nurses + staffRequirements.surgeons + staffRequirements.techs;
+    if (totalMedical > 0) {
+      csv += `Crew,Medical Staff (x${totalMedical}),0,0\n`;
     }
     csv += `Crew,Total (${staffRequirements.total}),0,0\n`;
     
@@ -277,7 +283,7 @@ const ShipDesignScreen: React.FC = () => {
       <View style={styles.header}>
         <Text style={styles.title}>{shipDesign.ship.name}</Text>
         <TouchableOpacity style={styles.exportButton} onPress={exportToCSV}>
-          <Icon name="share" size={20} color="#fff" />
+          <MaterialIcons name="share" size={20} color="#fff" />
           <Text style={styles.exportButtonText}>Export</Text>
         </TouchableOpacity>
       </View>
@@ -331,19 +337,19 @@ const ShipDesignScreen: React.FC = () => {
             </View>
           )}
 
-          {staffRequirements.serviceStaff > 0 && (
+          {staffRequirements.service > 0 && (
             <View style={styles.tableRow}>
               <Text style={[styles.tableCellText, styles.categoryColumn]}></Text>
-              <Text style={[styles.tableCellText, styles.itemColumn]}>Service Staff ({staffRequirements.serviceStaff})</Text>
+              <Text style={[styles.tableCellText, styles.itemColumn]}>Service Staff ({staffRequirements.service})</Text>
               <Text style={[styles.tableCellText, styles.massColumn]}>-</Text>
               <Text style={[styles.tableCellText, styles.costColumn]}>-</Text>
             </View>
           )}
 
-          {staffRequirements.medics > 0 && (
+          {(staffRequirements.nurses + staffRequirements.surgeons + staffRequirements.techs) > 0 && (
             <View style={styles.tableRow}>
               <Text style={[styles.tableCellText, styles.categoryColumn]}></Text>
-              <Text style={[styles.tableCellText, styles.itemColumn]}>Medical Staff ({staffRequirements.medics})</Text>
+              <Text style={[styles.tableCellText, styles.itemColumn]}>Medical Staff ({staffRequirements.nurses + staffRequirements.surgeons + staffRequirements.techs})</Text>
               <Text style={[styles.tableCellText, styles.massColumn]}>-</Text>
               <Text style={[styles.tableCellText, styles.costColumn]}>-</Text>
             </View>

@@ -16,6 +16,7 @@ interface ShipDesignContextType {
   calculateStaffRequirements: () => StaffRequirements;
   resetShipDesign: () => void;
   setShipDesign: (design: ShipDesign) => void;
+  validateEngineRequirements: () => boolean;
 }
 
 const defaultShipDesign: ShipDesign = {
@@ -67,8 +68,12 @@ export const ShipDesignProvider: React.FC<{ children: ReactNode }> = ({ children
   const calculateMass = useCallback((): MassCalculation => {
     let used = 0;
     
-    // Add engine masses
-    used += shipDesign.engines.reduce((sum, engine) => sum + engine.mass, 0);
+    // Add engine masses (calculated dynamically)
+    used += shipDesign.engines.reduce((sum, engine) => {
+      const shipTonnage = shipDesign.ship.tonnage;
+      const engineMass = shipTonnage * engine.performance * 0.02;
+      return sum + engineMass;
+    }, 0);
     
     // Add fitting masses
     used += shipDesign.fittings.reduce((sum, fitting) => sum + fitting.mass, 0);
@@ -95,8 +100,8 @@ export const ShipDesignProvider: React.FC<{ children: ReactNode }> = ({ children
     used += shipDesign.drones.reduce((sum, drone) => sum + (drone.mass * drone.quantity), 0);
 
     // Add fuel tank mass
-    const jumpDrive = shipDesign.engines.find(e => e.engine_type === 'jump_drive');
-    const maneuverDrive = shipDesign.engines.find(e => e.engine_type === 'maneuver_drive');
+    const jumpDrive = shipDesign.engines.find(e => e.engine_type === 'jump');
+    const maneuverDrive = shipDesign.engines.find(e => e.engine_type === 'maneuver');
     const jumpPerformance = jumpDrive?.performance || 0;
     const maneuverPerformance = maneuverDrive?.performance || 0;
     const fuelMass = calculateTotalFuelMass(shipDesign.ship.tonnage, jumpPerformance, maneuverPerformance, shipDesign.ship.fuel_weeks);
@@ -122,8 +127,18 @@ export const ShipDesignProvider: React.FC<{ children: ReactNode }> = ({ children
   const calculateCost = useCallback((): CostCalculation => {
     let total = 0;
     
-    // Add engine costs
-    total += shipDesign.engines.reduce((sum, engine) => sum + engine.cost, 0);
+    // Add engine costs (calculated dynamically)
+    total += shipDesign.engines.reduce((sum, engine) => {
+      const shipTonnage = shipDesign.ship.tonnage;
+      if (engine.engine_type === 'jump') {
+        return sum + shipTonnage * engine.performance * 0.02;
+      } else if (engine.engine_type === 'maneuver') {
+        return sum + shipTonnage * engine.performance * 0.01;
+      } else if (engine.engine_type === 'power_plant') {
+        return sum + shipTonnage * engine.performance * 0.02;
+      }
+      return sum;
+    }, 0);
     
     // Add fitting costs
     total += shipDesign.fittings.reduce((sum, fitting) => sum + fitting.cost, 0);
@@ -177,13 +192,17 @@ export const ShipDesignProvider: React.FC<{ children: ReactNode }> = ({ children
       
       // Additional engineers for engines larger than 100 tons
       for (const engine of shipDesign.engines) {
-        if (engine.mass > 100) {
-          engineers += Math.ceil(engine.mass / 100) - 1;
+        const engineMass = shipTonnage * engine.performance * 0.02;
+        if (engineMass > 100) {
+          engineers += Math.ceil(engineMass / 100) - 1;
         }
       }
     } else {
       // For other ship sizes, use original logic as fallback
-      const totalEnginesWeight = shipDesign.engines.reduce((sum, engine) => sum + engine.mass, 0);
+      const totalEnginesWeight = shipDesign.engines.reduce((sum, engine) => {
+        const engineMass = shipTonnage * engine.performance * 0.02;
+        return sum + engineMass;
+      }, 0);
       engineers = Math.ceil(totalEnginesWeight / 100);
     }
     
@@ -216,6 +235,35 @@ export const ShipDesignProvider: React.FC<{ children: ReactNode }> = ({ children
     return { pilot, navigator, engineers, gunners, service, stewards, nurses, surgeons, techs, total };
   }, [shipDesign]);
 
+  const validateEngineRequirements = useCallback((): boolean => {
+    const powerPlants = shipDesign.engines.filter(e => e.engine_type === 'power_plant');
+    const jumpDrives = shipDesign.engines.filter(e => e.engine_type === 'jump');
+    
+    if (powerPlants.length === 0 || jumpDrives.length === 0) {
+      return false;
+    }
+    
+    // Find the highest power plant performance
+    const maxPowerPlantPerformance = Math.max(...powerPlants.map(p => p.performance));
+    
+    // Check all jump drives don't exceed max power plant performance
+    for (const jumpDrive of jumpDrives) {
+      if (jumpDrive.performance > maxPowerPlantPerformance) {
+        return false;
+      }
+    }
+    
+    // Check all maneuver drives don't exceed max power plant performance
+    const maneuverDrives = shipDesign.engines.filter(e => e.engine_type === 'maneuver');
+    for (const maneuver of maneuverDrives) {
+      if (maneuver.performance > maxPowerPlantPerformance) {
+        return false;
+      }
+    }
+    
+    return true;
+  }, [shipDesign]);
+
   const value: ShipDesignContextType = {
     shipDesign,
     updateShipDesign,
@@ -223,7 +271,8 @@ export const ShipDesignProvider: React.FC<{ children: ReactNode }> = ({ children
     calculateCost,
     calculateStaffRequirements,
     resetShipDesign,
-    setShipDesign
+    setShipDesign,
+    validateEngineRequirements
   };
 
   return (
