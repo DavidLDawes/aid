@@ -34,7 +34,6 @@ const styles = StyleSheet.create({
   },
 });
 
-export const DefensesScreen = createPlaceholderScreen('Defenses');
 export const RecHealthScreen = createPlaceholderScreen('Recreation & Health');
 export const CargoScreen = createPlaceholderScreen('Cargo');
 export const VehiclesScreen = createPlaceholderScreen('Vehicles');

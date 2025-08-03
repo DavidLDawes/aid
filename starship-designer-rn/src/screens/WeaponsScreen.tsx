@@ -12,15 +12,33 @@ import { Picker } from '@react-native-picker/picker';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useShipDesign } from '../context/ShipDesignContext';
 import { Weapon } from '../types/ship';
-import { WEAPON_TYPES } from '../data/constants';
+import { WEAPON_TYPES, getWeaponMountLimit } from '../data/constants';
 
 const WeaponsScreen: React.FC = () => {
   const { shipDesign, updateShipDesign } = useShipDesign();
 
+  // Calculate mount limits
+  const maxMountLimit = getWeaponMountLimit(shipDesign.ship.tonnage);
+  const weaponsCount = shipDesign.weapons.reduce((sum, weapon) => sum + weapon.quantity, 0);
+  const defensesCount = shipDesign.defenses.reduce((sum, defense) => sum + defense.quantity, 0);
+  const totalMountsUsed = weaponsCount + defensesCount;
+  const availableMounts = maxMountLimit - totalMountsUsed;
+
   const addWeapon = () => {
+    if (availableMounts <= 0) {
+      Alert.alert(
+        'Mount Limit Reached',
+        `Ship can only have ${maxMountLimit} total weapons and defenses. Currently using ${totalMountsUsed} mounts.`,
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+    const weaponInfo = WEAPON_TYPES.find(w => w.name === 'Hard Point');
     const newWeapon: Weapon = {
       weapon_type: 'Hard Point',
-      quantity: 1
+      quantity: 1,
+      mass: weaponInfo?.mass || 0,
+      cost: weaponInfo?.cost || 0
     };
 
     updateShipDesign({
@@ -61,13 +79,11 @@ const WeaponsScreen: React.FC = () => {
   };
 
   const calculateWeaponMass = (weapon: Weapon): number => {
-    const weaponType = WEAPON_TYPES.find(w => w.name === weapon.weapon_type);
-    return weaponType ? weaponType.mass * weapon.quantity : 0;
+    return weapon.mass * weapon.quantity;
   };
 
   const calculateWeaponCost = (weapon: Weapon): number => {
-    const weaponType = WEAPON_TYPES.find(w => w.name === weapon.weapon_type);
-    return weaponType ? weaponType.cost * weapon.quantity : 0;
+    return weapon.cost * weapon.quantity;
   };
 
   const getTotalMass = (): number => {
@@ -86,8 +102,22 @@ const WeaponsScreen: React.FC = () => {
     <View style={styles.container}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
-          <Text style={styles.title}>Weapons</Text>
-          <TouchableOpacity style={styles.addButton} onPress={addWeapon}>
+          <View>
+            <Text style={styles.title}>Weapons</Text>
+            <View style={styles.statusContainer}>
+              <Text style={styles.statusText}>
+                Mounts: {availableMounts} / {maxMountLimit}
+              </Text>
+              <Text style={styles.statusSubtext}>
+                (Shared with defenses)
+              </Text>
+            </View>
+          </View>
+          <TouchableOpacity 
+            style={[styles.addButton, availableMounts <= 0 && styles.addButtonDisabled]} 
+            onPress={addWeapon}
+            disabled={availableMounts <= 0}
+          >
             <MaterialIcons name="add" size={24} color="#fff" />
             <Text style={styles.addButtonText}>Add Weapon</Text>
           </TouchableOpacity>
@@ -121,9 +151,15 @@ const WeaponsScreen: React.FC = () => {
                       <Picker
                         selectedValue={weapon.weapon_type}
                         style={styles.picker}
-                        onValueChange={(value) => 
-                          updateWeapon(index, { ...weapon, weapon_type: value })
-                        }
+                        onValueChange={(value) => {
+                          const weaponInfo = WEAPON_TYPES.find(w => w.name === value);
+                          updateWeapon(index, { 
+                            ...weapon, 
+                            weapon_type: value,
+                            mass: weaponInfo?.mass || 0,
+                            cost: weaponInfo?.cost || 0
+                          });
+                        }}
                       >
                         {WEAPON_TYPES.map(weaponType => (
                           <Picker.Item 
@@ -142,11 +178,23 @@ const WeaponsScreen: React.FC = () => {
                       <Picker
                         selectedValue={weapon.quantity}
                         style={styles.picker}
-                        onValueChange={(value) => 
-                          updateWeapon(index, { ...weapon, quantity: value })
-                        }
+                        onValueChange={(value) => {
+                          const quantityIncrease = value - weapon.quantity;
+                          if (quantityIncrease > availableMounts) {
+                            Alert.alert(
+                              'Mount Limit Exceeded',
+                              `Cannot add ${quantityIncrease} more weapons. Only ${availableMounts} mounts available.`,
+                              [{ text: 'OK' }]
+                            );
+                            return;
+                          }
+                          updateWeapon(index, { ...weapon, quantity: value });
+                        }}
                       >
-                        {[1, 2, 3, 4, 5, 6, 8, 10].map(qty => (
+                        {[1, 2, 3, 4, 5, 6, 8, 10].filter(qty => {
+                          const quantityIncrease = qty - weapon.quantity;
+                          return quantityIncrease <= availableMounts;
+                        }).map(qty => (
                           <Picker.Item key={qty} label={`${qty}`} value={qty} />
                         ))}
                       </Picker>
@@ -206,8 +254,20 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: 20,
+  },
+  statusContainer: {
+    marginTop: 4,
+  },
+  statusText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#e74c3c',
+  },
+  statusSubtext: {
+    fontSize: 12,
+    color: '#7f8c8d',
   },
   title: {
     fontSize: 28,
@@ -226,6 +286,9 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
     marginLeft: 8,
+  },
+  addButtonDisabled: {
+    backgroundColor: '#bdc3c7',
   },
   emptyState: {
     alignItems: 'center',

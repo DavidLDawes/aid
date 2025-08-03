@@ -9,9 +9,9 @@ import ShipScreen from '../screens/ShipScreen';
 import EnginesScreen from '../screens/EnginesScreen';
 import FittingsScreen from '../screens/FittingsScreen';
 import WeaponsScreen from '../screens/WeaponsScreen';
+import DefensesScreen from '../screens/DefensesScreen';
 import ShipDesignScreen from '../screens/ShipDesignScreen';
 import {
-  DefensesScreen,
   RecHealthScreen,
   CargoScreen,
   VehiclesScreen,

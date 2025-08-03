@@ -117,7 +117,7 @@ const ShipScreen: React.FC = () => {
                 {HULL_SIZES.map(hull => (
                   <Picker.Item 
                     key={hull.tonnage} 
-                    label={`${hull.tonnage} tons (${hull.code})`} 
+                    label={`${hull.tonnage} tons`} 
                     value={hull.tonnage} 
                   />
                 ))}
