@@ -8,6 +8,7 @@ import {
   TouchableOpacity, 
   Alert 
 } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useShipDesign } from '../context/ShipDesignContext';
 import { Weapon } from '../types/ship';
@@ -244,6 +245,9 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
     marginLeft: 8,
+  },
+  addButtonDisabled: {
+    backgroundColor: '#bdc3c7',
   },
   emptyState: {
     alignItems: 'center',
