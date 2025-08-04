@@ -5,7 +5,9 @@
       "Bash(npm start)",
       "Bash(mkdir:*)",
       "Bash(npm install)",
-      "Bash(npm test)"
+      "Bash(npm test)",
+      "Bash(npm audit:*)",
+      "Bash(npm uninstall:*)"
     ],
     "deny": []
   }
