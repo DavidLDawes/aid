@@ -53,9 +53,10 @@ describe('ShipDesignContext', () => {
     expect(engineTypes).toContain('jump');
     expect(engineTypes).toContain('maneuver');
     
-    // All should have performance 1
+    // All should have engine ID 'A' and performance 2 for 100-ton ship
     capturedShipDesign.engines.forEach((engine: any) => {
-      expect(engine.performance).toBe(1);
+      expect(engine.engine_id).toBe('A');
+      expect(engine.performance).toBe(2); // Engine A gives performance 2 for 100-ton ships
     });
   });
 });
