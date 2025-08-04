@@ -373,67 +373,40 @@ const EnginesScreen: React.FC = () => {
           </View>
         ) : (
           <>
-            {shipDesign.engines.map((engine, index) => (
-              <View key={index} style={styles.engineCard}>
-                <View style={styles.engineHeader}>
-                  <Text style={styles.engineTitle}>
-                    {getEngineDisplayName(engine.engine_type)} {getEngineIdLetter(index)} {getPerformancePrefix(engine.engine_type)}{engine.performance}
-                  </Text>
-                  <TouchableOpacity 
-                    style={styles.removeButton}
-                    onPress={() => removeEngine(index)}
-                  >
-                    <MaterialIcons name="delete" size={20} color="#e74c3c" />
-                  </TouchableOpacity>
-                </View>
-
-                <View style={styles.formRow}>
-                  <Text style={styles.label}>Type:</Text>
-                  <View style={styles.pickerContainer}>
-                    <Picker
-                      selectedValue={engine.engine_type}
-                      style={styles.picker}
-                      onValueChange={(value) => 
-                        updateEngine(index, { ...engine, engine_type: value as 'jump' | 'maneuver' | 'power_plant' })
-                      }
-                    >
-                      <Picker.Item label="Power Plant" value="power_plant" />
-                      <Picker.Item label="Jump Drive" value="jump" />
-                      <Picker.Item label="Maneuver Drive" value="maneuver" />
-                    </Picker>
-                  </View>
-                </View>
-
-                <View style={styles.formRow}>
-                  <Text style={styles.label}>Performance:</Text>
-                  <View style={styles.pickerContainer}>
+            <View style={styles.enginesSection}>
+              <Text style={styles.sectionTitle}>Engine Configuration</Text>
+              {shipDesign.engines.map((engine, index) => (
+                <View key={index} style={styles.engineRow}>
+                  <View style={styles.engineSelector}>
                     <Picker
                       selectedValue={engine.performance}
-                      style={styles.picker}
-                      onValueChange={(value) => 
-                        updateEngine(index, { ...engine, performance: value })
-                      }
+                      style={styles.enginePicker}
+                      onValueChange={(performance) => {
+                        updateEngine(index, { 
+                          ...engine, 
+                          performance: performance
+                        });
+                      }}
                     >
+                      {/* Only show options for this specific engine type */}
                       {[1, 2, 3, 4, 5, 6].map(perf => (
-                        <Picker.Item key={perf} label={`${perf}`} value={perf} />
+                        <Picker.Item 
+                          key={`${engine.engine_type}-${perf}`}
+                          label={`${getEngineDisplayName(engine.engine_type)} ${getEngineIdLetter(index)} ${getPerformancePrefix(engine.engine_type)}${perf}`}
+                          value={perf}
+                        />
                       ))}
                     </Picker>
                   </View>
+                  <TouchableOpacity 
+                    style={styles.deleteButton}
+                    onPress={() => removeEngine(index)}
+                  >
+                    <MaterialIcons name="delete" size={24} color="#e74c3c" />
+                  </TouchableOpacity>
                 </View>
-
-
-                <View style={styles.statsContainer}>
-                  <View style={styles.statItem}>
-                    <Text style={styles.statLabel}>Mass:</Text>
-                    <Text style={styles.statValue}>{calculateEngineMass(engine).toFixed(1)} tons</Text>
-                  </View>
-                  <View style={styles.statItem}>
-                    <Text style={styles.statLabel}>Cost:</Text>
-                    <Text style={styles.statValue}>{calculateEngineCost(engine).toFixed(2)} MCr</Text>
-                  </View>
-                </View>
-              </View>
-            ))}
+              ))}
+            </View>
 
             <View style={styles.totalsCard}>
               <Text style={styles.totalsTitle}>Total Engines</Text>
@@ -634,6 +607,48 @@ const styles = StyleSheet.create({
     color: '#6c757d',
     fontStyle: 'italic',
     marginTop: 8,
+  },
+  enginesSection: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#2c3e50',
+    marginBottom: 16,
+  },
+  engineRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    paddingVertical: 8,
+  },
+  engineSelector: {
+    flex: 1,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+    marginRight: 12,
+  },
+  enginePicker: {
+    height: 50,
+    color: '#2c3e50',
+  },
+  deleteButton: {
+    padding: 8,
+    borderRadius: 6,
+    backgroundColor: '#f8f9fa',
+    borderWidth: 1,
+    borderColor: '#e74c3c',
   },
 });
 
