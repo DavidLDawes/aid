@@ -15,6 +15,39 @@ import { Engine } from '../types/ship';
 
 const EnginesScreen: React.FC = () => {
   const { shipDesign, updateShipDesign } = useShipDesign();
+  
+  // Ensure engines are initialized if empty
+  React.useEffect(() => {
+    if (shipDesign.engines.length === 0) {
+      console.log('Engines empty, initializing default engines');
+      const shipTonnage = shipDesign.ship.tonnage;
+      const defaultEngines = [
+        {
+          engine_type: 'power_plant' as const,
+          performance: 1,
+          mass: shipTonnage * 1 * 0.02,
+          cost: shipTonnage * 1 * 0.02
+        },
+        {
+          engine_type: 'jump' as const,
+          performance: 1,
+          mass: shipTonnage * 1 * 0.02,
+          cost: shipTonnage * 1 * 0.02
+        },
+        {
+          engine_type: 'maneuver' as const,
+          performance: 1,
+          mass: shipTonnage * 1 * 0.02,
+          cost: shipTonnage * 1 * 0.01
+        }
+      ];
+      
+      updateShipDesign({
+        ...shipDesign,
+        engines: defaultEngines
+      });
+    }
+  }, [shipDesign.engines.length, shipDesign.ship.tonnage, shipDesign, updateShipDesign]);
 
   const addEngine = () => {
     // Calculate available tonnage for engines
