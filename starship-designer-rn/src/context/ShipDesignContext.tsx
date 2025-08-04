@@ -8,6 +8,34 @@ import {
   calculateMedicalStaff 
 } from '../data/constants';
 
+// Helper function to create default engines for a ship
+const createDefaultEngines = (shipTonnage: number) => {
+  // For engines, performance rating 1 is the minimum for each type
+  // Performance scales with ship size requirements
+  const minPerformance = 1;
+  
+  return [
+    {
+      engine_type: 'power_plant' as const,
+      performance: minPerformance,
+      mass: shipTonnage * minPerformance * 0.02,
+      cost: shipTonnage * minPerformance * 0.02
+    },
+    {
+      engine_type: 'jump' as const,
+      performance: minPerformance,
+      mass: shipTonnage * minPerformance * 0.02,
+      cost: shipTonnage * minPerformance * 0.02
+    },
+    {
+      engine_type: 'maneuver' as const,
+      performance: minPerformance,
+      mass: shipTonnage * minPerformance * 0.02,
+      cost: shipTonnage * minPerformance * 0.01  // Maneuver drives cost half as much
+    }
+  ];
+};
+
 interface ShipDesignContextType {
   shipDesign: ShipDesign;
   updateShipDesign: (updates: Partial<ShipDesign>) => void;
@@ -30,7 +58,7 @@ const defaultShipDesign: ShipDesign = {
     sand_reloads: 0, 
     description: '' 
   },
-  engines: [],
+  engines: createDefaultEngines(100),
   fittings: [
     {
       fitting_type: 'comms_sensors',
@@ -54,11 +82,36 @@ export const ShipDesignProvider: React.FC<{ children: ReactNode }> = ({ children
   const [shipDesign, setShipDesignState] = useState<ShipDesign>(defaultShipDesign);
 
   const updateShipDesign = useCallback((updates: Partial<ShipDesign>) => {
-    setShipDesignState(prev => ({ ...prev, ...updates }));
+    setShipDesignState(prev => {
+      const newDesign = { ...prev, ...updates };
+      
+      // If tonnage changed, update engine masses and costs
+      if (updates.ship?.tonnage && updates.ship.tonnage !== prev.ship.tonnage) {
+        const newTonnage = updates.ship.tonnage;
+        const updatedEngines = prev.engines.map(engine => ({
+          ...engine,
+          mass: newTonnage * engine.performance * 0.02,
+          cost: newTonnage * engine.performance * 0.02
+        }));
+        
+        // If no engines exist, create default ones
+        if (updatedEngines.length === 0) {
+          newDesign.engines = createDefaultEngines(newTonnage);
+        } else {
+          newDesign.engines = updatedEngines;
+        }
+      }
+      
+      return newDesign;
+    });
   }, []);
 
   const resetShipDesign = useCallback(() => {
-    setShipDesignState(defaultShipDesign);
+    const resetDesign = {
+      ...defaultShipDesign,
+      engines: createDefaultEngines(defaultShipDesign.ship.tonnage)
+    };
+    setShipDesignState(resetDesign);
   }, []);
 
   const setShipDesign = useCallback((design: ShipDesign) => {
