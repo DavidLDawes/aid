@@ -403,10 +403,13 @@ const EnginesScreen: React.FC = () => {
                       {getAvailableEngineIds(shipDesign.ship.tonnage).map(engineId => {
                         const performance = getEnginePerformance(engineId, shipDesign.ship.tonnage);
                         const prefix = getPerformancePrefix(engine.engine_type);
+                        const shipTonnage = shipDesign.ship.tonnage;
+                        const mass = shipTonnage * performance * 0.02;
+                        const cost = shipTonnage * performance * (engine.engine_type === 'maneuver' ? 0.01 : 0.02);
                         return (
                           <Picker.Item 
                             key={engineId}
-                            label={`${getEngineDisplayName(engine.engine_type)} ${engineId} ${prefix}${performance}`}
+                            label={`${getEngineDisplayName(engine.engine_type)} ${engineId}, ${prefix}${performance}, ${mass} tons, ${cost} MCr`}
                             value={engineId}
                           />
                         );
