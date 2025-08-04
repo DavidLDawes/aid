@@ -5,33 +5,37 @@ import {
   calculateTotalFuelMass, 
   calculateVehicleServiceStaff, 
   calculateDroneServiceStaff, 
-  calculateMedicalStaff 
+  calculateMedicalStaff,
+  getEnginePerformance 
 } from '../data/constants';
 
 // Helper function to create default engines for a ship
 const createDefaultEngines = (shipTonnage: number) => {
-  // For engines, performance rating 1 is the minimum for each type
-  // Performance scales with ship size requirements
-  const minPerformance = 1;
+  // Use the smallest available engine (A) for the ship tonnage
+  const engineId = 'A';
+  const performance = getEnginePerformance(engineId, shipTonnage) || 1;
   
   return [
     {
       engine_type: 'power_plant' as const,
-      performance: minPerformance,
-      mass: shipTonnage * minPerformance * 0.02,
-      cost: shipTonnage * minPerformance * 0.02
+      engine_id: engineId,
+      performance: performance,
+      mass: shipTonnage * performance * 0.02,
+      cost: shipTonnage * performance * 0.02
     },
     {
       engine_type: 'jump' as const,
-      performance: minPerformance,
-      mass: shipTonnage * minPerformance * 0.02,
-      cost: shipTonnage * minPerformance * 0.02
+      engine_id: engineId,
+      performance: performance,
+      mass: shipTonnage * performance * 0.02,
+      cost: shipTonnage * performance * 0.02
     },
     {
       engine_type: 'maneuver' as const,
-      performance: minPerformance,
-      mass: shipTonnage * minPerformance * 0.02,
-      cost: shipTonnage * minPerformance * 0.01  // Maneuver drives cost half as much
+      engine_id: engineId,
+      performance: performance,
+      mass: shipTonnage * performance * 0.02,
+      cost: shipTonnage * performance * 0.01  // Maneuver drives cost half as much
     }
   ];
 };
@@ -88,11 +92,15 @@ export const ShipDesignProvider: React.FC<{ children: ReactNode }> = ({ children
       // If tonnage changed, update engine masses and costs
       if (updates.ship?.tonnage && updates.ship.tonnage !== prev.ship.tonnage) {
         const newTonnage = updates.ship.tonnage;
-        const updatedEngines = prev.engines.map(engine => ({
-          ...engine,
-          mass: newTonnage * engine.performance * 0.02,
-          cost: newTonnage * engine.performance * 0.02
-        }));
+        const updatedEngines = prev.engines.map(engine => {
+          const newPerformance = getEnginePerformance(engine.engine_id, newTonnage) || engine.performance;
+          return {
+            ...engine,
+            performance: newPerformance,
+            mass: newTonnage * newPerformance * 0.02,
+            cost: newTonnage * newPerformance * (engine.engine_type === 'maneuver' ? 0.01 : 0.02)
+          };
+        });
         
         // If no engines exist, create default ones
         if (updatedEngines.length === 0) {
@@ -124,7 +132,8 @@ export const ShipDesignProvider: React.FC<{ children: ReactNode }> = ({ children
     // Add engine masses (calculated dynamically)
     used += shipDesign.engines.reduce((sum, engine) => {
       const shipTonnage = shipDesign.ship.tonnage;
-      const engineMass = shipTonnage * engine.performance * 0.02;
+      const performance = getEnginePerformance(engine.engine_id, shipTonnage) || engine.performance;
+      const engineMass = shipTonnage * performance * 0.02;
       return sum + engineMass;
     }, 0);
     
@@ -183,12 +192,13 @@ export const ShipDesignProvider: React.FC<{ children: ReactNode }> = ({ children
     // Add engine costs (calculated dynamically)
     total += shipDesign.engines.reduce((sum, engine) => {
       const shipTonnage = shipDesign.ship.tonnage;
+      const performance = getEnginePerformance(engine.engine_id, shipTonnage) || engine.performance;
       if (engine.engine_type === 'jump') {
-        return sum + shipTonnage * engine.performance * 0.02;
+        return sum + shipTonnage * performance * 0.02;
       } else if (engine.engine_type === 'maneuver') {
-        return sum + shipTonnage * engine.performance * 0.01;
+        return sum + shipTonnage * performance * 0.01;
       } else if (engine.engine_type === 'power_plant') {
-        return sum + shipTonnage * engine.performance * 0.02;
+        return sum + shipTonnage * performance * 0.02;
       }
       return sum;
     }, 0);

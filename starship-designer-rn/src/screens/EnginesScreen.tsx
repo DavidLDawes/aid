@@ -12,6 +12,7 @@ import { Picker } from '@react-native-picker/picker';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useShipDesign } from '../context/ShipDesignContext';
 import { Engine } from '../types/ship';
+import { getAvailableEngineIds, getEnginePerformance } from '../data/constants';
 
 const EnginesScreen: React.FC = () => {
   const { shipDesign, updateShipDesign } = useShipDesign();
@@ -21,24 +22,30 @@ const EnginesScreen: React.FC = () => {
     if (shipDesign.engines.length === 0) {
       console.log('Engines empty, initializing default engines');
       const shipTonnage = shipDesign.ship.tonnage;
+      const engineId = 'A'; // Start with smallest engine
+      const performance = getEnginePerformance(engineId, shipTonnage) || 1;
+      
       const defaultEngines = [
         {
           engine_type: 'power_plant' as const,
-          performance: 1,
-          mass: shipTonnage * 1 * 0.02,
-          cost: shipTonnage * 1 * 0.02
+          engine_id: engineId,
+          performance: performance,
+          mass: shipTonnage * performance * 0.02,
+          cost: shipTonnage * performance * 0.02
         },
         {
           engine_type: 'jump' as const,
-          performance: 1,
-          mass: shipTonnage * 1 * 0.02,
-          cost: shipTonnage * 1 * 0.02
+          engine_id: engineId,
+          performance: performance,
+          mass: shipTonnage * performance * 0.02,
+          cost: shipTonnage * performance * 0.02
         },
         {
           engine_type: 'maneuver' as const,
-          performance: 1,
-          mass: shipTonnage * 1 * 0.02,
-          cost: shipTonnage * 1 * 0.01
+          engine_id: engineId,
+          performance: performance,
+          mass: shipTonnage * performance * 0.02,
+          cost: shipTonnage * performance * 0.01
         }
       ];
       
@@ -94,13 +101,16 @@ const EnginesScreen: React.FC = () => {
 
   const addEngineOfType = (engineType: 'power_plant' | 'jump' | 'maneuver') => {
     const shipTonnage = shipDesign.ship.tonnage;
-    const newEngineMass = shipTonnage * 1 * 0.02;
+    const engineId = 'A'; // Start with smallest available engine
+    const performance = getEnginePerformance(engineId, shipTonnage) || 1;
+    const newEngineMass = shipTonnage * performance * 0.02;
     
     const newEngine: Engine = {
       engine_type: engineType,
-      performance: 1,
+      engine_id: engineId,
+      performance: performance,
       mass: newEngineMass,
-      cost: shipTonnage * 1 * (engineType === 'maneuver' ? 0.01 : 0.02)
+      cost: shipTonnage * performance * (engineType === 'maneuver' ? 0.01 : 0.02)
     };
 
     updateShipDesign({
@@ -109,34 +119,47 @@ const EnginesScreen: React.FC = () => {
     });
   };
 
-  const updateEngine = (index: number, updatedEngine: Engine) => {
+  const updateEngine = (index: number, newEngineId: string) => {
     const shipTonnage = shipDesign.ship.tonnage;
+    const currentEngine = shipDesign.engines[index];
+    const newPerformance = getEnginePerformance(newEngineId, shipTonnage);
+    
+    if (newPerformance === null) {
+      Alert.alert(
+        'Invalid Engine',
+        `Engine ${newEngineId} is not available for ${shipTonnage} ton ships.`,
+        [{ text: 'OK' }]
+      );
+      return;
+    }
     
     // Check power plant constraints for jump drives and maneuver drives
-    if (updatedEngine.engine_type === 'jump' || updatedEngine.engine_type === 'maneuver') {
+    if (currentEngine.engine_type === 'jump' || currentEngine.engine_type === 'maneuver') {
       const powerPlants = shipDesign.engines.filter(e => e.engine_type === 'power_plant');
       const maxPowerPlantPerformance = powerPlants.length > 0 ? 
-        Math.max(...powerPlants.map(p => p.performance)) : 1;
+        Math.max(...powerPlants.map(p => getEnginePerformance(p.engine_id, shipTonnage) || p.performance)) : 1;
       
-      if (updatedEngine.performance > maxPowerPlantPerformance) {
+      if (newPerformance > maxPowerPlantPerformance) {
         Alert.alert(
           'Performance Too High',
-          `${updatedEngine.engine_type === 'jump' ? 'Jump Drive' : 'Maneuver Drive'} performance cannot exceed the highest Power Plant performance (${maxPowerPlantPerformance}).`,
+          `${currentEngine.engine_type === 'jump' ? 'Jump Drive' : 'Maneuver Drive'} performance cannot exceed the highest Power Plant performance (${maxPowerPlantPerformance}).`,
           [{ text: 'OK' }]
         );
         return;
       }
     }
     
-    // Recalculate mass and cost based on new values
-    const engineWithCalculatedValues: Engine = {
-      ...updatedEngine,
-      mass: shipTonnage * updatedEngine.performance * 0.02,
-      cost: shipTonnage * updatedEngine.performance * (updatedEngine.engine_type === 'maneuver' ? 0.01 : 0.02)
+    // Create updated engine with new ID and calculated values
+    const updatedEngine: Engine = {
+      ...currentEngine,
+      engine_id: newEngineId,
+      performance: newPerformance,
+      mass: shipTonnage * newPerformance * 0.02,
+      cost: shipTonnage * newPerformance * (currentEngine.engine_type === 'maneuver' ? 0.01 : 0.02)
     };
     
     const updatedEngines = [...shipDesign.engines];
-    updatedEngines[index] = engineWithCalculatedValues;
+    updatedEngines[index] = updatedEngine;
     
     updateShipDesign({
       ...shipDesign,
@@ -248,26 +271,18 @@ const EnginesScreen: React.FC = () => {
 
   const calculateEngineMass = (engine: Engine): number => {
     const shipTonnage = shipDesign.ship.tonnage;
-    if (engine.engine_type === 'jump') {
-      return shipTonnage * engine.performance * 0.02;
-    } else if (engine.engine_type === 'maneuver') {
-      return shipTonnage * engine.performance * 0.02;
-    } else if (engine.engine_type === 'power_plant') {
-      return shipTonnage * engine.performance * 0.02;
-    }
-    return 0;
+    const performance = getEnginePerformance(engine.engine_id, shipTonnage) || engine.performance;
+    return shipTonnage * performance * 0.02;
   };
 
   const calculateEngineCost = (engine: Engine): number => {
     const shipTonnage = shipDesign.ship.tonnage;
-    if (engine.engine_type === 'jump') {
-      return shipTonnage * engine.performance * 0.02;
-    } else if (engine.engine_type === 'maneuver') {
-      return shipTonnage * engine.performance * 0.01;
-    } else if (engine.engine_type === 'power_plant') {
-      return shipTonnage * engine.performance * 0.02;
+    const performance = getEnginePerformance(engine.engine_id, shipTonnage) || engine.performance;
+    if (engine.engine_type === 'maneuver') {
+      return shipTonnage * performance * 0.01;
+    } else {
+      return shipTonnage * performance * 0.02;
     }
-    return 0;
   };
 
   const getTotalMass = (): number => {
@@ -281,6 +296,7 @@ const EnginesScreen: React.FC = () => {
   const validateEngineRequirements = () => {
     const powerPlants = shipDesign.engines.filter(e => e.engine_type === 'power_plant');
     const jumpDrives = shipDesign.engines.filter(e => e.engine_type === 'jump');
+    const shipTonnage = shipDesign.ship.tonnage;
     
     const errors = [];
     
@@ -294,20 +310,24 @@ const EnginesScreen: React.FC = () => {
     
     if (powerPlants.length > 0) {
       // Find the highest power plant performance
-      const maxPowerPlantPerformance = Math.max(...powerPlants.map(p => p.performance));
+      const maxPowerPlantPerformance = Math.max(...powerPlants.map(p => 
+        getEnginePerformance(p.engine_id, shipTonnage) || p.performance
+      ));
       
       // Check all jump drives don't exceed max power plant performance
       for (const jumpDrive of jumpDrives) {
-        if (jumpDrive.performance > maxPowerPlantPerformance) {
-          errors.push(`Jump Drive performance (${jumpDrive.performance}) cannot exceed highest Power Plant performance (${maxPowerPlantPerformance})`);
+        const jumpPerformance = getEnginePerformance(jumpDrive.engine_id, shipTonnage) || jumpDrive.performance;
+        if (jumpPerformance > maxPowerPlantPerformance) {
+          errors.push(`Jump Drive performance (${jumpPerformance}) cannot exceed highest Power Plant performance (${maxPowerPlantPerformance})`);
         }
       }
       
       // Check maneuver drives don't exceed max power plant performance
       const maneuverDrives = shipDesign.engines.filter(e => e.engine_type === 'maneuver');
       for (const maneuver of maneuverDrives) {
-        if (maneuver.performance > maxPowerPlantPerformance) {
-          errors.push(`Maneuver Drive performance (${maneuver.performance}) cannot exceed highest Power Plant performance (${maxPowerPlantPerformance})`);
+        const maneuverPerformance = getEnginePerformance(maneuver.engine_id, shipTonnage) || maneuver.performance;
+        if (maneuverPerformance > maxPowerPlantPerformance) {
+          errors.push(`Maneuver Drive performance (${maneuverPerformance}) cannot exceed highest Power Plant performance (${maxPowerPlantPerformance})`);
         }
       }
     }
@@ -316,12 +336,6 @@ const EnginesScreen: React.FC = () => {
   };
 
   const validationErrors = validateEngineRequirements();
-  
-  // Generate engine ID letters (A, B, C... skipping I and O)
-  const getEngineIdLetter = (index: number): string => {
-    const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
-    return letters[index] || `${letters[letters.length - 1]}${index - letters.length + 1}`;
-  };
 
   // Get performance prefix for engine type
   const getPerformancePrefix = (engineType: 'power_plant' | 'jump' | 'maneuver'): string => {
@@ -379,23 +393,24 @@ const EnginesScreen: React.FC = () => {
                 <View key={index} style={styles.engineRow}>
                   <View style={styles.engineSelector}>
                     <Picker
-                      selectedValue={engine.performance}
+                      selectedValue={engine.engine_id}
                       style={styles.enginePicker}
-                      onValueChange={(performance) => {
-                        updateEngine(index, { 
-                          ...engine, 
-                          performance: performance
-                        });
+                      onValueChange={(engineId) => {
+                        updateEngine(index, engineId);
                       }}
                     >
-                      {/* Only show options for this specific engine type */}
-                      {[1, 2, 3, 4, 5, 6].map(perf => (
-                        <Picker.Item 
-                          key={`${engine.engine_type}-${perf}`}
-                          label={`${getEngineDisplayName(engine.engine_type)} ${getEngineIdLetter(index)} ${getPerformancePrefix(engine.engine_type)}${perf}`}
-                          value={perf}
-                        />
-                      ))}
+                      {/* Show all available engine IDs for this ship tonnage */}
+                      {getAvailableEngineIds(shipDesign.ship.tonnage).map(engineId => {
+                        const performance = getEnginePerformance(engineId, shipDesign.ship.tonnage);
+                        const prefix = getPerformancePrefix(engine.engine_type);
+                        return (
+                          <Picker.Item 
+                            key={engineId}
+                            label={`${getEngineDisplayName(engine.engine_type)} ${engineId} ${prefix}${performance}`}
+                            value={engineId}
+                          />
+                        );
+                      })}
                     </Picker>
                   </View>
                   <TouchableOpacity 

@@ -47,6 +47,50 @@ export function getWeaponMountLimit(shipTonnage: number): number {
   return Math.floor(shipTonnage / 100);
 }
 
+// Engine performance table - maps engine ID to performance by ship tonnage
+export const ENGINE_PERFORMANCE_TABLE: Record<string, Record<number, number | null>> = {
+  'A': { 100: 2, 200: 1, 300: null, 400: null, 500: null, 600: null, 700: null, 800: null, 900: null, 1000: null, 1200: null, 1400: null, 1600: null, 1800: null, 2000: null },
+  'B': { 100: 4, 200: 2, 300: 1, 400: 1, 500: null, 600: null, 700: null, 800: null, 900: null, 1000: null, 1200: null, 1400: null, 1600: null, 1800: null, 2000: null },
+  'C': { 100: 6, 200: 3, 300: 2, 400: 1, 500: 1, 600: 1, 700: null, 800: null, 900: null, 1000: null, 1200: null, 1400: null, 1600: null, 1800: null, 2000: null },
+  'D': { 100: null, 200: 4, 300: 2, 400: 2, 500: 1, 600: 1, 700: 1, 800: 1, 900: null, 1000: null, 1200: null, 1400: null, 1600: null, 1800: null, 2000: null },
+  'E': { 100: null, 200: 5, 300: 3, 400: 2, 500: 2, 600: 1, 700: 1, 800: 1, 900: 1, 1000: 1, 1200: null, 1400: null, 1600: null, 1800: null, 2000: null },
+  'F': { 100: null, 200: 6, 300: 4, 400: 3, 500: 2, 600: 2, 700: 1, 800: 1, 900: 1, 1000: 1, 1200: 1, 1400: null, 1600: null, 1800: null, 2000: null },
+  'G': { 100: null, 200: null, 300: 4, 400: 3, 500: 2, 600: 2, 700: 2, 800: 2, 900: 1, 1000: 1, 1200: 1, 1400: 1, 1600: null, 1800: null, 2000: null },
+  'H': { 100: null, 200: null, 300: 5, 400: 4, 500: 3, 600: 2, 700: 2, 800: 2, 900: 2, 1000: 2, 1200: 1, 1400: 1, 1600: 1, 1800: null, 2000: null },
+  'J': { 100: null, 200: null, 300: 6, 400: 4, 500: 3, 600: 3, 700: 2, 800: 2, 900: 2, 1000: 2, 1200: 2, 1400: 1, 1600: 1, 1800: 1, 2000: null },
+  'K': { 100: null, 200: null, 300: null, 400: 5, 500: 4, 600: 3, 700: 3, 800: 3, 900: 2, 1000: 2, 1200: 2, 1400: 2, 1600: 1, 1800: 1, 2000: 1 },
+  'L': { 100: null, 200: null, 300: null, 400: 5, 500: 4, 600: 3, 700: 3, 800: 3, 900: 3, 1000: 3, 1200: 2, 1400: 2, 1600: 2, 1800: 1, 2000: 1 },
+  'M': { 100: null, 200: null, 300: null, 400: 6, 500: 4, 600: 4, 700: 3, 800: 3, 900: 3, 1000: 3, 1200: 3, 1400: 2, 1600: 2, 1800: 2, 2000: 1 },
+  'N': { 100: null, 200: null, 300: null, 400: 6, 500: 5, 600: 4, 700: 4, 800: 4, 900: 3, 1000: 3, 1200: 3, 1400: 3, 1600: 2, 1800: 2, 2000: 2 },
+  'P': { 100: null, 200: null, 300: null, 400: null, 500: 5, 600: 4, 700: 4, 800: 4, 900: 4, 1000: 4, 1200: 3, 1400: 3, 1600: 3, 1800: 2, 2000: 2 },
+  'Q': { 100: null, 200: null, 300: null, 400: null, 500: 6, 600: 5, 700: 4, 800: 4, 900: 4, 1000: 4, 1200: 4, 1400: 3, 1600: 3, 1800: 3, 2000: 2 },
+  'R': { 100: null, 200: null, 300: null, 400: null, 500: 6, 600: 5, 700: 5, 800: 5, 900: 4, 1000: 4, 1200: 4, 1400: 4, 1600: 3, 1800: 3, 2000: 3 },
+  'S': { 100: null, 200: null, 300: null, 400: null, 500: 6, 600: 5, 700: 5, 800: 5, 900: 5, 1000: 5, 1200: 4, 1400: 4, 1600: 4, 1800: 3, 2000: 3 },
+  'T': { 100: null, 200: null, 300: null, 400: null, 500: null, 600: 6, 700: 5, 800: 5, 900: 5, 1000: 5, 1200: 5, 1400: 4, 1600: 4, 1800: 4, 2000: 3 },
+  'U': { 100: null, 200: null, 300: null, 400: null, 500: null, 600: 6, 700: 6, 800: 5, 900: 5, 1000: 5, 1200: 5, 1400: 4, 1600: 4, 1800: 4, 2000: 4 },
+  'V': { 100: null, 200: null, 300: null, 400: null, 500: null, 600: 6, 700: 6, 800: 6, 900: 5, 1000: 5, 1200: 5, 1400: 5, 1600: 4, 1800: 4, 2000: 4 },
+  'W': { 100: null, 200: null, 300: null, 400: null, 500: null, 600: null, 700: 6, 800: 6, 900: 6, 1000: 5, 1200: 5, 1400: 5, 1600: 4, 1800: 4, 2000: 4 },
+  'X': { 100: null, 200: null, 300: null, 400: null, 500: null, 600: null, 700: 6, 800: 6, 900: 6, 1000: 6, 1200: 5, 1400: 5, 1600: 5, 1800: 4, 2000: 4 },
+  'Y': { 100: null, 200: null, 300: null, 400: null, 500: null, 600: null, 700: 6, 800: 6, 900: 6, 1000: 6, 1200: 5, 1400: 5, 1600: 5, 1800: 4, 2000: 4 },
+  'Z': { 100: null, 200: null, 300: null, 400: null, 500: null, 600: null, 700: 6, 800: 6, 900: 6, 1000: 6, 1200: 6, 1400: 5, 1600: 5, 1800: 5, 2000: 4 }
+};
+
+// Get available engine IDs for a given ship tonnage
+export function getAvailableEngineIds(shipTonnage: number): string[] {
+  const availableIds: string[] = [];
+  for (const [engineId, performances] of Object.entries(ENGINE_PERFORMANCE_TABLE)) {
+    if (performances[shipTonnage] !== null) {
+      availableIds.push(engineId);
+    }
+  }
+  return availableIds;
+}
+
+// Get engine performance for a specific engine ID and ship tonnage
+export function getEnginePerformance(engineId: string, shipTonnage: number): number | null {
+  return ENGINE_PERFORMANCE_TABLE[engineId]?.[shipTonnage] ?? null;
+}
+
 
 
 export const BERTH_TYPES = [

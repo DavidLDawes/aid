@@ -12,7 +12,8 @@ export interface Ship {
 
 export interface Engine {
   engine_type: 'jump' | 'maneuver' | 'power_plant';
-  performance: number;
+  engine_id: string; // A, B, C, etc. - determines performance based on ship tonnage
+  performance: number; // Calculated from engine_id and ship tonnage
   mass?: number;
   cost?: number;
 }
