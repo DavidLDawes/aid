@@ -3,25 +3,25 @@
 export const TECH_LEVELS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
 
 export const HULL_SIZES = [
-  { tonnage: 100, code: '1', cost: 2 },
-  { tonnage: 200, code: '2', cost: 8 },
-  { tonnage: 300, code: '3', cost: 12 },
-  { tonnage: 400, code: '4', cost: 16 },
-  { tonnage: 500, code: '5', cost: 32 },
-  { tonnage: 600, code: '6', cost: 48 },
-  { tonnage: 700, code: '7', cost: 64 },
-  { tonnage: 800, code: '8', cost: 80 },
-  { tonnage: 900, code: '9', cost: 90 },
-  { tonnage: 1000, code: 'A', cost: 100 },
-  { tonnage: 1200, code: 'C', cost: 120 },
-  { tonnage: 1400, code: 'E', cost: 140 },
-  { tonnage: 1600, code: 'G', cost: 160 },
-  { tonnage: 1800, code: 'J', cost: 180 },
-  { tonnage: 2000, code: 'L', cost: 200 }
+  { tonnage: 100, code: 'A', cost: 2 },
+  { tonnage: 200, code: 'B', cost: 8 },
+  { tonnage: 300, code: 'C', cost: 12 },
+  { tonnage: 400, code: 'D', cost: 16 },
+  { tonnage: 500, code: 'E', cost: 32 },
+  { tonnage: 600, code: 'F', cost: 48 },
+  { tonnage: 700, code: 'G', cost: 64 },
+  { tonnage: 800, code: 'H', cost: 80 },
+  { tonnage: 900, code: 'J', cost: 90 },
+  { tonnage: 1000, code: 'K', cost: 100 },
+  { tonnage: 1200, code: 'L', cost: 120 },
+  { tonnage: 1400, code: 'M', cost: 140 },
+  { tonnage: 1600, code: 'N', cost: 160 },
+  { tonnage: 1800, code: 'P', cost: 180 },
+  { tonnage: 2000, code: 'Q', cost: 200 }
 ];
 
 export const WEAPON_TYPES = [
-  { name: 'Hard Point', mass: 0, cost: 0.2 },
+  { name: 'Hard Point', mass: 1, cost: 1 },
   { name: 'Single Turret', mass: 1, cost: 0.5 },
   { name: 'Double Turret', mass: 1, cost: 1 },
   { name: 'Triple Turret', mass: 1, cost: 2 },
@@ -46,6 +46,8 @@ export const DEFENSE_TYPES = [
 export function getWeaponMountLimit(shipTonnage: number): number {
   return Math.floor(shipTonnage / 100);
 }
+
+
 
 export const BERTH_TYPES = [
   { name: 'Staterooms', type: 'staterooms', mass: 4, cost: 0.5, required: true },
