@@ -15,11 +15,92 @@ import { Engine } from '../types/ship';
 
 const EnginesScreen: React.FC = () => {
   const { shipDesign, updateShipDesign } = useShipDesign();
+  
+  // Ensure engines are initialized if empty
+  React.useEffect(() => {
+    if (shipDesign.engines.length === 0) {
+      console.log('Engines empty, initializing default engines');
+      const shipTonnage = shipDesign.ship.tonnage;
+      const defaultEngines = [
+        {
+          engine_type: 'power_plant' as const,
+          performance: 1,
+          mass: shipTonnage * 1 * 0.02,
+          cost: shipTonnage * 1 * 0.02
+        },
+        {
+          engine_type: 'jump' as const,
+          performance: 1,
+          mass: shipTonnage * 1 * 0.02,
+          cost: shipTonnage * 1 * 0.02
+        },
+        {
+          engine_type: 'maneuver' as const,
+          performance: 1,
+          mass: shipTonnage * 1 * 0.02,
+          cost: shipTonnage * 1 * 0.01
+        }
+      ];
+      
+      updateShipDesign({
+        ...shipDesign,
+        engines: defaultEngines
+      });
+    }
+  }, [shipDesign.engines.length, shipDesign.ship.tonnage, shipDesign, updateShipDesign]);
 
   const addEngine = () => {
+    // Calculate available tonnage for engines
+    const totalEngineMass = getTotalMass();
+    const shipTonnage = shipDesign.ship.tonnage;
+    const remainingTonnage = shipTonnage - totalEngineMass;
+    
+    // Calculate mass for new engine with performance 1
+    const newEngineMass = shipTonnage * 1 * 0.02;
+    
+    if (newEngineMass > remainingTonnage) {
+      Alert.alert(
+        'Insufficient Tonnage',
+        `Cannot add engine. Need ${newEngineMass} tons but only ${remainingTonnage.toFixed(1)} tons available.`,
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+    
+    // Show options for which engine type to add
+    Alert.alert(
+      'Add Engine',
+      'Which type of engine would you like to add?',
+      [
+        {
+          text: 'Power Plant',
+          onPress: () => addEngineOfType('power_plant')
+        },
+        {
+          text: 'Jump Drive', 
+          onPress: () => addEngineOfType('jump')
+        },
+        {
+          text: 'Maneuver Drive',
+          onPress: () => addEngineOfType('maneuver')
+        },
+        {
+          text: 'Cancel',
+          style: 'cancel'
+        }
+      ]
+    );
+  };
+
+  const addEngineOfType = (engineType: 'power_plant' | 'jump' | 'maneuver') => {
+    const shipTonnage = shipDesign.ship.tonnage;
+    const newEngineMass = shipTonnage * 1 * 0.02;
+    
     const newEngine: Engine = {
-      engine_type: 'power_plant',
-      performance: 1
+      engine_type: engineType,
+      performance: 1,
+      mass: newEngineMass,
+      cost: shipTonnage * 1 * (engineType === 'maneuver' ? 0.01 : 0.02)
     };
 
     updateShipDesign({
@@ -29,8 +110,33 @@ const EnginesScreen: React.FC = () => {
   };
 
   const updateEngine = (index: number, updatedEngine: Engine) => {
+    const shipTonnage = shipDesign.ship.tonnage;
+    
+    // Check power plant constraints for jump drives and maneuver drives
+    if (updatedEngine.engine_type === 'jump' || updatedEngine.engine_type === 'maneuver') {
+      const powerPlants = shipDesign.engines.filter(e => e.engine_type === 'power_plant');
+      const maxPowerPlantPerformance = powerPlants.length > 0 ? 
+        Math.max(...powerPlants.map(p => p.performance)) : 1;
+      
+      if (updatedEngine.performance > maxPowerPlantPerformance) {
+        Alert.alert(
+          'Performance Too High',
+          `${updatedEngine.engine_type === 'jump' ? 'Jump Drive' : 'Maneuver Drive'} performance cannot exceed the highest Power Plant performance (${maxPowerPlantPerformance}).`,
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+    }
+    
+    // Recalculate mass and cost based on new values
+    const engineWithCalculatedValues: Engine = {
+      ...updatedEngine,
+      mass: shipTonnage * updatedEngine.performance * 0.02,
+      cost: shipTonnage * updatedEngine.performance * (updatedEngine.engine_type === 'maneuver' ? 0.01 : 0.02)
+    };
+    
     const updatedEngines = [...shipDesign.engines];
-    updatedEngines[index] = updatedEngine;
+    updatedEngines[index] = engineWithCalculatedValues;
     
     updateShipDesign({
       ...shipDesign,
@@ -39,24 +145,105 @@ const EnginesScreen: React.FC = () => {
   };
 
   const removeEngine = (index: number) => {
+    const engineToRemove = shipDesign.engines[index];
+    const powerPlants = shipDesign.engines.filter(e => e.engine_type === 'power_plant');
+    const jumpDrives = shipDesign.engines.filter(e => e.engine_type === 'jump');
+    
+    // Prevent removing the last Power Plant or Jump Drive
+    if (engineToRemove.engine_type === 'power_plant' && powerPlants.length === 1) {
+      Alert.alert(
+        'Cannot Remove Engine',
+        'At least one Power Plant is required for the ship.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+    
+    if (engineToRemove.engine_type === 'jump' && jumpDrives.length === 1) {
+      Alert.alert(
+        'Cannot Remove Engine',
+        'At least one Jump Drive is required for the ship.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+    
+    // Check if removing this power plant will require downgrading other engines
+    let warningMessage = `Are you sure you want to remove this ${
+      engineToRemove.engine_type === 'power_plant' ? 'Power Plant' : 
+      engineToRemove.engine_type === 'jump' ? 'Jump Drive' : 'Maneuver Drive'
+    }?`;
+    
+    if (engineToRemove.engine_type === 'power_plant') {
+      // Calculate what the max power plant performance will be after removal
+      const remainingPowerPlants = powerPlants.filter((_, i) => 
+        shipDesign.engines.indexOf(powerPlants[i]) !== index
+      );
+      
+      if (remainingPowerPlants.length > 0) {
+        const maxRemainingPerformance = Math.max(...remainingPowerPlants.map(p => p.performance));
+        
+        // Check if any jump drives or maneuver drives exceed this
+        const affectedEngines = shipDesign.engines.filter((engine, i) => 
+          i !== index && 
+          (engine.engine_type === 'jump' || engine.engine_type === 'maneuver') &&
+          engine.performance > maxRemainingPerformance
+        );
+        
+        if (affectedEngines.length > 0) {
+          warningMessage += `\n\nWarning: This will downgrade ${affectedEngines.length} other engine(s) to performance ${maxRemainingPerformance} to match the remaining power plant capacity.`;
+        }
+      }
+    }
+    
     Alert.alert(
       'Remove Engine',
-      'Are you sure you want to remove this engine?',
+      warningMessage,
       [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Remove',
           style: 'destructive',
           onPress: () => {
-            const updatedEngines = shipDesign.engines.filter((_, i) => i !== index);
-            updateShipDesign({
-              ...shipDesign,
-              engines: updatedEngines
-            });
+            removeEngineAndAdjustPerformance(index);
           }
         }
       ]
     );
+  };
+
+  const removeEngineAndAdjustPerformance = (indexToRemove: number) => {
+    const engineToRemove = shipDesign.engines[indexToRemove];
+    let updatedEngines = shipDesign.engines.filter((_, i) => i !== indexToRemove);
+    
+    // If we removed a power plant, check if we need to downgrade other engines
+    if (engineToRemove.engine_type === 'power_plant') {
+      const remainingPowerPlants = updatedEngines.filter(e => e.engine_type === 'power_plant');
+      
+      if (remainingPowerPlants.length > 0) {
+        const maxPowerPlantPerformance = Math.max(...remainingPowerPlants.map(p => p.performance));
+        
+        // Downgrade any jump drives or maneuver drives that exceed the max power plant performance
+        updatedEngines = updatedEngines.map(engine => {
+          if ((engine.engine_type === 'jump' || engine.engine_type === 'maneuver') && 
+              engine.performance > maxPowerPlantPerformance) {
+            const shipTonnage = shipDesign.ship.tonnage;
+            return {
+              ...engine,
+              performance: maxPowerPlantPerformance,
+              mass: shipTonnage * maxPowerPlantPerformance * 0.02,
+              cost: shipTonnage * maxPowerPlantPerformance * (engine.engine_type === 'maneuver' ? 0.01 : 0.02)
+            };
+          }
+          return engine;
+        });
+      }
+    }
+    
+    updateShipDesign({
+      ...shipDesign,
+      engines: updatedEngines
+    });
   };
 
   const calculateEngineMass = (engine: Engine): number => {
@@ -84,11 +271,11 @@ const EnginesScreen: React.FC = () => {
   };
 
   const getTotalMass = (): number => {
-    return shipDesign.engines.reduce((total, engine) => total + calculateEngineMass(engine), 0);
+    return shipDesign.engines.reduce((total, engine) => total + (engine.mass || calculateEngineMass(engine)), 0);
   };
 
   const getTotalCost = (): number => {
-    return shipDesign.engines.reduce((total, engine) => total + calculateEngineCost(engine), 0);
+    return shipDesign.engines.reduce((total, engine) => total + (engine.cost || calculateEngineCost(engine)), 0);
   };
 
   const validateEngineRequirements = () => {
@@ -129,13 +316,50 @@ const EnginesScreen: React.FC = () => {
   };
 
   const validationErrors = validateEngineRequirements();
+  
+  // Generate engine ID letters (A, B, C... skipping I and O)
+  const getEngineIdLetter = (index: number): string => {
+    const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
+    return letters[index] || `${letters[letters.length - 1]}${index - letters.length + 1}`;
+  };
+
+  // Get performance prefix for engine type
+  const getPerformancePrefix = (engineType: 'power_plant' | 'jump' | 'maneuver'): string => {
+    switch (engineType) {
+      case 'power_plant': return 'P-';
+      case 'jump': return 'J-';
+      case 'maneuver': return 'M-';
+      default: return '';
+    }
+  };
+
+  // Get display name for engine type
+  const getEngineDisplayName = (engineType: 'power_plant' | 'jump' | 'maneuver'): string => {
+    switch (engineType) {
+      case 'power_plant': return 'Power Plant';
+      case 'jump': return 'Jump Drive';
+      case 'maneuver': return 'Maneuver Drive';
+      default: return '';
+    }
+  };
+  
+  // Check if engines can be added
+  const totalEngineMass = getTotalMass();
+  const shipTonnage = shipDesign.ship.tonnage;
+  const remainingTonnage = shipTonnage - totalEngineMass;
+  const minEngineSize = shipTonnage * 1 * 0.02; // Smallest possible engine
+  const canAddEngine = remainingTonnage >= minEngineSize;
 
   return (
     <View style={styles.container}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Text style={styles.title}>Engines</Text>
-          <TouchableOpacity style={styles.addButton} onPress={addEngine}>
+          <TouchableOpacity 
+            style={[styles.addButton, !canAddEngine && styles.addButtonDisabled]} 
+            onPress={addEngine}
+            disabled={!canAddEngine}
+          >
             <MaterialIcons name="add" size={24} color="#fff" />
             <Text style={styles.addButtonText}>Add Engine</Text>
           </TouchableOpacity>
@@ -152,7 +376,9 @@ const EnginesScreen: React.FC = () => {
             {shipDesign.engines.map((engine, index) => (
               <View key={index} style={styles.engineCard}>
                 <View style={styles.engineHeader}>
-                  <Text style={styles.engineTitle}>Engine {index + 1}</Text>
+                  <Text style={styles.engineTitle}>
+                    {getEngineDisplayName(engine.engine_type)} {getEngineIdLetter(index)} {getPerformancePrefix(engine.engine_type)}{engine.performance}
+                  </Text>
                   <TouchableOpacity 
                     style={styles.removeButton}
                     onPress={() => removeEngine(index)}
@@ -271,6 +497,9 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
     marginLeft: 8,
+  },
+  addButtonDisabled: {
+    backgroundColor: '#bdc3c7',
   },
   emptyState: {
     alignItems: 'center',
