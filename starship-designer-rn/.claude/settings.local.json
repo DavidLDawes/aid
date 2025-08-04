@@ -2,7 +2,10 @@
   "permissions": {
     "allow": [
       "Bash(npx expo start:*)",
-      "Bash(npm start)"
+      "Bash(npm start)",
+      "Bash(mkdir:*)",
+      "Bash(npm install)",
+      "Bash(npm test)"
     ],
     "deny": []
   }
