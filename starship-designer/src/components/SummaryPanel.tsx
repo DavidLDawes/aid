@@ -18,6 +18,8 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [showCsvModal, setShowCsvModal] = useState(false);
   const [csvData, setCsvData] = useState<string>('');
+  const [showOverwriteDialog, setShowOverwriteDialog] = useState(false);
+  const [pendingShipName, setPendingShipName] = useState<string>('');
 
   // Calculate fuel breakdown for display
   const jumpDrive = shipDesign.engines.find(e => e.engine_type === 'jump_drive');
@@ -43,11 +45,44 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
     } catch (error) {
       console.error('Error saving ship:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to save ship design. Please try again.';
+      
+      // Check if this is a name collision error
+      if (errorMessage.includes('already exists')) {
+        setPendingShipName(shipDesign.ship.name);
+        setShowOverwriteDialog(true);
+      } else {
+        setSaveMessage(errorMessage);
+        setTimeout(() => setSaveMessage(null), 5000);
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleOverwriteConfirm = async () => {
+    try {
+      setSaving(true);
+      setShowOverwriteDialog(false);
+      setSaveMessage(null);
+      await databaseService.initialize();
+      await databaseService.saveOrUpdateShipByName(shipDesign);
+      setSaveMessage('Ship design saved successfully!');
+      setTimeout(() => setSaveMessage(null), 3000);
+    } catch (error) {
+      console.error('Error overwriting ship:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to save ship design. Please try again.';
       setSaveMessage(errorMessage);
       setTimeout(() => setSaveMessage(null), 5000);
     } finally {
       setSaving(false);
+      setPendingShipName('');
     }
+  };
+
+  const handleOverwriteCancel = () => {
+    setShowOverwriteDialog(false);
+    setPendingShipName('');
+    setSaving(false);
   };
 
   const generateCsvData = () => {
@@ -960,6 +995,32 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
                 onClick={() => setShowCsvModal(false)}
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Overwrite Confirmation Dialog */}
+      {showOverwriteDialog && (
+        <div className="ship-name-conflict-dialog">
+          <div className="conflict-dialog-content">
+            <h3>Ship Name Conflict</h3>
+            <p>A ship named "{pendingShipName}" already exists. Do you want to overwrite it?</p>
+            <div className="conflict-dialog-actions">
+              <button 
+                className="overwrite-btn" 
+                onClick={handleOverwriteConfirm}
+                disabled={saving}
+              >
+                {saving ? 'Overwriting...' : 'Overwrite'}
+              </button>
+              <button 
+                className="change-name-btn" 
+                onClick={handleOverwriteCancel}
+                disabled={saving}
+              >
+                Cancel
               </button>
             </div>
           </div>

@@ -184,4 +184,64 @@ describe('Database Service', () => {
       expect(exists2).toBe(false);
     });
   });
+
+  describe('Save or Update by Name', () => {
+    it('should save a new ship when name does not exist', async () => {
+      const shipId = await databaseService.saveOrUpdateShipByName(mockShipDesign);
+      expect(shipId).toBeGreaterThan(0);
+      
+      const retrievedShip = await databaseService.getShipById(shipId);
+      expect(retrievedShip?.ship.name).toBe('Test Ship');
+    });
+
+    it('should update existing ship when name already exists', async () => {
+      // First save a ship
+      const originalShipId = await databaseService.saveShip(mockShipDesign);
+      
+      // Create a modified version with the same name but different properties
+      const updatedShip = {
+        ...mockShipDesign,
+        ship: {
+          ...mockShipDesign.ship,
+          description: 'Updated description'
+        }
+      };
+      
+      // Use saveOrUpdateShipByName - should update the existing ship
+      const returnedId = await databaseService.saveOrUpdateShipByName(updatedShip);
+      expect(returnedId).toBe(originalShipId); // Should return the same ID
+      
+      // Verify the ship was updated
+      const retrievedShip = await databaseService.getShipById(originalShipId);
+      expect(retrievedShip?.ship.description).toBe('Updated description');
+      expect(retrievedShip?.updatedAt).toBeInstanceOf(Date);
+      
+      // Verify there's still only one ship with this name
+      const allShips = await databaseService.getAllShips();
+      const shipsWithName = allShips.filter(ship => ship.ship.name === 'Test Ship');
+      expect(shipsWithName).toHaveLength(1);
+    });
+
+    it('should preserve original createdAt when updating', async () => {
+      // Save original ship
+      const originalShipId = await databaseService.saveShip(mockShipDesign);
+      const originalShip = await databaseService.getShipById(originalShipId);
+      const originalCreatedAt = originalShip!.createdAt;
+      
+      // Wait a bit to ensure different timestamps
+      await new Promise(resolve => setTimeout(resolve, 10));
+      
+      // Update with saveOrUpdateShipByName
+      const updatedShip = {
+        ...mockShipDesign,
+        ship: { ...mockShipDesign.ship, description: 'Updated' }
+      };
+      await databaseService.saveOrUpdateShipByName(updatedShip);
+      
+      // Verify createdAt is preserved but updatedAt is newer
+      const retrievedShip = await databaseService.getShipById(originalShipId);
+      expect(retrievedShip!.createdAt).toEqual(originalCreatedAt);
+      expect(retrievedShip!.updatedAt.getTime()).toBeGreaterThan(originalCreatedAt.getTime());
+    });
+  });
 });
