@@ -288,6 +288,48 @@ class DatabaseService {
       request.onsuccess = () => resolve(!!request.result);
     });
   }
+
+  async saveOrUpdateShipByName(shipDesign: ShipDesign): Promise<number> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction(['ships'], 'readwrite');
+      const store = transaction.objectStore('ships');
+      const nameIndex = store.index('name');
+      const checkRequest = nameIndex.get(shipDesign.ship.name);
+      
+      checkRequest.onerror = () => reject(checkRequest.error);
+      checkRequest.onsuccess = () => {
+        const existingShip = checkRequest.result;
+        
+        if (existingShip) {
+          // Ship exists, update it
+          const updatedShip = {
+            ...shipDesign,
+            id: existingShip.id,
+            createdAt: existingShip.createdAt,
+            updatedAt: new Date()
+          };
+
+          const putRequest = store.put(updatedShip);
+          putRequest.onerror = () => reject(putRequest.error);
+          putRequest.onsuccess = () => resolve(existingShip.id);
+        } else {
+          // Ship doesn't exist, create new one
+          const now = new Date();
+          const shipToSave = {
+            ...shipDesign,
+            createdAt: now,
+            updatedAt: now
+          };
+
+          const addRequest = store.add(shipToSave);
+          addRequest.onerror = () => reject(addRequest.error);
+          addRequest.onsuccess = () => resolve(addRequest.result as number);
+        }
+      };
+    });
+  }
 }
 
 export const databaseService = new DatabaseService();
