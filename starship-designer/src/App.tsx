@@ -21,6 +21,8 @@ import './App.css';
 function App() {
   const [showSelectShip, setShowSelectShip] = useState(true);
   const [currentPanel, setCurrentPanel] = useState(0);
+  const [combinePilotNavigator, setCombinePilotNavigator] = useState(false);
+  const [noStewards, setNoStewards] = useState(false);
   const [shipDesign, setShipDesign] = useState<ShipDesign>({
     ship: { name: '', tech_level: 'A', tonnage: 100, configuration: 'standard', fuel_weeks: 2, missile_reloads: 0, sand_reloads: 0, description: '' },
     engines: [],
@@ -214,6 +216,19 @@ function App() {
     return { pilot, navigator, engineers, gunners, service, stewards, nurses, surgeons, techs, total };
   };
 
+  const calculateAdjustedCrewCount = (staffRequirements: StaffRequirements): number => {
+    const isSmallShip = shipDesign.ship.tonnage === 100 || shipDesign.ship.tonnage === 200;
+    if (!isSmallShip) return staffRequirements.total;
+    
+    return combinePilotNavigator && noStewards
+      ? staffRequirements.total - 1 - staffRequirements.stewards
+      : combinePilotNavigator 
+        ? staffRequirements.total - 1 
+        : noStewards 
+          ? staffRequirements.total - staffRequirements.stewards
+          : staffRequirements.total;
+  };
+
   const isCurrentPanelValid = (): boolean => {
     switch (currentPanel) {
       case 0: // Ship
@@ -332,11 +347,32 @@ function App() {
       case 8:
         return <DronesPanel drones={shipDesign.drones} onUpdate={(drones) => updateShipDesign({ drones })} />;
       case 9:
-        return <BerthsPanel berths={shipDesign.berths} staffRequirements={staff} onUpdate={(berths) => updateShipDesign({ berths })} />;
+        return <BerthsPanel 
+          berths={shipDesign.berths} 
+          staffRequirements={staff} 
+          adjustedCrewCount={calculateAdjustedCrewCount(staff)}
+          onUpdate={(berths) => updateShipDesign({ berths })} 
+        />;
       case 10:
-        return <StaffPanel staffRequirements={staff} berths={shipDesign.berths} />;
+        return <StaffPanel 
+          staffRequirements={staff} 
+          berths={shipDesign.berths}
+          shipTonnage={shipDesign.ship.tonnage}
+          combinePilotNavigator={combinePilotNavigator}
+          noStewards={noStewards}
+          onCombinePilotNavigatorChange={setCombinePilotNavigator}
+          onNoStewardsChange={setNoStewards}
+        />;
       case 11:
-        return <SummaryPanel shipDesign={shipDesign} mass={mass} cost={cost} staff={staff} onBackToShipSelect={handleBackToShipSelect} />;
+        return <SummaryPanel 
+          shipDesign={shipDesign} 
+          mass={mass} 
+          cost={cost} 
+          staff={staff} 
+          combinePilotNavigator={combinePilotNavigator}
+          noStewards={noStewards}
+          onBackToShipSelect={handleBackToShipSelect} 
+        />;
       default:
         return null;
     }

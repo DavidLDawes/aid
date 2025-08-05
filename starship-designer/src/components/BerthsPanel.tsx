@@ -5,10 +5,11 @@ import { BERTH_TYPES } from '../data/constants';
 interface BerthsPanelProps {
   berths: Berth[];
   staffRequirements: StaffRequirements;
+  adjustedCrewCount?: number;
   onUpdate: (berths: Berth[]) => void;
 }
 
-const BerthsPanel: React.FC<BerthsPanelProps> = ({ berths, staffRequirements, onUpdate }) => {
+const BerthsPanel: React.FC<BerthsPanelProps> = ({ berths, staffRequirements, adjustedCrewCount, onUpdate }) => {
   const updateBerthQuantity = (berthType: typeof BERTH_TYPES[0], newQuantity: number) => {
     const newBerths = [...berths];
     const existingIndex = newBerths.findIndex(b => b.berth_type === berthType.type);
@@ -45,20 +46,24 @@ const BerthsPanel: React.FC<BerthsPanelProps> = ({ berths, staffRequirements, on
     return getBerthQuantity('staterooms') + getBerthQuantity('luxury_staterooms');
   };
 
+  const getEffectiveCrewCount = (): number => {
+    return adjustedCrewCount !== undefined ? adjustedCrewCount : staffRequirements.total;
+  };
+
   const hasEnoughStaterooms = (): boolean => {
-    return getTotalStaterooms() >= staffRequirements.total;
+    return getTotalStaterooms() >= getEffectiveCrewCount();
   };
 
   const getPassengerCount = (): number => {
     const totalStaterooms = getTotalStaterooms();
-    const crewCount = staffRequirements.total;
+    const crewCount = getEffectiveCrewCount();
     return Math.max(0, totalStaterooms - crewCount);
   };
 
   // Ensure minimum staterooms match crew requirements
   useEffect(() => {
     const totalStaterooms = getTotalStaterooms();
-    const crewCount = staffRequirements.total;
+    const crewCount = getEffectiveCrewCount();
     
     if (totalStaterooms < crewCount && crewCount > 0) {
       const shortfall = crewCount - totalStaterooms;
@@ -69,7 +74,7 @@ const BerthsPanel: React.FC<BerthsPanelProps> = ({ berths, staffRequirements, on
         currentStaterooms + shortfall
       );
     }
-  }, [staffRequirements.total]);
+  }, [staffRequirements.total, adjustedCrewCount]);
 
   return (
     <div className="panel-content">
@@ -77,7 +82,7 @@ const BerthsPanel: React.FC<BerthsPanelProps> = ({ berths, staffRequirements, on
       
       <div className="berth-requirements">
         <h3>Accommodations</h3>
-        <p><strong>Total Crew:</strong> {staffRequirements.total}</p>
+        <p><strong>Total Crew:</strong> {getEffectiveCrewCount()}</p>
         {getPassengerCount() >= 1 && (
           <p><strong>Passengers:</strong> {getPassengerCount()}</p>
         )}
@@ -93,7 +98,7 @@ const BerthsPanel: React.FC<BerthsPanelProps> = ({ berths, staffRequirements, on
             const quantity = getBerthQuantity(berthType.type);
             const isStateroom = berthType.type === 'staterooms' || berthType.type === 'luxury_staterooms';
             const totalStaterooms = getTotalStaterooms();
-            const canReduceStaterooms = !isStateroom || (totalStaterooms > staffRequirements.total);
+            const canReduceStaterooms = !isStateroom || (totalStaterooms > getEffectiveCrewCount());
             
             return (
               <div key={berthType.type} className="component-item">
@@ -156,7 +161,7 @@ const BerthsPanel: React.FC<BerthsPanelProps> = ({ berths, staffRequirements, on
         <h3>Requirements:</h3>
         <ul>
           <li className={hasEnoughStaterooms() ? 'valid' : 'invalid'}>
-            {hasEnoughStaterooms() ? '✓' : '✗'} At least {staffRequirements.total} staterooms for crew
+            {hasEnoughStaterooms() ? '✓' : '✗'} At least {getEffectiveCrewCount()} staterooms for crew
           </li>
         </ul>
       </div>
