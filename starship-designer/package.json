@@ -10,7 +10,9 @@
     "preview": "vite preview",
     "test": "vitest",
     "test:ui": "vitest --ui",
-    "test:run": "vitest run"
+    "test:run": "vitest run",
+    "extractDB": "node scripts/extractDB.mjs",
+    "preloadDB": "node scripts/preloadDB.mjs"
   },
   "dependencies": {
     "react": "^19.1.0",

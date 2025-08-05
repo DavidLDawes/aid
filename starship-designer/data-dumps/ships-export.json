@@ -1,0 +1,106 @@
+{
+  "exportDate": "2025-08-05T15:30:00.000Z",
+  "version": "1.0",
+  "ships": [
+    {
+      "ship": {
+        "name": "Test Scout",
+        "tech_level": "A",
+        "tonnage": 100,
+        "configuration": "standard",
+        "fuel_weeks": 2,
+        "missile_reloads": 0,
+        "sand_reloads": 0,
+        "description": "Test scout ship for extraction/preload testing"
+      },
+      "engines": [
+        {
+          "engine_type": "power_plant",
+          "drive_code": "A",
+          "performance": 2,
+          "mass": 4,
+          "cost": 8
+        }
+      ],
+      "fittings": [
+        {
+          "fitting_type": "bridge",
+          "mass": 10,
+          "cost": 2
+        }
+      ],
+      "weapons": [],
+      "defenses": [],
+      "berths": [
+        {
+          "berth_type": "staterooms",
+          "quantity": 2,
+          "mass": 4,
+          "cost": 1
+        }
+      ],
+      "facilities": [],
+      "cargo": [],
+      "vehicles": [],
+      "drones": [],
+      "_metadata": {
+        "originalId": 1,
+        "originalCreatedAt": "2025-08-05T15:25:00.000Z",
+        "originalUpdatedAt": "2025-08-05T15:25:00.000Z"
+      }
+    },
+    {
+      "ship": {
+        "name": "Test Trader",
+        "tech_level": "A",
+        "tonnage": 200,
+        "configuration": "standard",
+        "fuel_weeks": 2,
+        "missile_reloads": 0,
+        "sand_reloads": 0,
+        "description": "Test trading vessel for extraction/preload testing"
+      },
+      "engines": [
+        {
+          "engine_type": "power_plant",
+          "drive_code": "A",
+          "performance": 1,
+          "mass": 4,
+          "cost": 8
+        }
+      ],
+      "fittings": [
+        {
+          "fitting_type": "bridge",
+          "mass": 10,
+          "cost": 2
+        }
+      ],
+      "weapons": [],
+      "defenses": [],
+      "berths": [
+        {
+          "berth_type": "staterooms",
+          "quantity": 5,
+          "mass": 4,
+          "cost": 1
+        }
+      ],
+      "facilities": [],
+      "cargo": [
+        {
+          "cargo_type": "standard",
+          "tonnage": 82,
+          "cost": 0
+        }
+      ],
+      "vehicles": [],
+      "drones": [],
+      "_metadata": {
+        "originalId": 2,
+        "originalCreatedAt": "2025-08-05T15:25:00.000Z",
+        "originalUpdatedAt": "2025-08-05T15:25:00.000Z"
+      }
+    }
+  ]
+}
