@@ -8,10 +8,12 @@ interface SummaryPanelProps {
   mass: MassCalculation;
   cost: CostCalculation;
   staff: StaffRequirements;
+  combinePilotNavigator: boolean;
+  noStewards: boolean;
   onBackToShipSelect?: () => void;
 }
 
-const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, staff, onBackToShipSelect }) => {
+const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, staff, combinePilotNavigator, noStewards, onBackToShipSelect }) => {
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [showCsvModal, setShowCsvModal] = useState(false);
@@ -884,16 +886,30 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
       
       <div className="summary-section">
         <h4>Crew</h4>
-        <p><strong>Pilot:</strong> {staff.pilot}</p>
-        <p><strong>Navigator:</strong> {staff.navigator}</p>
+        {combinePilotNavigator ? (
+          <p><strong>Pilot/Navigator:</strong> 1</p>
+        ) : (
+          <>
+            <p><strong>Pilot:</strong> {staff.pilot}</p>
+            <p><strong>Navigator:</strong> {staff.navigator}</p>
+          </>
+        )}
         <p><strong>Engineers:</strong> {staff.engineers}</p>
         {staff.gunners > 0 && <p><strong>Gunners:</strong> {staff.gunners}</p>}
         {staff.service > 0 && <p><strong>Service Staff:</strong> {staff.service}</p>}
-        <p><strong>Stewards:</strong> {staff.stewards}</p>
+        <p><strong>Stewards:</strong> {noStewards ? 0 : staff.stewards}</p>
         {staff.nurses > 0 && <p><strong>Nurses:</strong> {staff.nurses}</p>}
         {staff.surgeons > 0 && <p><strong>Surgeons:</strong> {staff.surgeons}</p>}
         {staff.techs > 0 && <p><strong>Medical Techs:</strong> {staff.techs}</p>}
-        <p><strong>Total:</strong> {staff.total}</p>
+        <p><strong>Total:</strong> {
+          combinePilotNavigator && noStewards
+            ? staff.total - 1 - staff.stewards
+            : combinePilotNavigator 
+              ? staff.total - 1 
+              : noStewards 
+                ? staff.total - staff.stewards
+                : staff.total
+        }</p>
       </div>
 
       {saveMessage && (
