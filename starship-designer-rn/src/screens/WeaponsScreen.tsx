@@ -92,25 +92,50 @@ const WeaponsScreen: React.FC = () => {
   };
 
 
-  const removeWeapon = (weaponType: string) => {
-    Alert.alert(
-      'Remove Weapon',
-      `Remove all ${weaponType}s from the ship?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Remove',
-          style: 'destructive',
-          onPress: () => {
-            const updatedWeapons = shipDesign.weapons.filter(w => w.weapon_type !== weaponType);
-            updateShipDesign({
-              ...shipDesign,
-              weapons: updatedWeapons
-            });
-          }
-        }
-      ]
+  const incrementWeapon = (weaponType: string) => {
+    if (availableMounts <= 0) {
+      Alert.alert(
+        'Mount Limit Reached',
+        `Ship can only have ${maxMountLimit} total weapons and defenses. Currently using ${totalMountsUsed} mounts.`,
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    const updatedWeapons = shipDesign.weapons.map(weapon =>
+      weapon.weapon_type === weaponType
+        ? { ...weapon, quantity: weapon.quantity + 1 }
+        : weapon
     );
+    updateShipDesign({
+      ...shipDesign,
+      weapons: updatedWeapons
+    });
+  };
+
+  const decrementWeapon = (weaponType: string) => {
+    const existingWeapon = shipDesign.weapons.find(w => w.weapon_type === weaponType);
+    if (!existingWeapon) return;
+
+    if (existingWeapon.quantity > 1) {
+      // Decrement quantity
+      const updatedWeapons = shipDesign.weapons.map(weapon =>
+        weapon.weapon_type === weaponType
+          ? { ...weapon, quantity: weapon.quantity - 1 }
+          : weapon
+      );
+      updateShipDesign({
+        ...shipDesign,
+        weapons: updatedWeapons
+      });
+    } else {
+      // Remove weapon entirely when quantity reaches 0
+      const updatedWeapons = shipDesign.weapons.filter(w => w.weapon_type !== weaponType);
+      updateShipDesign({
+        ...shipDesign,
+        weapons: updatedWeapons
+      });
+    }
   };
 
   const getWeaponQuantity = (weaponType: string): number => {
@@ -177,15 +202,28 @@ const WeaponsScreen: React.FC = () => {
                 <View style={styles.weaponInfo}>
                   <Text style={styles.weaponName}>{weapon.weapon_type}</Text>
                   <Text style={styles.weaponStats}>
-                    Qty: {weapon.quantity} • {weapon.mass * weapon.quantity} tons • {weapon.cost * weapon.quantity} MCr
+                    {weapon.mass * weapon.quantity} tons • {weapon.cost * weapon.quantity} MCr
                   </Text>
                 </View>
-                <TouchableOpacity 
-                  style={styles.removeButton}
-                  onPress={() => removeWeapon(weapon.weapon_type)}
-                >
-                  <MaterialIcons name="delete" size={24} color="#e74c3c" />
-                </TouchableOpacity>
+                
+                <View style={styles.quantityControls}>
+                  <TouchableOpacity 
+                    style={styles.quantityButton}
+                    onPress={() => decrementWeapon(weapon.weapon_type)}
+                  >
+                    <MaterialIcons name="remove" size={16} color="#e74c3c" />
+                  </TouchableOpacity>
+                  
+                  <Text style={styles.quantityText}>{weapon.quantity}</Text>
+                  
+                  <TouchableOpacity 
+                    style={[styles.quantityButton, availableMounts <= 0 && styles.quantityButtonDisabled]}
+                    onPress={() => incrementWeapon(weapon.weapon_type)}
+                    disabled={availableMounts <= 0}
+                  >
+                    <MaterialIcons name="add" size={16} color={availableMounts > 0 ? "#27ae60" : "#bdc3c7"} />
+                  </TouchableOpacity>
+                </View>
               </View>
             ))}
           </View>
