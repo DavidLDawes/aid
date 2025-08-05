@@ -6,7 +6,10 @@ import {
   calculateVehicleServiceStaff, 
   calculateDroneServiceStaff, 
   calculateMedicalStaff,
-  getEnginePerformance 
+  getEnginePerformance,
+  getEngineMass,
+  getEngineCost,
+  findEngineIdForPerformance
 } from '../data/constants';
 
 // Helper function to create default engines for a ship
@@ -20,22 +23,22 @@ const createDefaultEngines = (shipTonnage: number) => {
       engine_type: 'power_plant' as const,
       engine_id: engineId,
       performance: performance,
-      mass: shipTonnage * performance * 0.02,
-      cost: shipTonnage * performance * 0.02
+      mass: getEngineMass(engineId, 'power_plant'),
+      cost: getEngineCost(engineId, 'power_plant')
     },
     {
       engine_type: 'jump' as const,
       engine_id: engineId,
       performance: performance,
-      mass: shipTonnage * performance * 0.02,
-      cost: shipTonnage * performance * 0.02
+      mass: getEngineMass(engineId, 'jump'),
+      cost: getEngineCost(engineId, 'jump')
     },
     {
       engine_type: 'maneuver' as const,
       engine_id: engineId,
       performance: performance,
-      mass: shipTonnage * performance * 0.02,
-      cost: shipTonnage * performance * 0.01  // Maneuver drives cost half as much
+      mass: getEngineMass(engineId, 'maneuver'),
+      cost: getEngineCost(engineId, 'maneuver')
     }
   ];
 };
@@ -97,8 +100,8 @@ export const ShipDesignProvider: React.FC<{ children: ReactNode }> = ({ children
           return {
             ...engine,
             performance: newPerformance,
-            mass: newTonnage * newPerformance * 0.02,
-            cost: newTonnage * newPerformance * (engine.engine_type === 'maneuver' ? 0.01 : 0.02)
+            mass: getEngineMass(engine.engine_id, engine.engine_type),
+            cost: getEngineCost(engine.engine_id, engine.engine_type)
           };
         });
         
@@ -123,17 +126,41 @@ export const ShipDesignProvider: React.FC<{ children: ReactNode }> = ({ children
   }, []);
 
   const setShipDesign = useCallback((design: ShipDesign) => {
-    setShipDesignState(design);
+    // Check if loaded engines are missing engine_id (old saves) and fix them
+    const enginesNeedUpdate = design.engines.some(engine => !engine.engine_id);
+    
+    if (enginesNeedUpdate) {
+      console.log('Loaded ship has engines missing engine_id, updating...');
+      const updatedEngines = design.engines.map(engine => {
+        if (!engine.engine_id) {
+          // Determine engine_id from performance and ship tonnage
+          const bestEngineId = findEngineIdForPerformance(engine.performance, design.ship.tonnage);
+          return {
+            ...engine,
+            engine_id: bestEngineId,
+            mass: getEngineMass(bestEngineId, engine.engine_type),
+            cost: getEngineCost(bestEngineId, engine.engine_type)
+          };
+        }
+        return engine;
+      });
+      
+      const updatedDesign = {
+        ...design,
+        engines: updatedEngines
+      };
+      setShipDesignState(updatedDesign);
+    } else {
+      setShipDesignState(design);
+    }
   }, []);
 
   const calculateMass = useCallback((): MassCalculation => {
     let used = 0;
     
-    // Add engine masses (calculated dynamically)
+    // Add engine masses (from specs table)
     used += shipDesign.engines.reduce((sum, engine) => {
-      const shipTonnage = shipDesign.ship.tonnage;
-      const performance = getEnginePerformance(engine.engine_id, shipTonnage) || engine.performance;
-      const engineMass = shipTonnage * performance * 0.02;
+      const engineMass = getEngineMass(engine.engine_id, engine.engine_type);
       return sum + engineMass;
     }, 0);
     
@@ -189,18 +216,10 @@ export const ShipDesignProvider: React.FC<{ children: ReactNode }> = ({ children
   const calculateCost = useCallback((): CostCalculation => {
     let total = 0;
     
-    // Add engine costs (calculated dynamically)
+    // Add engine costs (from specs table)
     total += shipDesign.engines.reduce((sum, engine) => {
-      const shipTonnage = shipDesign.ship.tonnage;
-      const performance = getEnginePerformance(engine.engine_id, shipTonnage) || engine.performance;
-      if (engine.engine_type === 'jump') {
-        return sum + shipTonnage * performance * 0.02;
-      } else if (engine.engine_type === 'maneuver') {
-        return sum + shipTonnage * performance * 0.01;
-      } else if (engine.engine_type === 'power_plant') {
-        return sum + shipTonnage * performance * 0.02;
-      }
-      return sum;
+      const engineCost = getEngineCost(engine.engine_id, engine.engine_type);
+      return sum + engineCost;
     }, 0);
     
     // Add fitting costs
