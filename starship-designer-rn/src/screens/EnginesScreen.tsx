@@ -12,12 +12,12 @@ import { Picker } from '@react-native-picker/picker';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useShipDesign } from '../context/ShipDesignContext';
 import { Engine } from '../types/ship';
-import { getAvailableEngineIds, getEnginePerformance } from '../data/constants';
+import { getAvailableEngineIds, getEnginePerformance, getEngineMass, getEngineCost } from '../data/constants';
 
 const EnginesScreen: React.FC = () => {
   const { shipDesign, updateShipDesign } = useShipDesign();
   
-  // Ensure engines are initialized if empty
+  // Only initialize engines if the array is completely empty
   React.useEffect(() => {
     if (shipDesign.engines.length === 0) {
       console.log('Engines empty, initializing default engines');
@@ -30,22 +30,22 @@ const EnginesScreen: React.FC = () => {
           engine_type: 'power_plant' as const,
           engine_id: engineId,
           performance: performance,
-          mass: shipTonnage * performance * 0.02,
-          cost: shipTonnage * performance * 0.02
+          mass: getEngineMass(engineId, 'power_plant'),
+          cost: getEngineCost(engineId, 'power_plant')
         },
         {
           engine_type: 'jump' as const,
           engine_id: engineId,
           performance: performance,
-          mass: shipTonnage * performance * 0.02,
-          cost: shipTonnage * performance * 0.02
+          mass: getEngineMass(engineId, 'jump'),
+          cost: getEngineCost(engineId, 'jump')
         },
         {
           engine_type: 'maneuver' as const,
           engine_id: engineId,
           performance: performance,
-          mass: shipTonnage * performance * 0.02,
-          cost: shipTonnage * performance * 0.01
+          mass: getEngineMass(engineId, 'maneuver'),
+          cost: getEngineCost(engineId, 'maneuver')
         }
       ];
       
@@ -54,7 +54,7 @@ const EnginesScreen: React.FC = () => {
         engines: defaultEngines
       });
     }
-  }, [shipDesign.engines.length, shipDesign.ship.tonnage, shipDesign, updateShipDesign]);
+  }, [shipDesign.engines.length, updateShipDesign]);
 
   const addEngine = () => {
     // Calculate available tonnage for engines
@@ -103,14 +103,13 @@ const EnginesScreen: React.FC = () => {
     const shipTonnage = shipDesign.ship.tonnage;
     const engineId = 'A'; // Start with smallest available engine
     const performance = getEnginePerformance(engineId, shipTonnage) || 1;
-    const newEngineMass = shipTonnage * performance * 0.02;
     
     const newEngine: Engine = {
       engine_type: engineType,
       engine_id: engineId,
       performance: performance,
-      mass: newEngineMass,
-      cost: shipTonnage * performance * (engineType === 'maneuver' ? 0.01 : 0.02)
+      mass: getEngineMass(engineId, engineType),
+      cost: getEngineCost(engineId, engineType)
     };
 
     updateShipDesign({
@@ -154,8 +153,8 @@ const EnginesScreen: React.FC = () => {
       ...currentEngine,
       engine_id: newEngineId,
       performance: newPerformance,
-      mass: shipTonnage * newPerformance * 0.02,
-      cost: shipTonnage * newPerformance * (currentEngine.engine_type === 'maneuver' ? 0.01 : 0.02)
+      mass: getEngineMass(newEngineId, currentEngine.engine_type),
+      cost: getEngineCost(newEngineId, currentEngine.engine_type)
     };
     
     const updatedEngines = [...shipDesign.engines];
@@ -270,19 +269,11 @@ const EnginesScreen: React.FC = () => {
   };
 
   const calculateEngineMass = (engine: Engine): number => {
-    const shipTonnage = shipDesign.ship.tonnage;
-    const performance = getEnginePerformance(engine.engine_id, shipTonnage) || engine.performance;
-    return shipTonnage * performance * 0.02;
+    return getEngineMass(engine.engine_id, engine.engine_type);
   };
 
   const calculateEngineCost = (engine: Engine): number => {
-    const shipTonnage = shipDesign.ship.tonnage;
-    const performance = getEnginePerformance(engine.engine_id, shipTonnage) || engine.performance;
-    if (engine.engine_type === 'maneuver') {
-      return shipTonnage * performance * 0.01;
-    } else {
-      return shipTonnage * performance * 0.02;
-    }
+    return getEngineCost(engine.engine_id, engine.engine_type);
   };
 
   const getTotalMass = (): number => {
@@ -403,9 +394,8 @@ const EnginesScreen: React.FC = () => {
                       {getAvailableEngineIds(shipDesign.ship.tonnage).map(engineId => {
                         const performance = getEnginePerformance(engineId, shipDesign.ship.tonnage);
                         const prefix = getPerformancePrefix(engine.engine_type);
-                        const shipTonnage = shipDesign.ship.tonnage;
-                        const mass = shipTonnage * performance * 0.02;
-                        const cost = shipTonnage * performance * (engine.engine_type === 'maneuver' ? 0.01 : 0.02);
+                        const mass = getEngineMass(engineId, engine.engine_type);
+                        const cost = getEngineCost(engineId, engine.engine_type);
                         return (
                           <Picker.Item 
                             key={engineId}

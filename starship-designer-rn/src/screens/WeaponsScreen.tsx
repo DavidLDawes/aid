@@ -1,12 +1,14 @@
 // Weapons Screen - Configure ship weapons and turrets
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
   ScrollView, 
   TouchableOpacity, 
-  Alert 
+  Alert,
+  Modal,
+  TextInput
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -16,6 +18,9 @@ import { WEAPON_TYPES, getWeaponMountLimit } from '../data/constants';
 
 const WeaponsScreen: React.FC = () => {
   const { shipDesign, updateShipDesign } = useShipDesign();
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [selectedWeaponType, setSelectedWeaponType] = useState(WEAPON_TYPES[0].name);
+  const [weaponQuantity, setWeaponQuantity] = useState('1');
 
   // Calculate mount limits
   const maxMountLimit = getWeaponMountLimit(shipDesign.ship.tonnage);
@@ -24,7 +29,7 @@ const WeaponsScreen: React.FC = () => {
   const totalMountsUsed = weaponsCount + defensesCount;
   const availableMounts = maxMountLimit - totalMountsUsed;
 
-  const addWeapon = (weaponType: string) => {
+  const showAddWeaponModal = () => {
     if (availableMounts <= 0) {
       Alert.alert(
         'Mount Limit Reached',
@@ -33,17 +38,35 @@ const WeaponsScreen: React.FC = () => {
       );
       return;
     }
+    setShowAddModal(true);
+  };
 
-    const existingWeapon = shipDesign.weapons.find(w => w.weapon_type === weaponType);
-    const weaponInfo = WEAPON_TYPES.find(w => w.name === weaponType);
+  const addWeapon = () => {
+    const quantity = parseInt(weaponQuantity);
+    if (isNaN(quantity) || quantity <= 0) {
+      Alert.alert('Invalid Quantity', 'Please enter a valid number greater than 0.');
+      return;
+    }
+
+    if (quantity > availableMounts) {
+      Alert.alert(
+        'Insufficient Mounts',
+        `Cannot add ${quantity} weapons. Only ${availableMounts} mount(s) available.`,
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    const existingWeapon = shipDesign.weapons.find(w => w.weapon_type === selectedWeaponType);
+    const weaponInfo = WEAPON_TYPES.find(w => w.name === selectedWeaponType);
     
     if (!weaponInfo) return;
 
     if (existingWeapon) {
-      // Increment existing weapon
+      // Update existing weapon quantity
       const updatedWeapons = shipDesign.weapons.map(weapon =>
-        weapon.weapon_type === weaponType
-          ? { ...weapon, quantity: weapon.quantity + 1 }
+        weapon.weapon_type === selectedWeaponType
+          ? { ...weapon, quantity: weapon.quantity + quantity }
           : weapon
       );
       updateShipDesign({
@@ -53,8 +76,8 @@ const WeaponsScreen: React.FC = () => {
     } else {
       // Add new weapon
       const newWeapon: Weapon = {
-        weapon_type: weaponType,
-        quantity: 1,
+        weapon_type: selectedWeaponType,
+        quantity: quantity,
         mass: weaponInfo.mass,
         cost: weaponInfo.cost
       };
@@ -63,32 +86,31 @@ const WeaponsScreen: React.FC = () => {
         weapons: [...shipDesign.weapons, newWeapon]
       });
     }
+
+    setShowAddModal(false);
+    setWeaponQuantity('1');
   };
 
 
   const removeWeapon = (weaponType: string) => {
-    const existingWeapon = shipDesign.weapons.find(w => w.weapon_type === weaponType);
-    if (!existingWeapon) return;
-
-    if (existingWeapon.quantity > 1) {
-      // Decrement quantity
-      const updatedWeapons = shipDesign.weapons.map(weapon =>
-        weapon.weapon_type === weaponType
-          ? { ...weapon, quantity: weapon.quantity - 1 }
-          : weapon
-      );
-      updateShipDesign({
-        ...shipDesign,
-        weapons: updatedWeapons
-      });
-    } else {
-      // Remove weapon entirely
-      const updatedWeapons = shipDesign.weapons.filter(w => w.weapon_type !== weaponType);
-      updateShipDesign({
-        ...shipDesign,
-        weapons: updatedWeapons
-      });
-    }
+    Alert.alert(
+      'Remove Weapon',
+      `Remove all ${weaponType}s from the ship?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: () => {
+            const updatedWeapons = shipDesign.weapons.filter(w => w.weapon_type !== weaponType);
+            updateShipDesign({
+              ...shipDesign,
+              weapons: updatedWeapons
+            });
+          }
+        }
+      ]
+    );
   };
 
   const getWeaponQuantity = (weaponType: string): number => {
@@ -128,6 +150,14 @@ const WeaponsScreen: React.FC = () => {
               </Text>
             </View>
           </View>
+          <TouchableOpacity 
+            style={[styles.addButton, availableMounts <= 0 && styles.addButtonDisabled]}
+            onPress={showAddWeaponModal}
+            disabled={availableMounts <= 0}
+          >
+            <MaterialIcons name="add" size={24} color="#fff" />
+            <Text style={styles.addButtonText}>Add Weapons</Text>
+          </TouchableOpacity>
         </View>
 
         {availableMounts <= 0 && weaponsCount === 0 && (
@@ -138,45 +168,28 @@ const WeaponsScreen: React.FC = () => {
           </View>
         )}
 
-        {/* Weapons Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Available Weapons</Text>
-          {WEAPON_TYPES.map(weaponType => {
-            const quantity = getWeaponQuantity(weaponType.name);
-            const canAdd = availableMounts > 0;
-            
-            return (
-              <View key={weaponType.name} style={styles.weaponRow}>
+        {/* Current Weapons Section */}
+        {shipDesign.weapons.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Installed Weapons</Text>
+            {shipDesign.weapons.map((weapon, index) => (
+              <View key={index} style={styles.weaponRow}>
                 <View style={styles.weaponInfo}>
-                  <Text style={styles.weaponName}>{weaponType.name}</Text>
+                  <Text style={styles.weaponName}>{weapon.weapon_type}</Text>
                   <Text style={styles.weaponStats}>
-                    {weaponType.mass} ton • {weaponType.cost} MCr
+                    Qty: {weapon.quantity} • {weapon.mass * weapon.quantity} tons • {weapon.cost * weapon.quantity} MCr
                   </Text>
                 </View>
-                
-                <View style={styles.quantityControls}>
-                  <TouchableOpacity 
-                    style={[styles.quantityButton, quantity === 0 && styles.quantityButtonDisabled]}
-                    onPress={() => removeWeapon(weaponType.name)}
-                    disabled={quantity === 0}
-                  >
-                    <MaterialIcons name="remove" size={16} color={quantity === 0 ? "#bdc3c7" : "#e74c3c"} />
-                  </TouchableOpacity>
-                  
-                  <Text style={styles.quantityText}>{quantity}</Text>
-                  
-                  <TouchableOpacity 
-                    style={[styles.quantityButton, !canAdd && styles.quantityButtonDisabled]}
-                    onPress={() => addWeapon(weaponType.name)}
-                    disabled={!canAdd}
-                  >
-                    <MaterialIcons name="add" size={16} color={canAdd ? "#27ae60" : "#bdc3c7"} />
-                  </TouchableOpacity>
-                </View>
+                <TouchableOpacity 
+                  style={styles.removeButton}
+                  onPress={() => removeWeapon(weapon.weapon_type)}
+                >
+                  <MaterialIcons name="delete" size={24} color="#e74c3c" />
+                </TouchableOpacity>
               </View>
-            );
-          })}
-        </View>
+            ))}
+          </View>
+        )}
 
         {/* Totals Section */}
         {weaponsCount > 0 && (
@@ -197,6 +210,67 @@ const WeaponsScreen: React.FC = () => {
           </View>
         )}
       </ScrollView>
+
+      {/* Add Weapon Modal */}
+      <Modal
+        visible={showAddModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowAddModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Add Weapons</Text>
+            
+            <Text style={styles.modalLabel}>Weapon Type:</Text>
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={selectedWeaponType}
+                onValueChange={setSelectedWeaponType}
+                style={styles.picker}
+              >
+                {WEAPON_TYPES.map(weaponType => (
+                  <Picker.Item 
+                    key={weaponType.name}
+                    label={`${weaponType.name} (${weaponType.mass} ton, ${weaponType.cost} MCr)`}
+                    value={weaponType.name}
+                  />
+                ))}
+              </Picker>
+            </View>
+
+            <Text style={styles.modalLabel}>Quantity:</Text>
+            <TextInput
+              style={styles.quantityInput}
+              value={weaponQuantity}
+              onChangeText={setWeaponQuantity}
+              keyboardType="numeric"
+              placeholder="Enter quantity"
+              maxLength={3}
+            />
+
+            <Text style={styles.availableText}>
+              Available mounts: {availableMounts}
+            </Text>
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => setShowAddModal(false)}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.confirmButton]}
+                onPress={addWeapon}
+              >
+                <Text style={styles.confirmButtonText}>Add</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -329,6 +403,93 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     minWidth: 20,
     textAlign: 'center',
+  },
+  removeButton: {
+    padding: 8,
+    borderRadius: 6,
+    backgroundColor: '#f8f9fa',
+    borderWidth: 1,
+    borderColor: '#e74c3c',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 20,
+    width: '90%',
+    maxWidth: 400,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#2c3e50',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  modalLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2c3e50',
+    marginBottom: 8,
+    marginTop: 12,
+  },
+  pickerContainer: {
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+  },
+  picker: {
+    height: 50,
+  },
+  quantityInput: {
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 16,
+    color: '#2c3e50',
+  },
+  availableText: {
+    fontSize: 14,
+    color: '#7f8c8d',
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 20,
+    gap: 12,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  cancelButton: {
+    backgroundColor: '#f8f9fa',
+    borderWidth: 1,
+    borderColor: '#dee2e6',
+  },
+  cancelButtonText: {
+    color: '#6c757d',
+    fontWeight: '600',
+  },
+  confirmButton: {
+    backgroundColor: '#e74c3c',
+  },
+  confirmButtonText: {
+    color: '#fff',
+    fontWeight: '600',
   },
   totalsCard: {
     backgroundColor: '#e74c3c',

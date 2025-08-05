@@ -91,6 +91,65 @@ export function getEnginePerformance(engineId: string, shipTonnage: number): num
   return ENGINE_PERFORMANCE_TABLE[engineId]?.[shipTonnage] ?? null;
 }
 
+// Engine specifications table - mass and cost by engine ID and type
+export const ENGINE_SPECS_TABLE: Record<string, { 
+  jump: { tons: number; cost: number }, 
+  maneuver: { tons: number; cost: number }, 
+  power_plant: { tons: number; cost: number } 
+}> = {
+  'A': { jump: { tons: 10, cost: 10 }, maneuver: { tons: 2, cost: 4 }, power_plant: { tons: 4, cost: 8 } },
+  'B': { jump: { tons: 15, cost: 20 }, maneuver: { tons: 3, cost: 8 }, power_plant: { tons: 7, cost: 16 } },
+  'C': { jump: { tons: 20, cost: 30 }, maneuver: { tons: 5, cost: 12 }, power_plant: { tons: 10, cost: 24 } },
+  'D': { jump: { tons: 25, cost: 40 }, maneuver: { tons: 7, cost: 16 }, power_plant: { tons: 13, cost: 32 } },
+  'E': { jump: { tons: 30, cost: 50 }, maneuver: { tons: 9, cost: 20 }, power_plant: { tons: 16, cost: 40 } },
+  'F': { jump: { tons: 35, cost: 60 }, maneuver: { tons: 11, cost: 24 }, power_plant: { tons: 19, cost: 48 } },
+  'G': { jump: { tons: 40, cost: 70 }, maneuver: { tons: 13, cost: 28 }, power_plant: { tons: 22, cost: 56 } },
+  'H': { jump: { tons: 45, cost: 80 }, maneuver: { tons: 15, cost: 32 }, power_plant: { tons: 25, cost: 64 } },
+  'J': { jump: { tons: 50, cost: 90 }, maneuver: { tons: 17, cost: 36 }, power_plant: { tons: 28, cost: 72 } },
+  'K': { jump: { tons: 65, cost: 100 }, maneuver: { tons: 19, cost: 40 }, power_plant: { tons: 31, cost: 80 } },
+  'L': { jump: { tons: 60, cost: 110 }, maneuver: { tons: 21, cost: 44 }, power_plant: { tons: 34, cost: 88 } },
+  'M': { jump: { tons: 65, cost: 120 }, maneuver: { tons: 23, cost: 48 }, power_plant: { tons: 37, cost: 96 } },
+  'N': { jump: { tons: 70, cost: 130 }, maneuver: { tons: 25, cost: 52 }, power_plant: { tons: 40, cost: 104 } },
+  'P': { jump: { tons: 75, cost: 140 }, maneuver: { tons: 27, cost: 56 }, power_plant: { tons: 43, cost: 112 } },
+  'Q': { jump: { tons: 80, cost: 150 }, maneuver: { tons: 29, cost: 60 }, power_plant: { tons: 46, cost: 120 } },
+  'R': { jump: { tons: 85, cost: 160 }, maneuver: { tons: 31, cost: 64 }, power_plant: { tons: 49, cost: 128 } },
+  'S': { jump: { tons: 90, cost: 170 }, maneuver: { tons: 33, cost: 68 }, power_plant: { tons: 52, cost: 136 } },
+  'T': { jump: { tons: 95, cost: 180 }, maneuver: { tons: 35, cost: 72 }, power_plant: { tons: 55, cost: 144 } },
+  'U': { jump: { tons: 100, cost: 190 }, maneuver: { tons: 37, cost: 76 }, power_plant: { tons: 58, cost: 152 } },
+  'V': { jump: { tons: 105, cost: 200 }, maneuver: { tons: 39, cost: 80 }, power_plant: { tons: 61, cost: 160 } },
+  'W': { jump: { tons: 110, cost: 210 }, maneuver: { tons: 41, cost: 84 }, power_plant: { tons: 64, cost: 168 } },
+  'X': { jump: { tons: 115, cost: 220 }, maneuver: { tons: 43, cost: 88 }, power_plant: { tons: 67, cost: 176 } },
+  'Y': { jump: { tons: 120, cost: 230 }, maneuver: { tons: 45, cost: 92 }, power_plant: { tons: 70, cost: 184 } },
+  'Z': { jump: { tons: 125, cost: 240 }, maneuver: { tons: 47, cost: 96 }, power_plant: { tons: 73, cost: 192 } }
+};
+
+// Get engine mass for a specific engine ID and type
+export function getEngineMass(engineId: string, engineType: 'jump' | 'maneuver' | 'power_plant'): number {
+  return ENGINE_SPECS_TABLE[engineId]?.[engineType]?.tons ?? 0;
+}
+
+// Get engine cost for a specific engine ID and type
+export function getEngineCost(engineId: string, engineType: 'jump' | 'maneuver' | 'power_plant'): number {
+  return ENGINE_SPECS_TABLE[engineId]?.[engineType]?.cost ?? 0;
+}
+
+// Find the best matching engine ID for a given performance and ship tonnage
+export function findEngineIdForPerformance(performance: number, shipTonnage: number): string {
+  // Get all available engine IDs for this ship tonnage
+  const availableIds = getAvailableEngineIds(shipTonnage);
+  
+  // Find the engine ID that matches the performance
+  for (const engineId of availableIds) {
+    const enginePerformance = getEnginePerformance(engineId, shipTonnage);
+    if (enginePerformance === performance) {
+      return engineId;
+    }
+  }
+  
+  // If no exact match, return the first available engine ID
+  return availableIds[0] || 'A';
+}
+
 
 
 export const BERTH_TYPES = [
