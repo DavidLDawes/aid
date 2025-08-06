@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { databaseService, type StoredShipDesign } from '../services/database';
+import { initialDataService } from '../services/initialDataService';
 import type { ShipDesign } from '../types/ship';
 
 interface SelectShipPanelProps {
@@ -12,6 +13,7 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPan
   const [selectedShipId, setSelectedShipId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [preloading, setPreloading] = useState(false);
 
   useEffect(() => {
     loadShips();
@@ -22,11 +24,24 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPan
       setLoading(true);
       setError(null);
       await databaseService.initialize();
-      const savedShips = await databaseService.getAllShips();
+      let savedShips = await databaseService.getAllShips();
+      
+      // If no ships found, try to preload initial data
+      if (savedShips.length === 0) {
+        setPreloading(true);
+        const preloaded = await initialDataService.loadInitialDataIfNeeded();
+        if (preloaded) {
+          // Reload ships after preloading
+          savedShips = await databaseService.getAllShips();
+        }
+        setPreloading(false);
+      }
+      
       setShips(savedShips);
     } catch (err) {
       setError('Failed to load ships from database');
       console.error('Database error:', err);
+      setPreloading(false);
     } finally {
       setLoading(false);
     }
@@ -48,10 +63,10 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPan
     }
   };
 
-  if (loading) {
+  if (loading || preloading) {
     return (
       <div className="select-ship-panel">
-        <p>Loading ships...</p>
+        <p>{preloading ? 'Preloading initial ships...' : 'Loading ships...'}</p>
       </div>
     );
   }
