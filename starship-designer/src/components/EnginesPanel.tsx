@@ -58,7 +58,8 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, fuelW
   const renderEngineInput = (type: Engine['engine_type'], label: string) => {
     const engine = getEngine(type);
     const powerPlant = getEngine('power_plant');
-    const powerPlantPerformance = powerPlant.performance > 0 ? powerPlant.performance : undefined;
+    // Only apply power plant performance filtering if a specific power plant drive is selected
+    const powerPlantPerformance = (powerPlant.drive_code && powerPlant.performance > 0) ? powerPlant.performance : undefined;
     const availableEngines = getAvailableEngines(shipTonnage, type, powerPlantPerformance);
 
     return (
@@ -105,7 +106,7 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, fuelW
               <small>Limited by Power Plant P-{powerPlantPerformance}</small>
             )}
             {(type === 'jump_drive' || type === 'maneuver_drive') && !powerPlantPerformance && (
-              <small className="warning">Configure Power Plant first to see available options</small>
+              <small className="info">Select Power Plant first to see power-limited options</small>
             )}
           </div>
 

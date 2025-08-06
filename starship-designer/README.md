@@ -5,6 +5,14 @@ Mostly in, missing vehicle storage overhead 5%, or 15% overhead for a vehicle re
 Output is a table in a web page, or a CSV, or an attempt to print the table
 * Traveller SRD Capital Ships - TODO
 
+# Engine Performance Data
+
+This application uses engine performance ratings based on the Traveller SRD Spaceship Design rules. The official engine performance table can be found at: https://www.traveller-srd.com/core-rules/spacecraft-design/
+
+The table shows drive performance ratings by drive letter (A-Z) across different hull tonnages (100-2000 tons). This data is implemented in `src/data/constants.ts` as the `ENGINE_DRIVES` object and is used to determine which engine drives are compatible with specific hull sizes and power plant configurations.
+
+For reference and historical documentation, the complete performance table used by this application is preserved in `src/claude/bug/maneuver-broken.MD`.
+
 # DB
 Using innodb-like fake-indexeddb to handle indexing for shop names being exclusive, result is there's not really any SQL, just local files, which is actually kinda cool.
 
