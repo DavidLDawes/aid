@@ -13,7 +13,8 @@
     "test:run": "vitest run",
     "extractDB": "node scripts/extractDB.mjs",
     "preloadDB": "node scripts/preloadDB.mjs",
-    "setInitialDB": "node scripts/setInitialDB.mjs"
+    "setInitialDB": "node scripts/setInitialDB.mjs",
+    "start": "npm run dev"
   },
   "dependencies": {
     "react": "^19.1.0",
