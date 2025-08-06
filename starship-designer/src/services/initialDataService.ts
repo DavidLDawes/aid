@@ -58,7 +58,7 @@ class InitialDataService {
   private async loadInitialData(): Promise<InitialDataExport | null> {
     try {
       // Try to fetch the initial data file
-      const response = await fetch(this.INITIAL_DATA_PATH);
+      const response = await fetch(InitialDataService.INITIAL_DATA_PATH);
       if (!response.ok) {
         // Initial data file doesn't exist
         return null;

@@ -13,7 +13,7 @@ vi.mock('./database', () => ({
 }));
 
 // Mock fetch
-global.fetch = vi.fn();
+(globalThis as any).fetch = vi.fn();
 
 describe('Initial Data Service', () => {
   const mockShipDesign: ShipDesign = {
@@ -59,7 +59,7 @@ describe('Initial Data Service', () => {
     (databaseService.initialize as any).mockResolvedValue(undefined);
     (databaseService.hasAnyShips as any).mockResolvedValue(false);
     (databaseService.saveOrUpdateShipByName as any).mockResolvedValue(1);
-    (global.fetch as any).mockResolvedValue({
+    (globalThis.fetch as any).mockResolvedValue({
       ok: true,
       json: () => Promise.resolve(mockInitialData)
     });
@@ -78,11 +78,11 @@ describe('Initial Data Service', () => {
       expect(result).toBe(false);
       expect(databaseService.initialize).toHaveBeenCalled();
       expect(databaseService.hasAnyShips).toHaveBeenCalled();
-      expect(global.fetch).not.toHaveBeenCalled();
+      expect(globalThis.fetch).not.toHaveBeenCalled();
     });
 
     it('should return false if no initial data is available', async () => {
-      (global.fetch as any).mockResolvedValue({
+      (globalThis.fetch as any).mockResolvedValue({
         ok: false,
         status: 404
       });
@@ -92,13 +92,13 @@ describe('Initial Data Service', () => {
       expect(result).toBe(false);
       expect(databaseService.initialize).toHaveBeenCalled();
       expect(databaseService.hasAnyShips).toHaveBeenCalled();
-      expect(global.fetch).toHaveBeenCalled();
+      expect(globalThis.fetch).toHaveBeenCalled();
       expect(databaseService.saveOrUpdateShipByName).not.toHaveBeenCalled();
     });
 
     it('should return false if initial data has no ships', async () => {
       const emptyData = { ...mockInitialData, ships: [] };
-      (global.fetch as any).mockResolvedValue({
+      (globalThis.fetch as any).mockResolvedValue({
         ok: true,
         json: () => Promise.resolve(emptyData)
       });
@@ -115,7 +115,7 @@ describe('Initial Data Service', () => {
       expect(result).toBe(true);
       expect(databaseService.initialize).toHaveBeenCalled();
       expect(databaseService.hasAnyShips).toHaveBeenCalled();
-      expect(global.fetch).toHaveBeenCalled();
+      expect(globalThis.fetch).toHaveBeenCalled();
       expect(databaseService.saveOrUpdateShipByName).toHaveBeenCalledTimes(1);
       
       // Should call saveOrUpdateShipByName with ship data without metadata
@@ -138,7 +138,7 @@ describe('Initial Data Service', () => {
     });
 
     it('should handle fetch errors gracefully', async () => {
-      (global.fetch as any).mockRejectedValue(new Error('Network error'));
+      (globalThis.fetch as any).mockRejectedValue(new Error('Network error'));
       
       // Mock console.error to suppress error output during tests
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -157,11 +157,11 @@ describe('Initial Data Service', () => {
       const result = await initialDataService.hasInitialData();
 
       expect(result).toBe(true);
-      expect(global.fetch).toHaveBeenCalled();
+      expect(globalThis.fetch).toHaveBeenCalled();
     });
 
     it('should return false if initial data is not available', async () => {
-      (global.fetch as any).mockResolvedValue({
+      (globalThis.fetch as any).mockResolvedValue({
         ok: false,
         status: 404
       });
@@ -173,7 +173,7 @@ describe('Initial Data Service', () => {
 
     it('should return false if initial data has no ships', async () => {
       const emptyData = { ...mockInitialData, ships: [] };
-      (global.fetch as any).mockResolvedValue({
+      (globalThis.fetch as any).mockResolvedValue({
         ok: true,
         json: () => Promise.resolve(emptyData)
       });
@@ -184,7 +184,7 @@ describe('Initial Data Service', () => {
     });
 
     it('should handle fetch errors gracefully', async () => {
-      (global.fetch as any).mockRejectedValue(new Error('Network error'));
+      (globalThis.fetch as any).mockRejectedValue(new Error('Network error'));
 
       const result = await initialDataService.hasInitialData();
 

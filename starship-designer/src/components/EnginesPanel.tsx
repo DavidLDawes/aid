@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 import type { Engine } from '../types/ship';
-import { getAvailableEngines, calculateJumpFuel, calculateManeuverFuel, calculateTotalFuelMass } from '../data/constants';
+import { getAvailableEngines, calculateJumpFuel, calculateManeuverFuel } from '../data/constants';
 
 interface EnginesPanelProps {
   engines: Engine[];
