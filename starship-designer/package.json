@@ -12,7 +12,8 @@
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
     "extractDB": "node scripts/extractDB.mjs",
-    "preloadDB": "node scripts/preloadDB.mjs"
+    "preloadDB": "node scripts/preloadDB.mjs",
+    "setInitialDB": "node scripts/setInitialDB.mjs"
   },
   "dependencies": {
     "react": "^19.1.0",
@@ -34,5 +35,9 @@
     "typescript-eslint": "^8.35.1",
     "vite": "^7.0.4",
     "vitest": "^3.2.4"
+  },
+  "engines": {
+    "node": "22.x"
   }
+  
 }
