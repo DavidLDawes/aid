@@ -76,8 +76,8 @@ const testShipsData = {
       facilities: [],
       cargo: [
         {
-          cargo_type: 'standard',
-          tonnage: 68,
+          cargo_type: 'cargo_bay',
+          tonnage: 44,
           cost: 0
         }
       ],
@@ -149,8 +149,8 @@ const testShipsData = {
       facilities: [],
       cargo: [
         {
-          cargo_type: 'standard',
-          tonnage: 154,
+          cargo_type: 'cargo_bay',
+          tonnage: 132,
           cost: 0
         }
       ],

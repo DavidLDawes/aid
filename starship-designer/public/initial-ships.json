@@ -5,35 +5,35 @@
     {
       "ship": {
         "name": "Scout",
-        "tech_level": "A",
+        "tech_level": "E",
         "tonnage": 100,
         "configuration": "standard",
-        "fuel_weeks": 2,
+        "fuel_weeks": 4,
         "missile_reloads": 0,
         "sand_reloads": 0,
-        "description": "Fast patrol ship"
+        "description": "Fast ship long ranged ship, low crew overhead"
       },
       "engines": [
         {
           "engine_type": "power_plant",
-          "drive_code": "A",
-          "performance": 2,
-          "mass": 4,
-          "cost": 8
+          "drive_code": "B",
+          "performance": 4,
+          "mass": 7,
+          "cost": 16
         },
         {
           "engine_type": "jump_drive",
-          "drive_code": "A",
-          "performance": 2,
-          "mass": 10,
+          "drive_code": "B",
+          "performance": 4,
+          "mass": 15,
           "cost": 20
         },
         {
           "engine_type": "maneuver_drive",
-          "drive_code": "A",
-          "performance": 2,
-          "mass": 2,
-          "cost": 4
+          "drive_code": "B",
+          "performance": 4,
+          "mass": 3,
+          "cost": 8
         }
       ],
       "fittings": [
@@ -56,14 +56,14 @@
           "berth_type": "staterooms",
           "quantity": 2,
           "mass": 4,
-          "cost": 1
+          "cost": 0.5
         }
       ],
       "facilities": [],
       "cargo": [
         {
-          "cargo_type": "standard",
-          "tonnage": 68,
+          "cargo_type": "cargo_bay",
+          "tonnage": 3,
           "cost": 0
         }
       ],
@@ -78,7 +78,7 @@
     {
       "ship": {
         "name": "Free Trader",
-        "tech_level": "A",
+        "tech_level": "B",
         "tonnage": 200,
         "configuration": "standard",
         "fuel_weeks": 2,
@@ -135,8 +135,8 @@
       "facilities": [],
       "cargo": [
         {
-          "cargo_type": "standard",
-          "tonnage": 154,
+          "cargo_type": "cargo_bay",
+          "tonnage": 132,
           "cost": 0
         }
       ],

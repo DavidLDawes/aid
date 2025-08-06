@@ -454,6 +454,15 @@ export const CARGO_TYPES = [
   { name: 'Live Plant Bay', type: 'live_plant_bay', costPerTon: 1 }
 ];
 
+const VALID_CARGO_TYPES = new Set(CARGO_TYPES.map(ct => ct.type));
+
+export function cleanInvalidCargo(cargo: any[]): any[] {
+  return cargo.filter(cargoItem => {
+    // Remove cargo entries with invalid types (e.g., old "standard" type)
+    return VALID_CARGO_TYPES.has(cargoItem.cargo_type) && cargoItem.tonnage > 0;
+  });
+}
+
 export function getBridgeMassAndCost(shipTonnage: number, isHalfBridge: boolean) {
   let bridgeMass: number;
   

@@ -1,4 +1,5 @@
 import type { ShipDesign } from '../types/ship';
+import { cleanInvalidCargo } from '../data/constants';
 
 export interface StoredShipDesign extends ShipDesign {
   id: number;
@@ -90,6 +91,7 @@ class DatabaseService {
       request.onsuccess = () => {
         const ships = request.result.map((ship: StoredShipDesign) => ({
           ...ship,
+          cargo: cleanInvalidCargo(ship.cargo),
           createdAt: new Date(ship.createdAt),
           updatedAt: new Date(ship.updatedAt)
         }));
@@ -112,6 +114,7 @@ class DatabaseService {
         if (ship) {
           resolve({
             ...ship,
+            cargo: cleanInvalidCargo(ship.cargo),
             createdAt: new Date(ship.createdAt),
             updatedAt: new Date(ship.updatedAt)
           });
