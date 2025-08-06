@@ -14,7 +14,24 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, fuelW
 
   const getEngine = (type: Engine['engine_type']): Engine => {
     const defaultEngine = engines.find(e => e.engine_type === type);
-    if (defaultEngine) return defaultEngine;
+    if (defaultEngine) {
+      // Validate that the stored engine data is consistent with current ENGINE_DRIVES data
+      if (defaultEngine.drive_code && defaultEngine.drive_code !== '' && defaultEngine.drive_code !== 'M-0') {
+        const availableEngines = getAvailableEngines(shipTonnage, type, undefined);
+        const expectedEngine = availableEngines.find(eng => eng.code === defaultEngine.drive_code);
+        
+        if (expectedEngine && expectedEngine.performance !== defaultEngine.performance) {
+          // Fix inconsistent data by returning corrected engine data
+          return {
+            ...defaultEngine,
+            performance: expectedEngine.performance,
+            mass: expectedEngine.mass,
+            cost: expectedEngine.cost
+          };
+        }
+      }
+      return defaultEngine;
+    }
     
     // For maneuver drive, if not configured, return M-0 performance
     if (type === 'maneuver_drive') {
