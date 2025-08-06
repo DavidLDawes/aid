@@ -14,6 +14,7 @@
     "extractDB": "node scripts/extractDB.mjs",
     "preloadDB": "node scripts/preloadDB.mjs",
     "setInitialDB": "node scripts/setInitialDB.mjs",
+    "flushDB": "node scripts/flushDB.mjs",
     "start": "npm run dev"
   },
   "dependencies": {
