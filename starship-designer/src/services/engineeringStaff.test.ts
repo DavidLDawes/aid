@@ -9,9 +9,6 @@ interface Engine {
   drive_code?: string;
 }
 
-interface Ship {
-  tonnage: number;
-}
 
 // Engineering staff calculation function (extracted from App.tsx logic)
 function calculateEngineers(engines: Engine[], shipTonnage: number): number {

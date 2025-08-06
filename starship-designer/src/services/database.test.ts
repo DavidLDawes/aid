@@ -93,7 +93,7 @@ describe('Database Service', () => {
 
     it('should reject updating a ship to have a duplicate name', async () => {
       // Save two ships with different names
-      const shipId1 = await databaseService.saveShip(mockShipDesign);
+      await databaseService.saveShip(mockShipDesign); // First ship for name conflict test
       
       const secondShip = { ...mockShipDesign };
       secondShip.ship = { ...mockShipDesign.ship, name: 'Test Ship 2' };

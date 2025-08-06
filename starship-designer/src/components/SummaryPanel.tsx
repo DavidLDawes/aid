@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { ShipDesign, MassCalculation, CostCalculation, StaffRequirements } from '../types/ship';
-import { calculateTotalFuelMass, COMMS_SENSORS_TYPES, DEFENSE_TYPES, FACILITY_TYPES, CARGO_TYPES, VEHICLE_TYPES, DRONE_TYPES, BERTH_TYPES } from '../data/constants';
+import { COMMS_SENSORS_TYPES, DEFENSE_TYPES, FACILITY_TYPES, CARGO_TYPES, VEHICLE_TYPES, DRONE_TYPES, BERTH_TYPES } from '../data/constants';
 import { databaseService } from '../services/database';
 
 interface SummaryPanelProps {
@@ -21,12 +21,6 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
   const [showOverwriteDialog, setShowOverwriteDialog] = useState(false);
   const [pendingShipName, setPendingShipName] = useState<string>('');
 
-  // Calculate fuel breakdown for display
-  const jumpDrive = shipDesign.engines.find(e => e.engine_type === 'jump_drive');
-  const maneuverDrive = shipDesign.engines.find(e => e.engine_type === 'maneuver_drive');
-  const jumpPerformance = jumpDrive?.performance || 0;
-  const maneuverPerformance = maneuverDrive?.performance || 0;
-  const totalFuelMass = calculateTotalFuelMass(shipDesign.ship.tonnage, jumpPerformance, maneuverPerformance, shipDesign.ship.fuel_weeks);
 
   const handleSaveDesign = async () => {
     if (!shipDesign.ship.name.trim()) {
@@ -632,7 +626,7 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
             
             {/* Fittings */}
             {(() => {
-              const rows = [];
+              const rows: React.ReactElement[] = [];
               let fittingRowIndex = 0;
               const hasBridge = shipDesign.fittings.some(f => f.fitting_type === 'bridge');
               const hasHalfBridge = shipDesign.fittings.some(f => f.fitting_type === 'half_bridge');
@@ -688,7 +682,7 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
             
             {/* Weapons */}
             {(() => {
-              const rows = [];
+              const rows: React.ReactElement[] = [];
               let weaponRowIndex = 0;
               const activeWeapons = shipDesign.weapons.filter(weapon => weapon.quantity > 0);
               
@@ -714,7 +708,7 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
             
             {/* Defenses */}
             {(() => {
-              const rows = [];
+              const rows: React.ReactElement[] = [];
               let defenseRowIndex = 0;
               const activeDefenses = shipDesign.defenses.filter(defense => defense.quantity > 0);
               const hasSand = shipDesign.ship.sand_reloads > 0;
@@ -756,7 +750,7 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
             
             {/* Berths */}
             {(() => {
-              const rows = [];
+              const rows: React.ReactElement[] = [];
               let berthRowIndex = 0;
               const activeBerths = shipDesign.berths.filter(berth => berth.quantity > 0);
               
@@ -784,7 +778,7 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
             
             {/* Rec/Health */}
             {(() => {
-              const rows = [];
+              const rows: React.ReactElement[] = [];
               let facilityRowIndex = 0;
               const activeFacilities = shipDesign.facilities.filter(facility => facility.quantity > 0);
               
@@ -819,7 +813,7 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
             
             {/* Cargo */}
             {(() => {
-              const rows = [];
+              const rows: React.ReactElement[] = [];
               let cargoRowIndex = 0;
               const activeCargo = shipDesign.cargo.filter(cargo => cargo.tonnage > 0);
               
@@ -846,7 +840,7 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
             
             {/* Vehicles */}
             {(() => {
-              const rows = [];
+              const rows: React.ReactElement[] = [];
               let vehicleRowIndex = 0;
               const activeVehicles = shipDesign.vehicles.filter(vehicle => vehicle.quantity > 0);
               
@@ -878,7 +872,7 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
             
             {/* Drones */}
             {(() => {
-              const rows = [];
+              const rows: React.ReactElement[] = [];
               let droneRowIndex = 0;
               const activeDrones = shipDesign.drones.filter(drone => drone.quantity > 0);
               

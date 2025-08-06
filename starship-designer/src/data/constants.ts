@@ -523,7 +523,6 @@ export function calculateVehicleServiceStaff(vehicles: { vehicle_type: string; q
 }
 
 export function calculateDroneServiceStaff(drones: { drone_type: string; quantity: number }[]): number {
-  let totalDroneTonnage = 0;
   let heavyDroneTonnage = 0; // 10 ton drones
   let lightDroneTonnage = 0; // less than 10 ton drones
   
