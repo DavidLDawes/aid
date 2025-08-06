@@ -1,7 +1,19 @@
 # Traveller Starship Designer
 New atttempt at a Starship Designer, build with Claude. Used a Wizard UI, plan on doing:
-* Traveller SRD Ships - WIP, coming along
+## Traveller SRD Ships
+Mostly in, missing vehicle storage overhead 5%, or 15% overhead for a vehicle repair bay
+Output is a table in a web page, or a CSV, or an attempt to print the table
 * Traveller SRD Capital Ships - TODO
+
+# DB
+Using innodb-like fake-indexeddb to handle indexing for shop names being exclusive, result is there's not really any SQL, just local files, which is actually kinda cool.
+
+On startup if there are no Ships defined in the DB then the contents of publicinitial-ships.json are read into the DB.
+
+Adddedd a few npm scripts to twiddle with the DB:
+* npm run extractDB - copies ships from the DB to file(s)
+* npm run preloadDB - loads file(s) into Ships DB
+* npm run flushDB - removes all ships from the DB
 
 # React + TypeScript + Vite
 
