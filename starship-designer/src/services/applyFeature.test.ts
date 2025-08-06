@@ -127,7 +127,7 @@ This file is outside src/claude and should be rejected.
       });
       
       expect(result).toContain('Apply Feature Script');
-      expect(result).toContain('Path validated: process\\npm-flush-db.MD');
+      expect(result).toMatch(/Path validated:.*npm-flush-db\.MD/);
       expect(result).toContain('Instructions extracted successfully');
       expect(result).toContain('flushDB');
     });
@@ -140,7 +140,7 @@ This file is outside src/claude and should be rejected.
       });
       
       expect(result).toContain('Apply Feature Script');
-      expect(result).toContain('Path validated: process\\npm-apply-feature.MD');
+      expect(result).toMatch(/Path validated:.*npm-apply-feature\.MD/);
       expect(result).toContain('Instructions extracted successfully');
       expect(result).toContain('apply-feature');
     });

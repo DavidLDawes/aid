@@ -23,36 +23,22 @@ describe('Database Flush and Auto-reload', () => {
 
   afterEach(async () => {
     // Clean up: flush database after each test
-    if (databaseService.db) {
-      const transaction = databaseService.db.transaction(['ships'], 'readwrite');
-      const store = transaction.objectStore('ships');
-      await new Promise<void>((resolve, reject) => {
-        const request = store.clear();
-        request.onerror = () => reject(request.error);
-        request.onsuccess = () => resolve();
-      });
-    }
+    await databaseService.flushAllShips();
   });
 
   describe('flushAllShips functionality', () => {
     it('should flush all ships from database', async () => {
       // Add some test ships
-      const ship1Id = await databaseService.saveShip(mockShipDesign);
+      await databaseService.saveShip(mockShipDesign);
       const ship2 = { ...mockShipDesign, ship: { ...mockShipDesign.ship, name: 'Test Ship 2' } };
-      const ship2Id = await databaseService.saveShip(ship2);
+      await databaseService.saveShip(ship2);
 
       // Verify ships exist
       const shipsBefore = await databaseService.getAllShips();
       expect(shipsBefore.length).toBe(2);
 
       // Flush database using the same logic as the flushDB script
-      const transaction = databaseService.db!.transaction(['ships'], 'readwrite');
-      const store = transaction.objectStore('ships');
-      await new Promise<void>((resolve, reject) => {
-        const request = store.clear();
-        request.onerror = () => reject(request.error);
-        request.onsuccess = () => resolve();
-      });
+      await databaseService.flushAllShips();
 
       // Verify database is empty
       const shipsAfter = await databaseService.getAllShips();
@@ -65,13 +51,7 @@ describe('Database Flush and Auto-reload', () => {
       expect(shipsBefore.length).toBe(0);
 
       // Flush empty database - should not throw error
-      const transaction = databaseService.db!.transaction(['ships'], 'readwrite');
-      const store = transaction.objectStore('ships');
-      await new Promise<void>((resolve, reject) => {
-        const request = store.clear();
-        request.onerror = () => reject(request.error);
-        request.onsuccess = () => resolve();
-      });
+      await databaseService.flushAllShips();
 
       // Verify database is still empty
       const shipsAfter = await databaseService.getAllShips();

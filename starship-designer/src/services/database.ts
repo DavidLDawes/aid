@@ -252,6 +252,19 @@ class DatabaseService {
     });
   }
 
+  async flushAllShips(): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction(['ships'], 'readwrite');
+      const store = transaction.objectStore('ships');
+      const request = store.clear();
+
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => resolve();
+    });
+  }
+
   async getShipByName(name: string): Promise<StoredShipDesign | null> {
     if (!this.db) throw new Error('Database not initialized');
 
