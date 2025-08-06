@@ -244,4 +244,66 @@ describe('Database Service', () => {
       expect(retrievedShip!.updatedAt.getTime()).toBeGreaterThan(originalCreatedAt.getTime());
     });
   });
+
+  describe('Cargo cleanup', () => {
+    it('should clean invalid cargo entries when loading ships', async () => {
+      // Create a ship with invalid cargo data (simulating old "standard" type)
+      const shipWithInvalidCargo = {
+        ...mockShipDesign,
+        cargo: [
+          { cargo_type: 'cargo_bay', tonnage: 44, cost: 0 }, // Valid
+          { cargo_type: 'standard', tonnage: 20, cost: 0 }, // Invalid type
+          { cargo_type: 'spares', tonnage: 0, cost: 0 }, // Zero tonnage
+        ]
+      };
+
+      // Save the ship (this bypasses cleaning since we're testing loading)
+      const shipId = await databaseService.saveShip(shipWithInvalidCargo as any);
+
+      // Load the ship - should have cleaned cargo
+      const loadedShip = await databaseService.getShipById(shipId);
+      
+      expect(loadedShip).not.toBeNull();
+      expect(loadedShip!.cargo).toHaveLength(1);
+      expect(loadedShip!.cargo[0]).toEqual({ cargo_type: 'cargo_bay', tonnage: 44, cost: 0 });
+    });
+
+    it('should clean invalid cargo entries when loading all ships', async () => {
+      // Create multiple ships with invalid cargo
+      const ship1 = {
+        ...mockShipDesign,
+        ship: { ...mockShipDesign.ship, name: 'Ship 1' },
+        cargo: [
+          { cargo_type: 'cargo_bay', tonnage: 50, cost: 0 },
+          { cargo_type: 'standard', tonnage: 30, cost: 0 }, // Invalid
+        ]
+      };
+
+      const ship2 = {
+        ...mockShipDesign,
+        ship: { ...mockShipDesign.ship, name: 'Ship 2' },
+        cargo: [
+          { cargo_type: 'spares', tonnage: 5, cost: 2.5 },
+          { cargo_type: 'invalid_type', tonnage: 10, cost: 1 }, // Invalid
+        ]
+      };
+
+      await databaseService.saveShip(ship1 as any);
+      await databaseService.saveShip(ship2 as any);
+
+      // Load all ships - should have cleaned cargo
+      const allShips = await databaseService.getAllShips();
+      
+      const loadedShip1 = allShips.find(s => s.ship.name === 'Ship 1');
+      const loadedShip2 = allShips.find(s => s.ship.name === 'Ship 2');
+
+      expect(loadedShip1).not.toBeUndefined();
+      expect(loadedShip1!.cargo).toHaveLength(1);
+      expect(loadedShip1!.cargo[0].cargo_type).toBe('cargo_bay');
+
+      expect(loadedShip2).not.toBeUndefined();
+      expect(loadedShip2!.cargo).toHaveLength(1);
+      expect(loadedShip2!.cargo[0].cargo_type).toBe('spares');
+    });
+  });
 });

@@ -1,5 +1,6 @@
 import { databaseService } from './database';
 import type { ShipDesign } from '../types/ship';
+import { cleanInvalidCargo } from '../data/constants';
 
 interface InitialDataExport {
   exportDate: string;
@@ -35,8 +36,9 @@ class InitialDataService {
 
       for (const shipData of initialData.ships) {
         try {
-          // Remove metadata before saving
+          // Remove metadata before saving and clean invalid cargo entries
           const { _metadata, ...shipDesign } = shipData;
+          shipDesign.cargo = cleanInvalidCargo(shipDesign.cargo);
           await databaseService.saveOrUpdateShipByName(shipDesign);
           loaded++;
           console.log(`✅ Loaded: ${shipDesign.ship.name}`);
