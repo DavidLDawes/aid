@@ -1,4 +1,4 @@
-\# Claude usage standards
+\#Claude usage standards
 
 Each claude update cycle starts with creating a feature-name.MD file.
 
