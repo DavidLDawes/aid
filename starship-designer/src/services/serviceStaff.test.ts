@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from '@jest/globals';
 import { calculateVehicleServiceStaff, calculateDroneServiceStaff } from '../data/constants';
 
 describe('Service Staff Calculations', () => {

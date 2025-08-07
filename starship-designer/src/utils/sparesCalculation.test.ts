@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from '@jest/globals';
 import { calculateMonthsBetweenService, getSparesIncrement, getSparesPercentage } from './sparesCalculation';
 
 describe('Spares Calculation Utils', () => {
