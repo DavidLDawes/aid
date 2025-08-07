@@ -1,4 +1,5 @@
-const { TestEnvironment } = require('jest-environment-jsdom');
+import { TestEnvironment } from 'jest-environment-jsdom';
+import structuredClonePolyfill from '@ungap/structured-clone';
 
 class JSDOMEnvironmentWithStructuredClone extends TestEnvironment {
   async setup() {
@@ -6,15 +7,13 @@ class JSDOMEnvironmentWithStructuredClone extends TestEnvironment {
     
     // Ensure structuredClone is available in both global and window contexts
     if (typeof this.global.structuredClone === 'undefined') {
-      const { structuredClone: polyfill } = require('@ungap/structured-clone');
-      this.global.structuredClone = polyfill;
+      this.global.structuredClone = structuredClonePolyfill;
     }
     
     if (typeof this.global.window.structuredClone === 'undefined') {
-      const { structuredClone: polyfill } = require('@ungap/structured-clone');
-      this.global.window.structuredClone = polyfill;
+      this.global.window.structuredClone = structuredClonePolyfill;
     }
   }
 }
 
-module.exports = JSDOMEnvironmentWithStructuredClone;
+export default JSDOMEnvironmentWithStructuredClone;

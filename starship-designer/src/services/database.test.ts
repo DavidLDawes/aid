@@ -1,7 +1,7 @@
-// Ensure structuredClone polyfill is available before any imports
+// Import polyfill using ES module syntax (default import)
+import structuredClonePolyfill from '@ungap/structured-clone';
 if (typeof structuredClone === 'undefined') {
-  const { structuredClone: polyfill } = require('@ungap/structured-clone');
-  global.structuredClone = polyfill;
+  global.structuredClone = structuredClonePolyfill as typeof structuredClone;
 }
 
 import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
