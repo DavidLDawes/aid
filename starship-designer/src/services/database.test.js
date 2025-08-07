@@ -1,3 +1,9 @@
+// Ensure structuredClone polyfill is available before any imports
+if (typeof structuredClone === 'undefined') {
+  const { structuredClone: polyfill } = require('@ungap/structured-clone');
+  global.structuredClone = polyfill;
+}
+
 import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 import { databaseService } from './database';
 describe('Database Service', () => {

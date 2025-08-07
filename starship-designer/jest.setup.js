@@ -1,4 +1,5 @@
-// Polyfill for structuredClone for Node.js environments
+// Proper structuredClone polyfill for Node.js environments - runs BEFORE all test files
 if (typeof structuredClone === 'undefined') {
-  global.structuredClone = (obj) => JSON.parse(JSON.stringify(obj));
+  const { structuredClone: polyfill } = require('@ungap/structured-clone');
+  global.structuredClone = polyfill;
 }
