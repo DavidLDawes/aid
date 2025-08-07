@@ -24,9 +24,10 @@ jobs:
 
     - name: Build
       run: |
-        cd backend
-        npm install
-        cd ../starship-designer
+#        cd backend
+#        npm install
+#        cd ../starship-designer
+        cd starship-designer
         npm install
         npm run build
         npm run test:run
