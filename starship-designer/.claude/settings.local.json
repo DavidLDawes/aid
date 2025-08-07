@@ -21,7 +21,9 @@
       "Bash(npm install)",
       "Bash(npm update:*)",
       "Bash(npm install:*)",
-      "Bash(npm remove:*)"
+      "Bash(npm remove:*)",
+      "Bash(npm audit:*)",
+      "Bash(npm ls:*)"
     ],
     "deny": []
   }
