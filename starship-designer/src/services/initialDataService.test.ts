@@ -1,19 +1,19 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
 import { initialDataService } from './initialDataService';
 import { databaseService } from './database';
 import type { ShipDesign } from '../types/ship';
 
 // Mock the database service
-vi.mock('./database', () => ({
+jest.mock('./database', () => ({
   databaseService: {
-    initialize: vi.fn(),
-    hasAnyShips: vi.fn(),
-    saveOrUpdateShipByName: vi.fn(),
+    initialize: jest.fn(),
+    hasAnyShips: jest.fn(),
+    saveOrUpdateShipByName: jest.fn(),
   }
 }));
 
 // Mock fetch
-(globalThis as any).fetch = vi.fn();
+(globalThis as any).fetch = jest.fn();
 
 describe('Initial Data Service', () => {
   const mockShipDesign: ShipDesign = {
@@ -54,7 +54,7 @@ describe('Initial Data Service', () => {
   };
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    jest.clearAllMocks();
     // Default mock implementations
     (databaseService.initialize as any).mockResolvedValue(undefined);
     (databaseService.hasAnyShips as any).mockResolvedValue(false);
@@ -66,7 +66,7 @@ describe('Initial Data Service', () => {
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    jest.restoreAllMocks();
   });
 
   describe('loadInitialDataIfNeeded', () => {
@@ -126,7 +126,7 @@ describe('Initial Data Service', () => {
       (databaseService.saveOrUpdateShipByName as any).mockRejectedValue(new Error('Save failed'));
       
       // Mock console.error to suppress error output during tests
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
       const result = await initialDataService.loadInitialDataIfNeeded();
 
@@ -141,7 +141,7 @@ describe('Initial Data Service', () => {
       (globalThis.fetch as any).mockRejectedValue(new Error('Network error'));
       
       // Mock console.error to suppress error output during tests
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
       const result = await initialDataService.loadInitialDataIfNeeded();
 

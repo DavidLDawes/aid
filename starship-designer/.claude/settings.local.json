@@ -17,7 +17,11 @@
       "Bash(rm:*)",
       "Bash(npm run:*)",
       "Bash(node:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(npm install)",
+      "Bash(npm update:*)",
+      "Bash(npm install:*)",
+      "Bash(npm remove:*)"
     ],
     "deny": []
   }

@@ -1,0 +1,285 @@
+import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-runtime";
+import { useState, useEffect } from 'react';
+import { calculateTotalFuelMass, calculateVehicleServiceStaff, calculateDroneServiceStaff, calculateMedicalStaff } from './data/constants';
+import { databaseService } from './services/database';
+import SelectShipPanel from './components/SelectShipPanel';
+import ShipPanel from './components/ShipPanel';
+import EnginesPanel from './components/EnginesPanel';
+import FittingsPanel from './components/FittingsPanel';
+import WeaponsPanel from './components/WeaponsPanel';
+import DefensesPanel from './components/DefensesPanel';
+import BerthsPanel from './components/BerthsPanel';
+import FacilitiesPanel from './components/FacilitiesPanel';
+import CargoPanel from './components/CargoPanel';
+import VehiclesPanel from './components/VehiclesPanel';
+import DronesPanel from './components/DronesPanel';
+import StaffPanel from './components/StaffPanel';
+import SummaryPanel from './components/SummaryPanel';
+import MassSidebar from './components/MassSidebar';
+import './App.css';
+function App() {
+    const [showSelectShip, setShowSelectShip] = useState(true);
+    const [currentPanel, setCurrentPanel] = useState(0);
+    const [combinePilotNavigator, setCombinePilotNavigator] = useState(false);
+    const [noStewards, setNoStewards] = useState(false);
+    const [shipDesign, setShipDesign] = useState({
+        ship: { name: '', tech_level: 'A', tonnage: 100, configuration: 'standard', fuel_weeks: 2, missile_reloads: 0, sand_reloads: 0, description: '' },
+        engines: [],
+        fittings: [
+            {
+                fitting_type: 'comms_sensors',
+                comms_sensors_type: 'standard',
+                mass: 0,
+                cost: 0
+            }
+        ],
+        weapons: [],
+        defenses: [],
+        berths: [],
+        facilities: [],
+        cargo: [],
+        vehicles: [],
+        drones: []
+    });
+    const panels = [
+        'Ship', 'Engines', 'Fittings', 'Weapons', 'Defenses',
+        'Rec/Health', 'Cargo', 'Vehicles', 'Drones', 'Berths',
+        'Staff', 'Ship Design'
+    ];
+    useEffect(() => {
+        checkExistingShips();
+    }, []);
+    const checkExistingShips = async () => {
+        try {
+            await databaseService.initialize();
+            const hasShips = await databaseService.hasAnyShips();
+            setShowSelectShip(hasShips);
+        }
+        catch (error) {
+            console.error('Error checking existing ships:', error);
+            setShowSelectShip(false);
+        }
+    };
+    const calculateMass = () => {
+        let used = 0;
+        // Add engine masses
+        used += shipDesign.engines.reduce((sum, engine) => sum + engine.mass, 0);
+        // Add fitting masses
+        used += shipDesign.fittings.reduce((sum, fitting) => sum + fitting.mass, 0);
+        // Add weapon masses
+        used += shipDesign.weapons.reduce((sum, weapon) => sum + (weapon.mass * weapon.quantity), 0);
+        // Add defense masses
+        used += shipDesign.defenses.reduce((sum, defense) => sum + (defense.mass * defense.quantity), 0);
+        // Add berth masses
+        used += shipDesign.berths.reduce((sum, berth) => sum + (berth.mass * berth.quantity), 0);
+        // Add facility masses
+        used += shipDesign.facilities.reduce((sum, facility) => sum + (facility.mass * facility.quantity), 0);
+        // Add cargo masses
+        used += shipDesign.cargo.reduce((sum, cargo) => sum + cargo.tonnage, 0);
+        // Add vehicle masses
+        used += shipDesign.vehicles.reduce((sum, vehicle) => sum + (vehicle.mass * vehicle.quantity), 0);
+        // Add drone masses
+        used += shipDesign.drones.reduce((sum, drone) => sum + (drone.mass * drone.quantity), 0);
+        // Add fuel tank mass
+        const jumpDrive = shipDesign.engines.find(e => e.engine_type === 'jump_drive');
+        const maneuverDrive = shipDesign.engines.find(e => e.engine_type === 'maneuver_drive');
+        const jumpPerformance = jumpDrive?.performance || 0;
+        const maneuverPerformance = maneuverDrive?.performance || 0;
+        const fuelMass = calculateTotalFuelMass(shipDesign.ship.tonnage, jumpPerformance, maneuverPerformance, shipDesign.ship.fuel_weeks);
+        used += fuelMass;
+        // Add missile reload mass
+        used += shipDesign.ship.missile_reloads;
+        // Add sand reload mass
+        used += shipDesign.ship.sand_reloads;
+        const total = shipDesign.ship.tonnage;
+        const remaining = total - used;
+        return {
+            total,
+            used,
+            remaining,
+            isOverweight: remaining < 0
+        };
+    };
+    const calculateCost = () => {
+        let total = 0;
+        // Add engine costs
+        total += shipDesign.engines.reduce((sum, engine) => sum + engine.cost, 0);
+        // Add fitting costs
+        total += shipDesign.fittings.reduce((sum, fitting) => sum + fitting.cost, 0);
+        // Add weapon costs
+        total += shipDesign.weapons.reduce((sum, weapon) => sum + (weapon.cost * weapon.quantity), 0);
+        // Add defense costs
+        total += shipDesign.defenses.reduce((sum, defense) => sum + (defense.cost * defense.quantity), 0);
+        // Add berth costs
+        total += shipDesign.berths.reduce((sum, berth) => sum + (berth.cost * berth.quantity), 0);
+        // Add facility costs
+        total += shipDesign.facilities.reduce((sum, facility) => sum + (facility.cost * facility.quantity), 0);
+        // Add cargo costs
+        total += shipDesign.cargo.reduce((sum, cargo) => sum + cargo.cost, 0);
+        // Add vehicle costs
+        total += shipDesign.vehicles.reduce((sum, vehicle) => sum + (vehicle.cost * vehicle.quantity), 0);
+        // Add drone costs
+        total += shipDesign.drones.reduce((sum, drone) => sum + (drone.cost * drone.quantity), 0);
+        // Add missile reload costs (1 MCr per ton)
+        total += shipDesign.ship.missile_reloads;
+        // Add sand reload costs (0.1 MCr per ton)
+        total += shipDesign.ship.sand_reloads * 0.1;
+        return { total };
+    };
+    const calculateStaffRequirements = () => {
+        const pilot = 1;
+        const navigator = 1;
+        // Engineers: Based on ship tonnage and engine mass
+        let engineers = 0;
+        const shipTonnage = shipDesign.ship.tonnage;
+        if (shipTonnage === 100) {
+            engineers = 1;
+        }
+        else if (shipTonnage === 200 || shipTonnage === 300) {
+            engineers = 2;
+        }
+        else if (shipTonnage >= 400) {
+            // At least one engineer per engine
+            const engineCount = shipDesign.engines.length;
+            engineers = Math.max(engineCount, 1);
+            // Additional engineers for engines larger than 100 tons
+            for (const engine of shipDesign.engines) {
+                if (engine.mass > 100) {
+                    engineers += Math.ceil(engine.mass / 100) - 1; // -1 because we already counted 1 engineer per engine
+                }
+            }
+        }
+        else {
+            // For other ship sizes, use original logic as fallback
+            const totalEnginesWeight = shipDesign.engines.reduce((sum, engine) => sum + engine.mass, 0);
+            engineers = Math.ceil(totalEnginesWeight / 100);
+        }
+        // Gunners: 1 per weapon/turret mount
+        const weaponCount = shipDesign.weapons
+            .filter(weapon => weapon.weapon_name !== 'Hard Point')
+            .reduce((sum, weapon) => sum + weapon.quantity, 0);
+        const defenseCount = shipDesign.defenses.reduce((sum, defense) => sum + defense.quantity, 0);
+        const gunners = weaponCount + defenseCount;
+        // Service staff: for vehicle and drone maintenance
+        const vehicleService = calculateVehicleServiceStaff(shipDesign.vehicles);
+        const droneService = calculateDroneServiceStaff(shipDesign.drones);
+        const service = vehicleService + droneService;
+        // Stewards: 1 per 8 staterooms (staterooms + luxury staterooms), rounded up
+        const totalStaterooms = shipDesign.berths
+            .filter(berth => berth.berth_type === 'staterooms' || berth.berth_type === 'luxury_staterooms')
+            .reduce((sum, berth) => sum + berth.quantity, 0);
+        const stewards = Math.ceil(totalStaterooms / 8);
+        // Medical staff: based on medical facilities
+        const medicalStaff = calculateMedicalStaff(shipDesign.facilities);
+        const nurses = medicalStaff.nurses;
+        const surgeons = medicalStaff.surgeons;
+        const techs = medicalStaff.techs;
+        const total = pilot + navigator + engineers + gunners + service + stewards + nurses + surgeons + techs;
+        return { pilot, navigator, engineers, gunners, service, stewards, nurses, surgeons, techs, total };
+    };
+    const calculateAdjustedCrewCount = (staffRequirements) => {
+        const isSmallShip = shipDesign.ship.tonnage === 100 || shipDesign.ship.tonnage === 200;
+        if (!isSmallShip)
+            return staffRequirements.total;
+        return combinePilotNavigator && noStewards
+            ? staffRequirements.total - 1 - staffRequirements.stewards
+            : combinePilotNavigator
+                ? staffRequirements.total - 1
+                : noStewards
+                    ? staffRequirements.total - staffRequirements.stewards
+                    : staffRequirements.total;
+    };
+    const isCurrentPanelValid = () => {
+        switch (currentPanel) {
+            case 0: // Ship
+                return shipDesign.ship.name.trim() !== '' &&
+                    shipDesign.ship.tech_level !== '' &&
+                    shipDesign.ship.tonnage >= 100;
+            case 1: // Engines
+                return shipDesign.engines.some(e => e.engine_type === 'power_plant' && e.drive_code && e.performance >= 1) &&
+                    shipDesign.engines.some(e => e.engine_type === 'jump_drive' && e.drive_code && e.performance >= 1);
+            // Maneuver drive is optional (defaults to M-0)
+            case 2: // Fittings
+                return shipDesign.fittings.some(f => f.fitting_type === 'bridge' || f.fitting_type === 'half_bridge');
+            case 5: // Rec/Health
+                return shipDesign.facilities.some(f => f.facility_type === 'commissary');
+            default:
+                return true;
+        }
+    };
+    const canAdvance = () => {
+        if (!isCurrentPanelValid())
+            return false;
+        if (currentPanel >= 1) { // After ship panel, check mass
+            const mass = calculateMass();
+            if (mass.isOverweight)
+                return false;
+        }
+        return true;
+    };
+    const nextPanel = () => {
+        if (canAdvance() && currentPanel < panels.length - 1) {
+            setCurrentPanel(currentPanel + 1);
+        }
+    };
+    const prevPanel = () => {
+        if (currentPanel > 0) {
+            setCurrentPanel(currentPanel - 1);
+        }
+    };
+    const updateShipDesign = (updates) => {
+        setShipDesign(prev => ({ ...prev, ...updates }));
+    };
+    const handleNewShip = () => {
+        setShowSelectShip(false);
+        setCurrentPanel(0);
+    };
+    const handleLoadShip = (loadedShipDesign) => {
+        setShipDesign(loadedShipDesign);
+        setShowSelectShip(false);
+        setCurrentPanel(0);
+    };
+    const handleBackToShipSelect = () => {
+        setShowSelectShip(true);
+        setCurrentPanel(0);
+    };
+    const renderCurrentPanel = () => {
+        if (showSelectShip) {
+            return _jsx(SelectShipPanel, { onNewShip: handleNewShip, onLoadShip: handleLoadShip });
+        }
+        const mass = calculateMass();
+        const cost = calculateCost();
+        const staff = calculateStaffRequirements();
+        switch (currentPanel) {
+            case 0:
+                return _jsx(ShipPanel, { ship: shipDesign.ship, onUpdate: (ship) => updateShipDesign({ ship }), onLoadExistingShip: (loadedShipDesign) => setShipDesign(loadedShipDesign) });
+            case 1:
+                return _jsx(EnginesPanel, { engines: shipDesign.engines, shipTonnage: shipDesign.ship.tonnage, fuelWeeks: shipDesign.ship.fuel_weeks, onUpdate: (engines) => updateShipDesign({ engines }), onFuelWeeksUpdate: (fuel_weeks) => updateShipDesign({ ship: { ...shipDesign.ship, fuel_weeks } }) });
+            case 2:
+                return _jsx(FittingsPanel, { fittings: shipDesign.fittings, shipTonnage: shipDesign.ship.tonnage, onUpdate: (fittings) => updateShipDesign({ fittings }) });
+            case 3:
+                return _jsx(WeaponsPanel, { weapons: shipDesign.weapons, shipTonnage: shipDesign.ship.tonnage, missileReloads: shipDesign.ship.missile_reloads, remainingMass: mass.remaining + shipDesign.ship.missile_reloads, onUpdate: (weapons) => updateShipDesign({ weapons }), onMissileReloadsUpdate: (missile_reloads) => updateShipDesign({ ship: { ...shipDesign.ship, missile_reloads } }) });
+            case 4:
+                return _jsx(DefensesPanel, { defenses: shipDesign.defenses, shipTonnage: shipDesign.ship.tonnage, weaponsCount: shipDesign.weapons.reduce((sum, weapon) => sum + weapon.quantity, 0), sandReloads: shipDesign.ship.sand_reloads, remainingMass: mass.remaining + shipDesign.ship.sand_reloads, onUpdate: (defenses) => updateShipDesign({ defenses }), onSandReloadsUpdate: (sand_reloads) => updateShipDesign({ ship: { ...shipDesign.ship, sand_reloads } }) });
+            case 5:
+                return _jsx(FacilitiesPanel, { facilities: shipDesign.facilities, onUpdate: (facilities) => updateShipDesign({ facilities }) });
+            case 6:
+                return _jsx(CargoPanel, { cargo: shipDesign.cargo, remainingMass: mass.remaining, shipTonnage: shipDesign.ship.tonnage, onUpdate: (cargo) => updateShipDesign({ cargo }) });
+            case 7:
+                return _jsx(VehiclesPanel, { vehicles: shipDesign.vehicles, shipTechLevel: shipDesign.ship.tech_level, onUpdate: (vehicles) => updateShipDesign({ vehicles }) });
+            case 8:
+                return _jsx(DronesPanel, { drones: shipDesign.drones, onUpdate: (drones) => updateShipDesign({ drones }) });
+            case 9:
+                return _jsx(BerthsPanel, { berths: shipDesign.berths, staffRequirements: staff, adjustedCrewCount: calculateAdjustedCrewCount(staff), onUpdate: (berths) => updateShipDesign({ berths }) });
+            case 10:
+                return _jsx(StaffPanel, { staffRequirements: staff, berths: shipDesign.berths, shipTonnage: shipDesign.ship.tonnage, combinePilotNavigator: combinePilotNavigator, noStewards: noStewards, onCombinePilotNavigatorChange: setCombinePilotNavigator, onNoStewardsChange: setNoStewards });
+            case 11:
+                return _jsx(SummaryPanel, { shipDesign: shipDesign, mass: mass, cost: cost, staff: staff, combinePilotNavigator: combinePilotNavigator, noStewards: noStewards, onBackToShipSelect: handleBackToShipSelect });
+            default:
+                return null;
+        }
+    };
+    return (_jsxs("div", { className: "app", children: [_jsxs("header", { className: "app-header", children: [_jsxs("h1", { children: ["Starship Designer", !showSelectShip && currentPanel > 0 && shipDesign.ship.name.trim() &&
+                                `: ${shipDesign.ship.name}`] }), !showSelectShip && (_jsx("nav", { className: "panel-nav", children: panels.map((panel, index) => (_jsx("button", { className: `nav-button ${index === currentPanel ? 'active' : ''} ${index < currentPanel ? 'completed' : ''}`, onClick: () => setCurrentPanel(index), disabled: index > currentPanel + 1, children: panel }, panel))) }))] }), _jsxs("div", { className: "app-content", children: [_jsxs("main", { className: "main-panel", children: [_jsx("h2", { children: showSelectShip ? 'Select Ship' : panels[currentPanel] }), renderCurrentPanel(), !showSelectShip && (_jsxs(_Fragment, { children: [_jsxs("div", { className: "panel-controls", children: [_jsx("button", { onClick: prevPanel, disabled: currentPanel === 0, children: "Previous" }), _jsx("button", { onClick: nextPanel, disabled: currentPanel === panels.length - 1 || !canAdvance(), children: "Next" }), _jsx("button", { onClick: handleBackToShipSelect, className: "back-to-select", children: "Back to Ship Select" })] }), _jsx("div", { className: "panel-attribution", children: _jsx("p", { children: _jsx("a", { href: "https://www.traveller-srd.com/core-rules/spacecraft-design/", target: "_blank", rel: "noopener noreferrer", children: "Based on the Traveller SRD Spacecraft Design page, as best as I can." }) }) })] }))] }), !showSelectShip && currentPanel >= 1 && (_jsx(MassSidebar, { mass: calculateMass(), cost: calculateCost() }))] })] }));
+}
+export default App;

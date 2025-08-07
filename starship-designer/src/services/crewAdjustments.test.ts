@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from '@jest/globals';
 import type { StaffRequirements } from '../types/ship';
 
 // Helper function to calculate adjusted crew count (extracted from App.tsx logic)
