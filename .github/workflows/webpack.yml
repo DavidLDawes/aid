@@ -24,13 +24,6 @@ jobs:
 
     - name: Build
       run: |
-        cd starship-designer
         npm install
         npm run build
         npm run test:run
-#        cd ../backend
-#        npm install
-#        cd ../starship-designer
-#        cd ../starship-designer-rn
-#        npm install
-#        npm test
