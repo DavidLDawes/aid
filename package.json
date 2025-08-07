@@ -17,7 +17,7 @@
     "setInitialDB": "node scripts/setInitialDB.mjs",
     "flushDB": "node scripts/flushDB.mjs",
     "apply-feature": "node scripts/apply-feature.mjs",
-    "start": "npm run dev"
+    "start": "npm install && npm run dev"
   },
   "dependencies": {
     "react": "^19.1.0",
