@@ -1,11 +1,13 @@
 // Test setup file for Jest
 import '@testing-library/jest-dom'
-import 'fake-indexeddb/auto'
 
-// Polyfill for structuredClone for Node.js environments
+// IMPORTANT: Polyfill structuredClone BEFORE importing fake-indexeddb
 if (typeof structuredClone === 'undefined') {
-  global.structuredClone = (obj) => JSON.parse(JSON.stringify(obj));
+  const { structuredClone: polyfill } = require('@ungap/structured-clone');
+  global.structuredClone = polyfill;
 }
+
+import 'fake-indexeddb/auto'
 
 beforeEach(() => {
   // Reset any global state between tests if needed

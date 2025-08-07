@@ -1,5 +1,6 @@
 module.exports = {
-  testEnvironment: 'jsdom',
+  testEnvironment: './jest-environment-jsdom-with-structuredclone.js',
+  setupFiles: ['<rootDir>/jest.setup.js'],
   setupFilesAfterEnv: ['./src/test/setup.ts'],
   moduleNameMapper: {
     '\\.(css|less|scss)$': 'identity-obj-proxy',
@@ -15,8 +16,4 @@ module.exports = {
     '!src/**/*.d.ts',
     '!src/test/**/*',
   ],
-  globals: {
-    structuredClone: true,
-  },
-  setupFiles: ['<rootDir>/jest.setup.js'],
 };
