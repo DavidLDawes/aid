@@ -2,8 +2,25 @@
 New atttempt at a Starship Designer, build with Claude. Used a Wizard UI, plan on doing:
 ## Traveller SRD Ships
 Mostly in, missing vehicle storage overhead 5%, or 15% overhead for a vehicle repair bay
-Output is a table in a web page, or a CSV, or an attempt to print the table
-* Traveller SRD Capital Ships - TODO
+Output is a table in a web page, or a CSV, or print the table
+
+**TODO List**
+* Defenses: Add Nucelar Shields & Meson Shields
+* Defenses: Add Armor
+* Defenses: Add Stealth, Reflec, Ablative, Explosoive options
+* Defenses: Add Security
+* Distinguish Commercial vs. Military designs. Commercial->Lasers, Sandcasters * PD only, no Shields or Armor either.
+* Add overhead for vehicles: bays (5%) & service bays (15%), user selectable.
+* Add a ton of free space for every 10 staterooms available for Rec & Health purposes.
+The above Defensive options are all appropriate for military ships, not commercial.
+**TODO List - non Starships SRD**
+* Add a "Non-standard Features" tab where you can select the following non-canonical changes:
+* Add AntiMatter at TL-H, 1% of ship tons per Jump (J-2 = 2% etc.)
+* Add discounts for higher tech levels on engines
+* At higher TL (G+) robots can serve as Engineers & Service crew, with 1-1 human-bot ratio at TL G, 2-1 at H, etc.
+* At TL-F and higher, powerful batteries allow for external power for Jumps, with the ship decoupling and moving under normal power in the last couple minutes before Jump (to get separation) using the batteris to provide the last bit of power. As a result, no Jump fuel is needed, or covnersely the normal Jump fuel load (being unspent) is now available for a return trip without needing to refuel.
+* Implement the advanced/expensive TL uprades (Accurecy, EZ Repair, High Yield, etc.)
+* Traveller SRD Capital Ships
 
 # Engine Performance Data
 
