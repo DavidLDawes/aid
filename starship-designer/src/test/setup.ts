@@ -1,11 +1,11 @@
 // Test setup file for Jest
 import '@testing-library/jest-dom'
 
-// Import polyfill using ES module syntax
-import { structuredClone as polyfill } from '@ungap/structured-clone';
+// Import polyfill using ES module syntax (default import)
+import structuredClonePolyfill from '@ungap/structured-clone';
 // IMPORTANT: Polyfill structuredClone BEFORE importing fake-indexeddb
 if (typeof structuredClone === 'undefined') {
-  global.structuredClone = polyfill;
+  global.structuredClone = structuredClonePolyfill as typeof structuredClone;
 }
 
 import 'fake-indexeddb/auto'
