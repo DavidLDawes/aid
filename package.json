@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "ci": "npm install",
-    "dev": "webpack serve --mode development",
+    "dev": "npm install && webpack serve --mode development",
     "build": "tsc -b && webpack --mode production",
     "lint": "eslint .",
     "preview": "http-server dist",
