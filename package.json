@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "ci": "npm install",
-    "dev": "npm install && webpack serve --mode development",
+    "dev": "webpack serve --mode development",
     "build": "tsc -b && webpack --mode production",
     "lint": "eslint .",
     "preview": "http-server dist",
@@ -17,7 +17,7 @@
     "setInitialDB": "node scripts/setInitialDB.mjs",
     "flushDB": "node scripts/flushDB.mjs",
     "apply-feature": "node scripts/apply-feature.mjs",
-    "start": "npm install --save-dev webpack webpack-cli && npm run dev"
+    "start": "npm install --save-dev webpack webpack-cli webpack-dev-server && npm run dev"
   },
   "dependencies": {
     "react": "^19.1.0",
