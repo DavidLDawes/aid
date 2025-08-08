@@ -1,5 +1,5 @@
 import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-runtime";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { calculateTotalFuelMass, calculateVehicleServiceStaff, calculateDroneServiceStaff, calculateMedicalStaff } from './data/constants';
 import { databaseService } from './services/database';
 import SelectShipPanel from './components/SelectShipPanel';
@@ -16,6 +16,7 @@ import DronesPanel from './components/DronesPanel';
 import StaffPanel from './components/StaffPanel';
 import SummaryPanel from './components/SummaryPanel';
 import MassSidebar from './components/MassSidebar';
+import FileMenu from './components/FileMenu';
 import './App.css';
 function App() {
     const [showSelectShip, setShowSelectShip] = useState(true);
@@ -60,6 +61,117 @@ function App() {
             setShowSelectShip(false);
         }
     };
+    const handleFileSave = useCallback(async () => {
+        if (!shipDesign.ship.name.trim()) {
+            alert('Please enter a ship name before saving.');
+            return;
+        }
+        try {
+            await databaseService.initialize();
+            await databaseService.saveShip(shipDesign);
+            // Could add a toast notification here
+        }
+        catch (error) {
+            console.error('Error saving ship:', error);
+            alert(error instanceof Error ? error.message : 'Failed to save ship design. Please try again.');
+        }
+    }, [shipDesign]);
+    const handleFileSaveWithName = useCallback(async (newName) => {
+        try {
+            const modifiedShipDesign = {
+                ...shipDesign,
+                ship: { ...shipDesign.ship, name: newName }
+            };
+            await databaseService.initialize();
+            await databaseService.saveShip(modifiedShipDesign);
+            setShipDesign(modifiedShipDesign);
+            // Could add a toast notification here
+        }
+        catch (error) {
+            console.error('Error saving ship:', error);
+            alert(error instanceof Error ? error.message : 'Failed to save ship design. Please try again.');
+        }
+    }, [shipDesign]);
+    const handleFileSaveAs = useCallback(() => {
+        const newName = prompt('Enter new ship name:', shipDesign.ship.name);
+        if (newName && newName.trim() !== '') {
+            handleFileSaveWithName(newName.trim());
+        }
+    }, [shipDesign.ship.name, handleFileSaveWithName]);
+    const handleFilePrint = useCallback(() => {
+        const printWindow = window.open('', '_blank');
+        if (!printWindow)
+            return;
+        const mass = calculateMass();
+        const cost = calculateCost();
+        const staff = calculateStaffRequirements();
+        const shipTitle = `${shipDesign.ship.name}, ${shipDesign.ship.configuration} configuration, ${shipDesign.ship.tonnage} tons, Tech Level ${shipDesign.ship.tech_level}`;
+        // Generate print content using similar logic to SummaryPanel
+        const printContent = generatePrintContent(shipTitle, mass, cost, staff);
+        printWindow.document.write(printContent);
+        printWindow.document.close();
+        printWindow.focus();
+        printWindow.print();
+        printWindow.close();
+    }, [shipDesign]);
+    const generatePrintContent = (shipTitle, mass, cost, staff) => {
+        // Simplified print content generation - would need full implementation
+        return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Ship Design - ${shipDesign.ship.name}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            .ship-title { font-size: 18px; font-weight: bold; margin-bottom: 20px; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+            th, td { padding: 8px 12px; border: 1px solid #ccc; text-align: left; }
+            th { background-color: #f0f0f0; font-weight: bold; }
+            .category-cell { font-weight: bold; }
+            .totals-row { border-top: 2px solid #000; font-weight: bold; }
+            .totals-row td { background-color: #f8f8f8; }
+            @media print {
+              body { margin: 0; }
+              .ship-title { page-break-after: avoid; }
+              table { page-break-inside: avoid; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="ship-title">${shipTitle}</div>
+          <p>Print functionality available from File menu on all screens.</p>
+          <p>Mass: ${mass.used.toFixed(1)} / ${mass.total} tons</p>
+          <p>Cost: ${cost.total.toFixed(2)} MCr</p>
+          <p>Total Crew: ${staff.total}</p>
+        </body>
+      </html>
+    `;
+    };
+    // Global keyboard shortcuts for file operations
+    useEffect(() => {
+        const handleKeyDown = (event) => {
+            // Only handle shortcuts when not in ship select mode and when not focused on an input
+            if (showSelectShip || event.target?.tagName === 'INPUT' || event.target?.tagName === 'TEXTAREA') {
+                return;
+            }
+            if (event.ctrlKey && !event.shiftKey && event.key === 's') {
+                event.preventDefault();
+                handleFileSave();
+            }
+            else if (event.ctrlKey && event.shiftKey && event.key === 'S') {
+                event.preventDefault();
+                handleFileSaveAs();
+            }
+            else if (event.ctrlKey && event.key === 'p') {
+                event.preventDefault();
+                handleFilePrint();
+            }
+        };
+        document.addEventListener('keydown', handleKeyDown);
+        return () => {
+            document.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [showSelectShip, handleFileSave, handleFileSaveAs, handleFilePrint]);
     const calculateMass = () => {
         let used = 0;
         // Add engine masses
@@ -279,7 +391,7 @@ function App() {
                 return null;
         }
     };
-    return (_jsxs("div", { className: "app", children: [_jsxs("header", { className: "app-header", children: [_jsxs("h1", { children: ["Starship Designer", !showSelectShip && currentPanel > 0 && shipDesign.ship.name.trim() &&
-                                `: ${shipDesign.ship.name}`] }), !showSelectShip && (_jsx("nav", { className: "panel-nav", children: panels.map((panel, index) => (_jsx("button", { className: `nav-button ${index === currentPanel ? 'active' : ''} ${index < currentPanel ? 'completed' : ''}`, onClick: () => setCurrentPanel(index), disabled: index > currentPanel + 1, children: panel }, panel))) }))] }), _jsxs("div", { className: "app-content", children: [_jsxs("main", { className: "main-panel", children: [_jsx("h2", { children: showSelectShip ? 'Select Ship' : panels[currentPanel] }), renderCurrentPanel(), !showSelectShip && (_jsxs(_Fragment, { children: [_jsxs("div", { className: "panel-controls", children: [_jsx("button", { onClick: prevPanel, disabled: currentPanel === 0, children: "Previous" }), _jsx("button", { onClick: nextPanel, disabled: currentPanel === panels.length - 1 || !canAdvance(), children: "Next" }), _jsx("button", { onClick: handleBackToShipSelect, className: "back-to-select", children: "Back to Ship Select" })] }), _jsx("div", { className: "panel-attribution", children: _jsx("p", { children: _jsx("a", { href: "https://www.traveller-srd.com/core-rules/spacecraft-design/", target: "_blank", rel: "noopener noreferrer", children: "Based on the Traveller SRD Spacecraft Design page, as best as I can." }) }) })] }))] }), !showSelectShip && currentPanel >= 1 && (_jsx(MassSidebar, { mass: calculateMass(), cost: calculateCost() }))] })] }));
+    return (_jsxs("div", { className: "app", children: [_jsxs("header", { className: "app-header", children: [_jsxs("div", { className: "header-top", children: [!showSelectShip && (_jsx(FileMenu, { shipDesign: shipDesign, mass: calculateMass(), cost: calculateCost(), staff: calculateStaffRequirements(), combinePilotNavigator: combinePilotNavigator, noStewards: noStewards, onPrint: handleFilePrint, onSave: handleFileSave, onSaveAs: handleFileSaveWithName })), _jsxs("h1", { children: ["Starship Designer", !showSelectShip && currentPanel > 0 && shipDesign.ship.name.trim() &&
+                                        `: ${shipDesign.ship.name}`] })] }), !showSelectShip && (_jsx("nav", { className: "panel-nav", children: panels.map((panel, index) => (_jsx("button", { className: `nav-button ${index === currentPanel ? 'active' : ''} ${index < currentPanel ? 'completed' : ''}`, onClick: () => setCurrentPanel(index), disabled: index > currentPanel + 1, children: panel }, panel))) }))] }), _jsxs("div", { className: "app-content", children: [_jsxs("main", { className: "main-panel", children: [_jsx("h2", { children: showSelectShip ? 'Select Ship' : panels[currentPanel] }), renderCurrentPanel(), !showSelectShip && (_jsxs(_Fragment, { children: [_jsxs("div", { className: "panel-controls", children: [_jsx("button", { onClick: prevPanel, disabled: currentPanel === 0, children: "Previous" }), _jsx("button", { onClick: nextPanel, disabled: currentPanel === panels.length - 1 || !canAdvance(), children: "Next" }), _jsx("button", { onClick: handleBackToShipSelect, className: "back-to-select", children: "Back to Ship Select" })] }), _jsx("div", { className: "panel-attribution", children: _jsx("p", { children: _jsx("a", { href: "https://www.traveller-srd.com/core-rules/spacecraft-design/", target: "_blank", rel: "noopener noreferrer", children: "Based on the Traveller SRD Spacecraft Design page, as best as I can." }) }) })] }))] }), !showSelectShip && currentPanel >= 1 && (_jsx(MassSidebar, { mass: calculateMass(), cost: calculateCost() }))] })] }));
 }
 export default App;
