@@ -55,9 +55,9 @@
     "ts-loader": "^9.5.1",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.35.1",
-    "webpack": "^5.95.0",
+    "webpack": "^5.101.0",
     "webpack-cli": "^5.1.4",
-    "webpack-dev-server": "^5.1.0"
+    "webpack-dev-server": "^5.2.2"
   },
   "overrides": {
     "test-exclude": "7.0.1",
