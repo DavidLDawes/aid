@@ -4,3 +4,20 @@
   runtime_config:
       operating_system: "ubuntu24"
 
+  automatic_scaling:
+    min_num_instances: 1
+    max_num_instances: 2
+    cool_down_period_sec: 300
+    cpu_utilization:
+      target_utilization: 0.8
+    target_concurrent_requests: 100
+
+  network:
+    name: starshiponly
+    instance_tag: starshiponly
+
+    session_affinity: false
+    forwarded_ports:
+      - PORT 5173
+      - HOST_PORT 5173
+      - CONTAINER_PORT 5173
