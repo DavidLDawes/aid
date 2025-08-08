@@ -62,7 +62,7 @@ npm install
 npm run dev
 ```
 
-The frontend application will be available at `http://localhost:5173`
+The frontend application will be available at `http://localhost:8080`
 
 ## 🎮 Usage
 
