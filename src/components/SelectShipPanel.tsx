@@ -13,11 +13,79 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPan
   const [selectedShipId, setSelectedShipId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [preloading, setPreloading] = useState(false);
 
   useEffect(() => {
     loadShips();
   }, []);
+
+  const createDefaultShips = () => {
+    // Fallback: create default ships in memory if all loading fails
+    const defaultScout = {
+      id: -1, // Temporary ID
+      ship: {
+        name: 'Scout',
+        tech_level: 'E' as const,
+        tonnage: 100,
+        configuration: 'standard' as const,
+        fuel_weeks: 4,
+        missile_reloads: 0,
+        sand_reloads: 0,
+        description: 'Fast ship long ranged ship, low crew overhead'
+      },
+      engines: [
+        { engine_type: 'power_plant' as const, drive_code: 'B', performance: 4, mass: 7, cost: 16 },
+        { engine_type: 'jump_drive' as const, drive_code: 'B', performance: 4, mass: 15, cost: 20 },
+        { engine_type: 'maneuver_drive' as const, drive_code: 'B', performance: 4, mass: 3, cost: 8 }
+      ],
+      fittings: [
+        { fitting_type: 'bridge' as const, mass: 10, cost: 2 },
+        { fitting_type: 'comms_sensors' as const, comms_sensors_type: 'standard' as const, mass: 0, cost: 0 }
+      ],
+      weapons: [],
+      defenses: [],
+      berths: [{ berth_type: 'staterooms' as const, quantity: 2, mass: 4, cost: 0.5 }],
+      facilities: [],
+      cargo: [{ cargo_type: 'cargo_bay' as const, tonnage: 3, cost: 0 }],
+      vehicles: [],
+      drones: [],
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    const defaultTrader = {
+      id: -2, // Temporary ID
+      ship: {
+        name: 'Free Trader',
+        tech_level: 'B' as const,
+        tonnage: 200,
+        configuration: 'standard' as const,
+        fuel_weeks: 2,
+        missile_reloads: 0,
+        sand_reloads: 0,
+        description: 'Merchant vessel'
+      },
+      engines: [
+        { engine_type: 'power_plant' as const, drive_code: 'A', performance: 1, mass: 4, cost: 8 },
+        { engine_type: 'jump_drive' as const, drive_code: 'A', performance: 1, mass: 10, cost: 20 },
+        { engine_type: 'maneuver_drive' as const, drive_code: 'A', performance: 1, mass: 2, cost: 4 }
+      ],
+      fittings: [
+        { fitting_type: 'bridge' as const, mass: 10, cost: 2 },
+        { fitting_type: 'comms_sensors' as const, comms_sensors_type: 'standard' as const, mass: 0, cost: 0 }
+      ],
+      weapons: [],
+      defenses: [],
+      berths: [{ berth_type: 'staterooms' as const, quantity: 5, mass: 4, cost: 1 }],
+      facilities: [],
+      cargo: [{ cargo_type: 'cargo_bay' as const, tonnage: 132, cost: 0 }],
+      vehicles: [],
+      drones: [],
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    return [defaultScout, defaultTrader];
+  };
 
   const loadShips = async () => {
     try {
@@ -25,23 +93,36 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPan
       setError(null);
       await databaseService.initialize();
       let savedShips = await databaseService.getAllShips();
+      console.log('SelectShipPanel loaded ships from database:', savedShips.length);
       
-      // If no ships found, try to preload initial data
+      // If no ships exist, try to load initial data
       if (savedShips.length === 0) {
-        setPreloading(true);
-        const preloaded = await initialDataService.loadInitialDataIfNeeded();
-        if (preloaded) {
-          // Reload ships after preloading
+        console.log('No ships in database, attempting to load initial ships...');
+        const loaded = await initialDataService.loadInitialDataIfNeeded();
+        console.log('Initial data loading result:', loaded);
+        
+        if (loaded) {
+          // Try to get ships again after loading
           savedShips = await databaseService.getAllShips();
+          console.log('After loading initial data, ships count:', savedShips.length);
         }
-        setPreloading(false);
+        
+        // Final fallback: if still no ships, use hardcoded defaults
+        if (savedShips.length === 0) {
+          console.log('⚠️ All ship loading methods failed, using hardcoded default ships');
+          savedShips = createDefaultShips();
+        }
       }
       
       setShips(savedShips);
+      console.log('Final ships array set:', savedShips.length, savedShips.map(s => s.ship.name));
     } catch (err) {
-      setError('Failed to load ships from database');
-      console.error('Database error:', err);
-      setPreloading(false);
+      console.error('SelectShipPanel error during ship loading:', err);
+      // Final emergency fallback
+      console.log('🚨 Emergency fallback: using hardcoded ships due to error');
+      const defaultShips = createDefaultShips();
+      setShips(defaultShips);
+      setError(null); // Clear error since we have fallback ships
     } finally {
       setLoading(false);
     }
@@ -51,8 +132,22 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPan
     if (!selectedShipId) return;
 
     try {
+      // Check if this is a hardcoded ship (negative ID)
+      if (selectedShipId < 0) {
+        const ship = ships.find(s => s.id === selectedShipId);
+        if (ship) {
+          console.log('Loading hardcoded ship:', ship.ship.name);
+          // Remove database-specific fields before passing to parent
+          const { id: _id, createdAt: _createdAt, updatedAt: _updatedAt, ...shipDesign } = ship;
+          onLoadShip(shipDesign);
+          return;
+        }
+      }
+
+      // Regular database ship loading
       const ship = await databaseService.getShipById(selectedShipId);
       if (ship) {
+        console.log('Loading database ship:', ship.ship.name);
         // Remove database-specific fields before passing to parent
         const { id: _id, createdAt: _createdAt, updatedAt: _updatedAt, ...shipDesign } = ship;
         onLoadShip(shipDesign);
@@ -63,10 +158,10 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPan
     }
   };
 
-  if (loading || preloading) {
+  if (loading) {
     return (
       <div className="select-ship-panel">
-        <p>{preloading ? 'Preloading initial ships...' : 'Loading ships...'}</p>
+        <p>Loading ships...</p>
       </div>
     );
   }

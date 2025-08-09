@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { ShipDesign, MassCalculation, CostCalculation, StaffRequirements } from './types/ship';
-import { calculateTotalFuelMass, calculateVehicleServiceStaff, calculateDroneServiceStaff, calculateMedicalStaff } from './data/constants';
+import { calculateTotalFuelMass, calculateVehicleServiceStaff, calculateDroneServiceStaff, calculateMedicalStaff, WEAPON_TYPES } from './data/constants';
 import { databaseService } from './services/database';
 import SelectShipPanel from './components/SelectShipPanel';
 import ShipPanel from './components/ShipPanel';
@@ -58,10 +58,14 @@ function App() {
     try {
       await databaseService.initialize();
       const hasShips = await databaseService.hasAnyShips();
-      setShowSelectShip(hasShips);
+      console.log('App.tsx initial database check - has ships:', hasShips);
+      
+      // Always show SelectShipPanel - it will handle loading initial data if needed
+      setShowSelectShip(true);
     } catch (error) {
       console.error('Error checking existing ships:', error);
-      setShowSelectShip(false);
+      // If there's an error, still show SelectShipPanel and let it handle the loading
+      setShowSelectShip(true);
     }
   };
 
@@ -401,8 +405,38 @@ function App() {
     setCurrentPanel(0);
   };
 
-  const handleLoadShip = (loadedShipDesign: ShipDesign) => {
-    setShipDesign(loadedShipDesign);
+  const handleLoadShip = async (loadedShipDesign: ShipDesign) => {
+    // Clean up non-standard weapons
+    const knownWeaponNames = WEAPON_TYPES.map(wt => wt.name);
+    const standardWeapons = loadedShipDesign.weapons.filter(weapon =>
+      knownWeaponNames.includes(weapon.weapon_name)
+    );
+    
+    // Check if any weapons were removed
+    const removedWeapons = loadedShipDesign.weapons.filter(weapon =>
+      !knownWeaponNames.includes(weapon.weapon_name)
+    );
+    
+    let cleanedShipDesign = loadedShipDesign;
+    
+    if (removedWeapons.length > 0) {
+      // Create cleaned ship design
+      cleanedShipDesign = {
+        ...loadedShipDesign,
+        weapons: standardWeapons
+      };
+      
+      // Save the cleaned ship back to the database
+      try {
+        await databaseService.initialize();
+        await databaseService.saveOrUpdateShipByName(cleanedShipDesign);
+        console.log(`Removed ${removedWeapons.length} non-standard weapons from ship "${cleanedShipDesign.ship.name}" and saved to database:`, removedWeapons.map(w => w.weapon_name));
+      } catch (error) {
+        console.error('Error saving cleaned ship design:', error);
+      }
+    }
+    
+    setShipDesign(cleanedShipDesign);
     setShowSelectShip(false);
     setCurrentPanel(0);
   };
