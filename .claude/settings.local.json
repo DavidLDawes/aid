@@ -23,7 +23,9 @@
       "Bash(npm install:*)",
       "Bash(npm remove:*)",
       "Bash(npm audit:*)",
-      "Bash(npm ls:*)"
+      "Bash(npm ls:*)",
+      "Bash(find:*)",
+      "Bash(timeout 10 npm start)"
     ],
     "deny": []
   }
