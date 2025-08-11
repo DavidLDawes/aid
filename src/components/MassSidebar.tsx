@@ -6,9 +6,10 @@ interface MassSidebarProps {
   mass: MassCalculation;
   cost: CostCalculation;
   shipDesign: ShipDesign;
+  activeRules: Set<string>;
 }
 
-const MassSidebar: React.FC<MassSidebarProps> = ({ mass, cost, shipDesign }) => {
+const MassSidebar: React.FC<MassSidebarProps> = ({ mass, cost, shipDesign, activeRules }) => {
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
 
   const toggleSection = (sectionName: string) => {
@@ -37,7 +38,8 @@ const MassSidebar: React.FC<MassSidebarProps> = ({ mass, cost, shipDesign }) => 
   const maneuverDrive = shipDesign.engines.find(e => e.engine_type === 'maneuver_drive');
   const jumpPerformance = jumpDrive?.performance || 0;
   const maneuverPerformance = maneuverDrive?.performance || 0;
-  const fuelMass = calculateTotalFuelMass(shipDesign.ship.tonnage, jumpPerformance, maneuverPerformance, shipDesign.ship.fuel_weeks);
+  const useAntimatter = activeRules.has('antimatter');
+  const fuelMass = calculateTotalFuelMass(shipDesign.ship.tonnage, jumpPerformance, maneuverPerformance, shipDesign.ship.fuel_weeks, useAntimatter);
 
   // Calculate reload masses
   const missileReloadMass = shipDesign.ship.missile_reloads;
@@ -136,7 +138,7 @@ const MassSidebar: React.FC<MassSidebarProps> = ({ mass, cost, shipDesign }) => 
       alwaysVisible: false,
       items: [
         {
-          name: `Jump & Maneuver Fuel (${shipDesign.ship.fuel_weeks} weeks)`,
+          name: `Jump & Maneuver Fuel${useAntimatter ? ' (Antimatter)' : ''} (${shipDesign.ship.fuel_weeks} weeks)`,
           mass: fuelMass
         }
       ]

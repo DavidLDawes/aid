@@ -1,7 +1,7 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { useState } from 'react';
 import { calculateTotalFuelMass } from '../data/constants';
-const MassSidebar = ({ mass, cost, shipDesign }) => {
+const MassSidebar = ({ mass, cost, shipDesign, activeRules }) => {
     const [expandedSections, setExpandedSections] = useState(new Set());
     const toggleSection = (sectionName) => {
         const newExpanded = new Set(expandedSections);
@@ -28,7 +28,8 @@ const MassSidebar = ({ mass, cost, shipDesign }) => {
     const maneuverDrive = shipDesign.engines.find(e => e.engine_type === 'maneuver_drive');
     const jumpPerformance = jumpDrive?.performance || 0;
     const maneuverPerformance = maneuverDrive?.performance || 0;
-    const fuelMass = calculateTotalFuelMass(shipDesign.ship.tonnage, jumpPerformance, maneuverPerformance, shipDesign.ship.fuel_weeks);
+    const useAntimatter = activeRules.has('antimatter');
+    const fuelMass = calculateTotalFuelMass(shipDesign.ship.tonnage, jumpPerformance, maneuverPerformance, shipDesign.ship.fuel_weeks, useAntimatter);
     // Calculate reload masses
     const missileReloadMass = shipDesign.ship.missile_reloads;
     const sandReloadMass = shipDesign.ship.sand_reloads;
@@ -124,7 +125,7 @@ const MassSidebar = ({ mass, cost, shipDesign }) => {
             alwaysVisible: false,
             items: [
                 {
-                    name: `Jump & Maneuver Fuel (${shipDesign.ship.fuel_weeks} weeks)`,
+                    name: `Jump & Maneuver Fuel${useAntimatter ? ' (Antimatter)' : ''} (${shipDesign.ship.fuel_weeks} weeks)`,
                     mass: fuelMass
                 }
             ]

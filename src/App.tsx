@@ -17,6 +17,7 @@ import StaffPanel from './components/StaffPanel';
 import SummaryPanel from './components/SummaryPanel';
 import MassSidebar from './components/MassSidebar';
 import FileMenu from './components/FileMenu';
+import RulesMenu from './components/RulesMenu';
 import './App.css';
 
 function App() {
@@ -24,6 +25,7 @@ function App() {
   const [currentPanel, setCurrentPanel] = useState(0);
   const [combinePilotNavigator, setCombinePilotNavigator] = useState(false);
   const [noStewards, setNoStewards] = useState(false);
+  const [activeRules, setActiveRules] = useState<Set<string>>(new Set(['spacecraft_design_srd']));
   const [shipDesign, setShipDesign] = useState<ShipDesign>({
     ship: { name: '', tech_level: 'A', tonnage: 100, configuration: 'standard', fuel_weeks: 2, missile_reloads: 0, sand_reloads: 0, description: '' },
     engines: [],
@@ -187,6 +189,24 @@ function App() {
     };
   }, [showSelectShip, handleFileSave, handleFileSaveAs, handleFilePrint]);
 
+  const handleRuleChange = useCallback((ruleId: string, enabled: boolean) => {
+    setActiveRules(prevRules => {
+      const newRules = new Set(prevRules);
+      if (enabled) {
+        newRules.add(ruleId);
+      } else {
+        newRules.delete(ruleId);
+      }
+      console.log('Active rules:', Array.from(newRules));
+      return newRules;
+    });
+  }, []);
+
+  // For development - log active rules when they change
+  useEffect(() => {
+    console.log('Current active rules:', Array.from(activeRules));
+  }, [activeRules]);
+
   const calculateMass = (): MassCalculation => {
     let used = 0;
     
@@ -222,7 +242,8 @@ function App() {
     const maneuverDrive = shipDesign.engines.find(e => e.engine_type === 'maneuver_drive');
     const jumpPerformance = jumpDrive?.performance || 0;
     const maneuverPerformance = maneuverDrive?.performance || 0;
-    const fuelMass = calculateTotalFuelMass(shipDesign.ship.tonnage, jumpPerformance, maneuverPerformance, shipDesign.ship.fuel_weeks);
+    const useAntimatter = activeRules.has('antimatter');
+    const fuelMass = calculateTotalFuelMass(shipDesign.ship.tonnage, jumpPerformance, maneuverPerformance, shipDesign.ship.fuel_weeks, useAntimatter);
     used += fuelMass;
 
     // Add missile reload mass
@@ -467,6 +488,7 @@ function App() {
           engines={shipDesign.engines} 
           shipTonnage={shipDesign.ship.tonnage} 
           fuelWeeks={shipDesign.ship.fuel_weeks}
+          activeRules={activeRules}
           onUpdate={(engines) => updateShipDesign({ engines })} 
           onFuelWeeksUpdate={(fuel_weeks) => updateShipDesign({ ship: { ...shipDesign.ship, fuel_weeks } })}
         />;
@@ -536,17 +558,20 @@ function App() {
       <header className="app-header">
         <div className="header-top">
           {!showSelectShip && (
-            <FileMenu
-              shipDesign={shipDesign}
-              mass={calculateMass()}
-              cost={calculateCost()}
-              staff={calculateStaffRequirements()}
-              combinePilotNavigator={combinePilotNavigator}
-              noStewards={noStewards}
-              onPrint={handleFilePrint}
-              onSave={handleFileSave}
-              onSaveAs={handleFileSaveWithName}
-            />
+            <>
+              <FileMenu
+                shipDesign={shipDesign}
+                mass={calculateMass()}
+                cost={calculateCost()}
+                staff={calculateStaffRequirements()}
+                combinePilotNavigator={combinePilotNavigator}
+                noStewards={noStewards}
+                onPrint={handleFilePrint}
+                onSave={handleFileSave}
+                onSaveAs={handleFileSaveWithName}
+              />
+              <RulesMenu shipDesign={shipDesign} onRuleChange={handleRuleChange} />
+            </>
           )}
           <h1>
             Starship Designer
@@ -606,7 +631,7 @@ function App() {
         </main>
 
         {!showSelectShip && currentPanel >= 1 && (
-          <MassSidebar mass={calculateMass()} cost={calculateCost()} shipDesign={shipDesign} />
+          <MassSidebar mass={calculateMass()} cost={calculateCost()} shipDesign={shipDesign} activeRules={activeRules} />
         )}
       </div>
     </div>
