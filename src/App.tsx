@@ -606,7 +606,7 @@ function App() {
         </main>
 
         {!showSelectShip && currentPanel >= 1 && (
-          <MassSidebar mass={calculateMass()} cost={calculateCost()} />
+          <MassSidebar mass={calculateMass()} cost={calculateCost()} shipDesign={shipDesign} />
         )}
       </div>
     </div>

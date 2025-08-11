@@ -1,5 +1,18 @@
 # Traveller Starship Designer
 New atttempt at a Starship Designer, built with Claude. Using a Wizard UI and local storage for the DB.
+## Quick Start
+npminstall
+npm run dev
+## Docker Quick Start
+**Build Command**:
+```bash
+docker build -t starship-designer .
+```
+
+**Run Command**:
+```bash
+docker run -p 8080:8080 starship-designer
+```
 ## Traveller SRD Ships
 Got it roughly working, output is a table in a web page, or a CSV, or print the table.
 
@@ -39,7 +52,7 @@ The above Defensive options are all appropriate for military ships, not commerci
 - **npm** or **yarn** package manager
 
 ## 🛠️ Installation & Setup
-
+Requires node, 
 ### 1. Clone the Repository
 
 ```bash
@@ -62,7 +75,7 @@ npm install
 npm run dev
 ```
 
-The frontend application will be available at `http://localhost:8080`
+The frontend application will be available at `http://localhost:5173`
 
 ## 🎮 Usage
 
