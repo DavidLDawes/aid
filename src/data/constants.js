@@ -1,4 +1,16 @@
 export const TECH_LEVELS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+export function getTechLevelIndex(techLevel) {
+    return TECH_LEVELS.indexOf(techLevel);
+}
+export function isTechLevelAtLeast(currentLevel, requiredLevel) {
+    const currentIndex = getTechLevelIndex(currentLevel);
+    const requiredIndex = getTechLevelIndex(requiredLevel);
+    // If either tech level is invalid, return false
+    if (currentIndex === -1 || requiredIndex === -1) {
+        return false;
+    }
+    return currentIndex >= requiredIndex;
+}
 export const HULL_SIZES = [
     { tonnage: 100, code: '1', cost: 2 },
     { tonnage: 200, code: '2', cost: 8 },
@@ -318,7 +330,8 @@ export const ENGINE_SPECS = {
     V: { jump_drive: { tons: 105, cost: 200 }, maneuver_drive: { tons: 39, cost: 80 }, power_plant: { tons: 61, cost: 160 } },
     W: { jump_drive: { tons: 110, cost: 210 }, maneuver_drive: { tons: 41, cost: 84 }, power_plant: { tons: 64, cost: 168 } },
     X: { jump_drive: { tons: 115, cost: 220 }, maneuver_drive: { tons: 43, cost: 88 }, power_plant: { tons: 67, cost: 176 } },
-    Y: { jump_drive: { tons: 120, cost: 230 }, maneuver_drive: { tons: 45, cost: 92 }, power_plant: { tons: 70, cost: 184 } }
+    Y: { jump_drive: { tons: 120, cost: 230 }, maneuver_drive: { tons: 45, cost: 92 }, power_plant: { tons: 70, cost: 184 } },
+    Z: { jump_drive: { tons: 125, cost: 240 }, maneuver_drive: { tons: 47, cost: 96 }, power_plant: { tons: 73, cost: 192 } }
 };
 export function getAvailableEngines(hullTonnage, engineType, powerPlantPerformance) {
     const hullIndex = HULL_SIZES.findIndex(hull => hull.tonnage === hullTonnage);
@@ -337,7 +350,17 @@ export function getAvailableEngines(hullTonnage, engineType, powerPlantPerforman
             const performanceLabel = engineType === 'jump_drive' ? 'J' :
                 engineType === 'maneuver_drive' ? 'M' : 'P';
             const specs = ENGINE_SPECS[driveCode];
+            // Defensive check: skip if specs don't exist for this drive code
+            if (!specs) {
+                console.warn(`Missing engine specs for drive code: ${driveCode}`);
+                continue;
+            }
             const engineSpec = specs[engineType];
+            // Defensive check: skip if specific engine type specs don't exist
+            if (!engineSpec) {
+                console.warn(`Missing ${engineType} specs for drive code: ${driveCode}`);
+                continue;
+            }
             availableEngines.push({
                 code: driveCode,
                 performance: compatibility.performance,
@@ -358,10 +381,12 @@ export function calculateManeuverFuel(shipTonnage, maneuverPerformance, weeks) {
     // Base is 2 weeks for M-1 at 1% of ship mass
     return shipTonnage * 0.01 * maneuverPerformance * (weeks / 2);
 }
-export function calculateTotalFuelMass(shipTonnage, jumpPerformance, maneuverPerformance, weeks) {
+export function calculateTotalFuelMass(shipTonnage, jumpPerformance, maneuverPerformance, weeks, useAntimatter = false) {
     const jumpFuel = calculateJumpFuel(shipTonnage, jumpPerformance);
     const maneuverFuel = calculateManeuverFuel(shipTonnage, maneuverPerformance, weeks);
-    return jumpFuel + maneuverFuel;
+    const totalFuel = jumpFuel + maneuverFuel;
+    // If antimatter is enabled, fuel takes only 10% of normal values
+    return useAntimatter ? totalFuel * 0.1 : totalFuel;
 }
 export const WEAPON_TYPES = [
     { name: 'Pulse Laser Turret', mass: 2, cost: 1.5 },

@@ -1,4 +1,4 @@
-import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-runtime";
+import { jsx as _jsx, Fragment as _Fragment, jsxs as _jsxs } from "react/jsx-runtime";
 import { useState, useEffect, useCallback } from 'react';
 import { calculateTotalFuelMass, calculateVehicleServiceStaff, calculateDroneServiceStaff, calculateMedicalStaff, WEAPON_TYPES } from './data/constants';
 import { databaseService } from './services/database';
@@ -17,12 +17,14 @@ import StaffPanel from './components/StaffPanel';
 import SummaryPanel from './components/SummaryPanel';
 import MassSidebar from './components/MassSidebar';
 import FileMenu from './components/FileMenu';
+import RulesMenu from './components/RulesMenu';
 import './App.css';
 function App() {
     const [showSelectShip, setShowSelectShip] = useState(true);
     const [currentPanel, setCurrentPanel] = useState(0);
     const [combinePilotNavigator, setCombinePilotNavigator] = useState(false);
     const [noStewards, setNoStewards] = useState(false);
+    const [activeRules, setActiveRules] = useState(new Set(['spacecraft_design_srd']));
     const [shipDesign, setShipDesign] = useState({
         ship: { name: '', tech_level: 'A', tonnage: 100, configuration: 'standard', fuel_weeks: 2, missile_reloads: 0, sand_reloads: 0, description: '' },
         engines: [],
@@ -175,6 +177,23 @@ function App() {
             document.removeEventListener('keydown', handleKeyDown);
         };
     }, [showSelectShip, handleFileSave, handleFileSaveAs, handleFilePrint]);
+    const handleRuleChange = useCallback((ruleId, enabled) => {
+        setActiveRules(prevRules => {
+            const newRules = new Set(prevRules);
+            if (enabled) {
+                newRules.add(ruleId);
+            }
+            else {
+                newRules.delete(ruleId);
+            }
+            console.log('Active rules:', Array.from(newRules));
+            return newRules;
+        });
+    }, []);
+    // For development - log active rules when they change
+    useEffect(() => {
+        console.log('Current active rules:', Array.from(activeRules));
+    }, [activeRules]);
     const calculateMass = () => {
         let used = 0;
         // Add engine masses
@@ -200,7 +219,8 @@ function App() {
         const maneuverDrive = shipDesign.engines.find(e => e.engine_type === 'maneuver_drive');
         const jumpPerformance = jumpDrive?.performance || 0;
         const maneuverPerformance = maneuverDrive?.performance || 0;
-        const fuelMass = calculateTotalFuelMass(shipDesign.ship.tonnage, jumpPerformance, maneuverPerformance, shipDesign.ship.fuel_weeks);
+        const useAntimatter = activeRules.has('antimatter');
+        const fuelMass = calculateTotalFuelMass(shipDesign.ship.tonnage, jumpPerformance, maneuverPerformance, shipDesign.ship.fuel_weeks, useAntimatter);
         used += fuelMass;
         // Add missile reload mass
         used += shipDesign.ship.missile_reloads;
@@ -391,7 +411,7 @@ function App() {
             case 0:
                 return _jsx(ShipPanel, { ship: shipDesign.ship, onUpdate: (ship) => updateShipDesign({ ship }), onLoadExistingShip: (loadedShipDesign) => setShipDesign(loadedShipDesign) });
             case 1:
-                return _jsx(EnginesPanel, { engines: shipDesign.engines, shipTonnage: shipDesign.ship.tonnage, fuelWeeks: shipDesign.ship.fuel_weeks, onUpdate: (engines) => updateShipDesign({ engines }), onFuelWeeksUpdate: (fuel_weeks) => updateShipDesign({ ship: { ...shipDesign.ship, fuel_weeks } }) });
+                return _jsx(EnginesPanel, { engines: shipDesign.engines, shipTonnage: shipDesign.ship.tonnage, fuelWeeks: shipDesign.ship.fuel_weeks, activeRules: activeRules, onUpdate: (engines) => updateShipDesign({ engines }), onFuelWeeksUpdate: (fuel_weeks) => updateShipDesign({ ship: { ...shipDesign.ship, fuel_weeks } }) });
             case 2:
                 return _jsx(FittingsPanel, { fittings: shipDesign.fittings, shipTonnage: shipDesign.ship.tonnage, onUpdate: (fittings) => updateShipDesign({ fittings }) });
             case 3:
@@ -416,7 +436,7 @@ function App() {
                 return null;
         }
     };
-    return (_jsxs("div", { className: "app", children: [_jsxs("header", { className: "app-header", children: [_jsxs("div", { className: "header-top", children: [!showSelectShip && (_jsx(FileMenu, { shipDesign: shipDesign, mass: calculateMass(), cost: calculateCost(), staff: calculateStaffRequirements(), combinePilotNavigator: combinePilotNavigator, noStewards: noStewards, onPrint: handleFilePrint, onSave: handleFileSave, onSaveAs: handleFileSaveWithName })), _jsxs("h1", { children: ["Starship Designer", !showSelectShip && currentPanel > 0 && shipDesign.ship.name.trim() &&
-                                        `: ${shipDesign.ship.name}`] })] }), !showSelectShip && (_jsx("nav", { className: "panel-nav", children: panels.map((panel, index) => (_jsx("button", { className: `nav-button ${index === currentPanel ? 'active' : ''} ${index < currentPanel ? 'completed' : ''}`, onClick: () => setCurrentPanel(index), disabled: index > currentPanel + 1, children: panel }, panel))) }))] }), _jsxs("div", { className: "app-content", children: [_jsxs("main", { className: "main-panel", children: [_jsx("h2", { children: showSelectShip ? 'Select Ship' : panels[currentPanel] }), renderCurrentPanel(), !showSelectShip && (_jsxs(_Fragment, { children: [_jsxs("div", { className: "panel-controls", children: [_jsx("button", { onClick: prevPanel, disabled: currentPanel === 0, children: "Previous" }), _jsx("button", { onClick: nextPanel, disabled: currentPanel === panels.length - 1 || !canAdvance(), children: "Next" }), _jsx("button", { onClick: handleBackToShipSelect, className: "back-to-select", children: "Back to Ship Select" })] }), _jsx("div", { className: "panel-attribution", children: _jsx("p", { children: _jsx("a", { href: "https://www.traveller-srd.com/core-rules/spacecraft-design/", target: "_blank", rel: "noopener noreferrer", children: "Based on the Traveller SRD Spacecraft Design page, as best as I can." }) }) })] }))] }), !showSelectShip && currentPanel >= 1 && (_jsx(MassSidebar, { mass: calculateMass(), cost: calculateCost(), shipDesign: shipDesign }))] })] }));
+    return (_jsxs("div", { className: "app", children: [_jsxs("header", { className: "app-header", children: [_jsxs("div", { className: "header-top", children: [!showSelectShip && (_jsxs(_Fragment, { children: [_jsx(FileMenu, { shipDesign: shipDesign, mass: calculateMass(), cost: calculateCost(), staff: calculateStaffRequirements(), combinePilotNavigator: combinePilotNavigator, noStewards: noStewards, onPrint: handleFilePrint, onSave: handleFileSave, onSaveAs: handleFileSaveWithName }), _jsx(RulesMenu, { shipDesign: shipDesign, onRuleChange: handleRuleChange })] })), _jsxs("h1", { children: ["Starship Designer", !showSelectShip && currentPanel > 0 && shipDesign.ship.name.trim() &&
+                                        `: ${shipDesign.ship.name}`] })] }), !showSelectShip && (_jsx("nav", { className: "panel-nav", children: panels.map((panel, index) => (_jsx("button", { className: `nav-button ${index === currentPanel ? 'active' : ''} ${index < currentPanel ? 'completed' : ''}`, onClick: () => setCurrentPanel(index), disabled: index > currentPanel + 1, children: panel }, panel))) }))] }), _jsxs("div", { className: "app-content", children: [_jsxs("main", { className: "main-panel", children: [_jsx("h2", { children: showSelectShip ? 'Select Ship' : panels[currentPanel] }), renderCurrentPanel(), !showSelectShip && (_jsxs(_Fragment, { children: [_jsxs("div", { className: "panel-controls", children: [_jsx("button", { onClick: prevPanel, disabled: currentPanel === 0, children: "Previous" }), _jsx("button", { onClick: nextPanel, disabled: currentPanel === panels.length - 1 || !canAdvance(), children: "Next" }), _jsx("button", { onClick: handleBackToShipSelect, className: "back-to-select", children: "Back to Ship Select" })] }), _jsx("div", { className: "panel-attribution", children: _jsx("p", { children: _jsx("a", { href: "https://www.traveller-srd.com/core-rules/spacecraft-design/", target: "_blank", rel: "noopener noreferrer", children: "Based on the Traveller SRD Spacecraft Design page, as best as I can." }) }) })] }))] }), !showSelectShip && currentPanel >= 1 && (_jsx(MassSidebar, { mass: calculateMass(), cost: calculateCost(), shipDesign: shipDesign, activeRules: activeRules }))] })] }));
 }
 export default App;

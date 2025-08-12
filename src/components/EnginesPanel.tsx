@@ -6,11 +6,12 @@ interface EnginesPanelProps {
   engines: Engine[];
   shipTonnage: number;
   fuelWeeks: number;
+  activeRules: Set<string>;
   onUpdate: (engines: Engine[]) => void;
   onFuelWeeksUpdate: (weeks: number) => void;
 }
 
-const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, fuelWeeks, onUpdate, onFuelWeeksUpdate }) => {
+const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, fuelWeeks, activeRules, onUpdate, onFuelWeeksUpdate }) => {
 
   const getEngine = (type: Engine['engine_type']): Engine => {
     const defaultEngine = engines.find(e => e.engine_type === type);
@@ -146,10 +147,15 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, fuelW
     (!jumpDrive.drive_code || jumpDrive.performance <= powerPlant.performance) &&
     (!maneuverDrive.drive_code || maneuverDrive.performance <= powerPlant.performance);
   
-  // Calculate fuel requirements
+  // Calculate fuel requirements with antimatter consideration
+  const useAntimatter = activeRules.has('antimatter');
   const jumpFuel = jumpDrive.performance > 0 ? calculateJumpFuel(shipTonnage, jumpDrive.performance) : 0;
   const maneuverFuel = maneuverDrive.performance > 0 ? calculateManeuverFuel(shipTonnage, maneuverDrive.performance, fuelWeeks) : 0;
-  const totalFuelMass = jumpFuel + maneuverFuel;
+  
+  // Apply antimatter reduction if active
+  const adjustedJumpFuel = useAntimatter ? jumpFuel * 0.1 : jumpFuel;
+  const adjustedManeuverFuel = useAntimatter ? maneuverFuel * 0.1 : maneuverFuel;
+  const totalFuelMass = adjustedJumpFuel + adjustedManeuverFuel;
   
   // Calculate total engine mass
   const totalEngineMass = engines.reduce((sum, engine) => sum + engine.mass, 0);
@@ -161,7 +167,7 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, fuelW
   
   // Calculate maximum weeks possible given remaining mass
   const maxPossibleWeeks = maneuverDrive.performance > 0 
-    ? Math.floor(2 * (remainingMass - jumpFuel) / (shipTonnage * 0.01 * maneuverDrive.performance))
+    ? Math.floor(2 * (remainingMass - adjustedJumpFuel) / (shipTonnage * 0.01 * maneuverDrive.performance * (useAntimatter ? 0.1 : 1)))
     : 12;
   const effectiveMaxWeeks = Math.min(12, Math.max(2, maxPossibleWeeks));
   
@@ -206,19 +212,26 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, fuelW
           </div>
 
           <div className="fuel-summary">
-            <h4>Fuel Mass Breakdown:</h4>
+            <h4>Fuel Mass Breakdown{useAntimatter ? ' (Antimatter)' : ''}:</h4>
             <table>
               <tbody>
                 <tr>
                   <td>Jump Fuel (per jump):</td>
-                  <td>{jumpFuel.toFixed(1)} tons</td>
-                  <td><small>({jumpDrive.performance > 0 ? `J-${jumpDrive.performance}` : 'No Jump Drive'} × 0.1 × {shipTonnage}t)</small></td>
+                  <td>{adjustedJumpFuel.toFixed(1)} tons</td>
+                  <td><small>({jumpDrive.performance > 0 ? `J-${jumpDrive.performance}` : 'No Jump Drive'} × 0.1 × {shipTonnage}t{useAntimatter ? ' × 0.1 antimatter' : ''})</small></td>
                 </tr>
                 <tr>
                   <td>Maneuver Fuel ({fuelWeeks} weeks):</td>
-                  <td>{maneuverFuel.toFixed(1)} tons</td>
-                  <td><small>({maneuverDrive.performance > 0 ? `M-${maneuverDrive.performance}` : 'No Maneuver Drive'} × 0.01 × {shipTonnage}t × {fuelWeeks/2})</small></td>
+                  <td>{adjustedManeuverFuel.toFixed(1)} tons</td>
+                  <td><small>({maneuverDrive.performance > 0 ? `M-${maneuverDrive.performance}` : 'No Maneuver Drive'} × 0.01 × {shipTonnage}t × {fuelWeeks/2}{useAntimatter ? ' × 0.1 antimatter' : ''})</small></td>
                 </tr>
+                {useAntimatter && (
+                  <tr className="antimatter-savings">
+                    <td><em>Antimatter Fuel Savings:</em></td>
+                    <td><em>{((jumpFuel + maneuverFuel) * 0.9).toFixed(1)} tons saved</em></td>
+                    <td><small><em>90% reduction from standard fuel</em></small></td>
+                  </tr>
+                )}
                 <tr className="total-row">
                   <td><strong>Total Fuel Mass:</strong></td>
                   <td><strong>{totalFuelMass.toFixed(1)} tons</strong></td>
