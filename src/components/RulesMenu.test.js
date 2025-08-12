@@ -1,6 +1,7 @@
 import { jsx as _jsx } from "react/jsx-runtime";
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
+import '@testing-library/jest-dom';
 import RulesMenu from './RulesMenu';
 // Mock ship design factory
 const createMockShipDesign = (techLevel) => ({
@@ -38,8 +39,8 @@ describe('RulesMenu Tech Level Restrictions', () => {
             // Check that both rules are disabled
             const antimatterItem = screen.getByText('Antimatter').closest('button');
             const longerJumpsItem = screen.getByText('Longer Jumps').closest('button');
-            expect(antimatterItem).toHaveClass('disabled');
-            expect(longerJumpsItem).toHaveClass('disabled');
+            expect(antimatterItem?.classList.contains('disabled')).toBe(true);
+            expect(longerJumpsItem?.classList.contains('disabled')).toBe(true);
         });
         it('should disable both Antimatter and Longer Jumps for TL F ship', () => {
             const shipDesign = createMockShipDesign('F');
@@ -47,8 +48,8 @@ describe('RulesMenu Tech Level Restrictions', () => {
             fireEvent.click(screen.getByText('Rules'));
             const antimatterItem = screen.getByText('Antimatter').closest('button');
             const longerJumpsItem = screen.getByText('Longer Jumps').closest('button');
-            expect(antimatterItem).toHaveClass('disabled');
-            expect(longerJumpsItem).toHaveClass('disabled');
+            expect(antimatterItem?.classList.contains('disabled')).toBe(true);
+            expect(longerJumpsItem?.classList.contains('disabled')).toBe(true);
         });
         it('should not allow clicking disabled Antimatter rule for TL F ship', () => {
             const shipDesign = createMockShipDesign('F');
@@ -67,8 +68,8 @@ describe('RulesMenu Tech Level Restrictions', () => {
             fireEvent.click(screen.getByText('Rules'));
             const antimatterItem = screen.getByText('Antimatter').closest('button');
             const longerJumpsItem = screen.getByText('Longer Jumps').closest('button');
-            expect(antimatterItem).toHaveClass('disabled');
-            expect(longerJumpsItem).not.toHaveClass('disabled');
+            expect(antimatterItem?.classList.contains('disabled')).toBe(true);
+            expect(longerJumpsItem?.classList.contains('disabled')).toBe(false);
         });
         it('should allow toggling Longer Jumps for TL G ship', () => {
             const shipDesign = createMockShipDesign('G');
@@ -94,8 +95,8 @@ describe('RulesMenu Tech Level Restrictions', () => {
             fireEvent.click(screen.getByText('Rules'));
             const antimatterItem = screen.getByText('Antimatter').closest('button');
             const longerJumpsItem = screen.getByText('Longer Jumps').closest('button');
-            expect(antimatterItem).not.toHaveClass('disabled');
-            expect(longerJumpsItem).not.toHaveClass('disabled');
+            expect(antimatterItem?.classList.contains('disabled')).toBe(false);
+            expect(longerJumpsItem?.classList.contains('disabled')).toBe(false);
         });
         it('should allow toggling Antimatter for TL H ship', () => {
             const shipDesign = createMockShipDesign('H');
@@ -120,10 +121,10 @@ describe('RulesMenu Tech Level Restrictions', () => {
             render(_jsx(RulesMenu, { shipDesign: shipDesign, onRuleChange: mockOnRuleChange }));
             fireEvent.click(screen.getByText('Rules'));
             const srdItem = screen.getByText('Spacecraft Design SRD').closest('button');
-            expect(srdItem).not.toHaveClass('disabled');
+            expect(srdItem?.classList.contains('disabled')).toBe(false);
             // Should show green checkmark
             const statusIcon = srdItem?.querySelector('.rule-status.enabled');
-            expect(statusIcon).toBeInTheDocument();
+            expect(statusIcon).toBeTruthy();
         });
         it('should not allow disabling Spacecraft Design SRD', () => {
             const shipDesign = createMockShipDesign('H');
@@ -139,7 +140,7 @@ describe('RulesMenu Tech Level Restrictions', () => {
             render(_jsx(RulesMenu, { shipDesign: shipDesign, onRuleChange: mockOnRuleChange }));
             fireEvent.click(screen.getByText('Rules'));
             const capitalShipsItem = screen.getByText('High Guard Capital Ship Design SRD').closest('button');
-            expect(capitalShipsItem).toHaveClass('disabled');
+            expect(capitalShipsItem?.classList.contains('disabled')).toBe(true);
         });
     });
     describe('Tech Level Change Behavior', () => {
@@ -149,13 +150,13 @@ describe('RulesMenu Tech Level Restrictions', () => {
             fireEvent.click(screen.getByText('Rules'));
             // Initially, Antimatter should be disabled for TL G
             let antimatterItem = screen.getByText('Antimatter').closest('button');
-            expect(antimatterItem).toHaveClass('disabled');
+            expect(antimatterItem?.classList.contains('disabled')).toBe(true);
             // Change to TL H
             const newShipDesign = createMockShipDesign('H');
             rerender(_jsx(RulesMenu, { shipDesign: newShipDesign, onRuleChange: mockOnRuleChange }));
             // Now Antimatter should be enabled
             antimatterItem = screen.getByText('Antimatter').closest('button');
-            expect(antimatterItem).not.toHaveClass('disabled');
+            expect(antimatterItem?.classList.contains('disabled')).toBe(false);
         });
         it('should disable rules when tech level drops below requirement', () => {
             const shipDesign = createMockShipDesign('H');
@@ -164,16 +165,16 @@ describe('RulesMenu Tech Level Restrictions', () => {
             // Initially, both should be enabled for TL H
             let antimatterItem = screen.getByText('Antimatter').closest('button');
             let longerJumpsItem = screen.getByText('Longer Jumps').closest('button');
-            expect(antimatterItem).not.toHaveClass('disabled');
-            expect(longerJumpsItem).not.toHaveClass('disabled');
+            expect(antimatterItem?.classList.contains('disabled')).toBe(false);
+            expect(longerJumpsItem?.classList.contains('disabled')).toBe(false);
             // Change to TL F
             const newShipDesign = createMockShipDesign('F');
             rerender(_jsx(RulesMenu, { shipDesign: newShipDesign, onRuleChange: mockOnRuleChange }));
             // Now both should be disabled
             antimatterItem = screen.getByText('Antimatter').closest('button');
             longerJumpsItem = screen.getByText('Longer Jumps').closest('button');
-            expect(antimatterItem).toHaveClass('disabled');
-            expect(longerJumpsItem).toHaveClass('disabled');
+            expect(antimatterItem?.classList.contains('disabled')).toBe(true);
+            expect(longerJumpsItem?.classList.contains('disabled')).toBe(true);
         });
     });
     describe('Visual Indicators', () => {
@@ -183,13 +184,13 @@ describe('RulesMenu Tech Level Restrictions', () => {
             fireEvent.click(screen.getByText('Rules'));
             // Check Spacecraft Design SRD (always enabled)
             const srdIcon = screen.getByText('Spacecraft Design SRD').closest('button')?.querySelector('.rule-status.enabled');
-            expect(srdIcon).toHaveTextContent('✓');
+            expect(srdIcon?.textContent).toBe('✓');
             // Check Antimatter (enabled but not selected)
             const antimatterIcon = screen.getByText('Antimatter').closest('button')?.querySelector('.rule-status.disabled');
-            expect(antimatterIcon).toHaveTextContent('✗');
+            expect(antimatterIcon?.textContent).toBe('✗');
             // Check High Guard Capital Ships (always disabled)
             const capitalShipsIcon = screen.getByText('High Guard Capital Ship Design SRD').closest('button')?.querySelector('.rule-status.disabled');
-            expect(capitalShipsIcon).toHaveTextContent('—');
+            expect(capitalShipsIcon?.textContent).toBe('—');
         });
         it('should show tooltip for tech level restricted rules', () => {
             const shipDesign = createMockShipDesign('G');
@@ -197,7 +198,7 @@ describe('RulesMenu Tech Level Restrictions', () => {
             fireEvent.click(screen.getByText('Rules'));
             // Check that Antimatter has tooltip showing requirement
             const antimatterIcon = screen.getByText('Antimatter').closest('button')?.querySelector('.rule-status.disabled');
-            expect(antimatterIcon).toHaveAttribute('title', 'Requires Tech Level H (current: G)');
+            expect(antimatterIcon?.getAttribute('title')).toBe('Requires Tech Level H (current: G)');
         });
     });
 });

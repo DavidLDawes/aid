@@ -4,8 +4,7 @@ import {
   isTechLevelAtLeast, 
   calculateTotalFuelMass,
   calculateJumpFuel,
-  calculateManeuverFuel,
-  TECH_LEVELS
+  calculateManeuverFuel
 } from './constants';
 
 describe('Tech Level Functions', () => {
