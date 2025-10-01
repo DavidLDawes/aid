@@ -46,7 +46,7 @@ export interface Defense {
 
 export interface Berth {
   id?: number;
-  berth_type: 'staterooms' | 'luxury_staterooms' | 'low_berths' | 'emergency_low_berth';
+  berth_type: 'staterooms' | 'luxury_staterooms' | 'low_berths' | 'emergency_low_berths';
   quantity: number;
   mass: number;
   cost: number;
