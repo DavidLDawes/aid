@@ -20,8 +20,53 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPan
 
   const createDefaultShips = () => {
     // Fallback: create default ships in memory if all loading fails
-    const defaultScout = {
+    const defaultFreeTrader = {
       id: -1, // Temporary ID
+      ship: {
+        name:'Free Trader',
+        tech_level: 'C' as const,
+        tonnage: 400,
+        configuration: 'standard' as const,
+        fuel_weeks: 4,
+        missile_reloads: 0,
+        sand_reloads: 0,
+        description:'Merchant vessel' as const
+      },
+      engines: [
+        {engine_type: 'power_plant' as const, drive_code: 'D', performance: 2, mass: 13, cost: 32},
+        {engine_type: 'jump_drive' as const, drive_code: 'D', performance: 2, mass: 25, cost: 40},
+        {engine_type: 'maneuver_drive' as const, drive_code: 'D', performance: 2, mass: 7, cost: 16}
+      ],
+      fittings: [
+        {fitting_type: 'bridge' as const, mass: 10, cost: 2},
+        {fitting_type:'comms_sensors' as const, comms_sensors_type:'basic_civilian' as const, mass: 1, cost: 0.05}
+      ],
+      weapons: [
+        {weapon_name: 'Hard Point' as const, mass: 1, cost: 1, quantity: 4}
+      ],
+      defenses: [],
+      berths: [
+        {berth_type:'staterooms' as const, quantity: 24, mass: 4, cost:0.5},
+        {berth_type:'low_berths' as const, quantity:4, mass:0.5, cost:0.05}
+      ],
+      facilities: [
+        {facility_type:'commissary' as const, quantity: 1, mass: 2, cost: 0.2}
+      ],
+      cargo: [
+        {cargo_type: 'cargo_bay' as const, tonnage:132, cost:0},
+        {cargo_type: 'spares' as const, tonnage: 4,'cost':2},{cargo_type:'cold_storage_bay', tonnage: 2, cost: 0.4},
+        {cargo_type:'secure_storage_bay', tonnage: 1, cost: 0.7}
+      ],
+      vehicles: [
+        {vehicle_type:'air_raft_truck', quantity:1, mass: 5, cost: 0.55}
+      ],
+      drones: [],
+      createdAt:'2025-08-09T18:46:24.985Z',
+      updatedAt:'2025-08-09T18:46:24.985Z'
+    }
+
+    const defaultScout = {
+      id: -2, // Temporary ID
       ship: {
         name: 'Scout',
         tech_level: 'E' as const,
@@ -50,41 +95,53 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPan
       drones: [],
       createdAt: new Date(),
       updatedAt: new Date()
-    };
+    }
 
-    const defaultTrader = {
-      id: -2, // Temporary ID
-      ship: {
-        name: 'Free Trader',
-        tech_level: 'B' as const,
-        tonnage: 200,
-        configuration: 'standard' as const,
-        fuel_weeks: 2,
-        missile_reloads: 0,
-        sand_reloads: 0,
-        description: 'Merchant vessel'
-      },
-      engines: [
-        { engine_type: 'power_plant' as const, drive_code: 'A', performance: 1, mass: 4, cost: 8 },
-        { engine_type: 'jump_drive' as const, drive_code: 'A', performance: 1, mass: 10, cost: 20 },
-        { engine_type: 'maneuver_drive' as const, drive_code: 'A', performance: 1, mass: 2, cost: 4 }
+    const defaultFatTrader = {
+      id: -3, // Temporary ID
+      ship: {name: "Fat Trader", tech_level: "C", tonnage: 600, configuration:"standard" as const, fuel_weeks: 4,
+        missile_reloads: 0, sand_reloads: 0, description:"A larger merchant vessel"},
+      engines:[
+        {engine_type: "power_plant" as const, drive_code: "D", performance:2, mass: 13, cost: 32},
+        {engine_type: "jump_drive" as const, drive_code: "D", performance: 2, mass: 25, cost: 40},
+        {engine_type: "maneuver_drive" as const, drive_code: "D", performance: 2, mass: 7, cost: 16}
       ],
       fittings: [
-        { fitting_type: 'bridge' as const, mass: 10, cost: 2 },
-        { fitting_type: 'comms_sensors' as const, comms_sensors_type: 'standard' as const, mass: 0, cost: 0 }
+        {fitting_type: "bridge", mass: 10, cost: 2},
+        {fitting_type: "comms_sensors", comms_sensors_type: "basic_civilian", mass: 1, cost: 0.05}
       ],
-      weapons: [],
+      weapons: [
+        {weapon_name: "Hard Point", mass: 1, cost: 1, quantity:6}
+      ],
       defenses: [],
-      berths: [{ berth_type: 'staterooms' as const, quantity: 5, mass: 4, cost: 1 }],
-      facilities: [],
-      cargo: [{ cargo_type: 'cargo_bay' as const, tonnage: 132, cost: 0 }],
-      vehicles: [],
+      berths: [
+        {berth_type: "staterooms", quantity: 48, mass: 4, cost: 0.5},
+        {berth_type: "low_berths", quantity: 5, mass: 0.5, cost: 0.05}
+      ],
+      facilities:[
+        {facility_type: "commissary", quantity: 1, mass: 2, cost: 0.2},
+        {facility_type: "gym", quantity: 1, mass: 3, cost: 0.1},
+        {facility_type: "first_aid_station", quantity: 1, mass: 0.5, cost: 0.1},
+        {facility_type: "autodoc", quantity: 1, mass: 1.5, cost: 0.05},
+        {facility_type: "spa", quantity: 1, mass: 1.5, cost: 0.2},
+        {facility_type: "library", quantity: 1, mass:1, cost: 0.1},
+        {facility_type: "shrine", quantity: 1, mass: 1, cost: 1}
+      ],
+      cargo: [
+        {cargo_type: "cargo_bay", tonnage: 175, cost: 0},
+        {cargo_type: "spares", tonnage: 6, cost: 3},
+        {cargo_type: "cold_storage_bay", tonnage: 2, cost: 0.4},
+        {cargo_type: "secure_storage_bay", tonnage: 1, cost:0.7}
+      ],
+      vehicles: [
+        {vehicle_type: "air_raft_truck", quantity: 1, mass: 5, cost: 0.55}
+      ],
       drones: [],
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-
-    return [defaultScout, defaultTrader];
+      createdAt: "2025-08-11T03:12:05.913Z",
+      updatedAt: "2025-08-11T03:12:05.913Z"
+    }
+    
+    return [defaultScout, defaultFreeTrader, defaultFatTrader];
   };
 
   const loadShips = async () => {
