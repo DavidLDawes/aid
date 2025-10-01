@@ -166,7 +166,7 @@ For reference and historical documentation, the complete performance table used 
 # DB
 Using innodb-like fake-indexeddb to handle indexing for shop names being exclusive, result is there's not really any SQL, just local files, which is actually kinda cool.
 
-On startup if there are no Ships defined in the DB then the contents of publicinitial-ships.json are read into the DB.
+On startup if there are no Ships defined in the DB then the contents of public/initial-ships.json are read into the DB.
 
 Adddedd a few npm scripts to twiddle with the DB:
 * npm run extractDB - copies ships from the DB to file(s)
