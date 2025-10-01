@@ -436,7 +436,7 @@ export const BERTH_TYPES = [
   { name: 'Staterooms', type: 'staterooms', mass: 4, cost: 0.5, required: true },
   { name: 'Luxury Staterooms', type: 'luxury_staterooms', mass: 5, cost: 0.6, required: false },
   { name: 'Low Berths', type: 'low_berths', mass: 0.5, cost: 0.05, required: false },
-  { name: 'Emergency Low', type: 'emergency_low_berth', mass: 1, cost: 1, required: false }
+  { name: 'Emergency Low', type: 'emergency_low_berths', mass: 1, cost: 1, required: false }
 ];
 
 export const FACILITY_TYPES = [
