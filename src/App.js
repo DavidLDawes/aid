@@ -322,13 +322,23 @@ function App() {
             const totalEnginesWeight = shipDesign.engines.reduce((sum, engine) => sum + engine.mass, 0);
             engineers = Math.ceil(totalEnginesWeight / 100);
         }
-        // Gunners: 1 per weapon/turret mount, +10 for spinal weapon
-        const weaponCount = shipDesign.weapons
+        // Gunners: 1 per 10 instances of same weapon type (turrets/barbettes), +10 for spinal weapon
+        // Calculate gunners for each weapon type (excluding Hard Points)
+        let turretsAndBarbettesGunners = 0;
+        shipDesign.weapons
             .filter(weapon => weapon.weapon_name !== 'Hard Point')
-            .reduce((sum, weapon) => sum + weapon.quantity, 0);
-        const defenseCount = shipDesign.defenses.reduce((sum, defense) => sum + defense.quantity, 0);
+            .forEach(weapon => {
+            // 1 gunner per 10 weapons, rounded up
+            turretsAndBarbettesGunners += Math.ceil(weapon.quantity / 10);
+        });
+        // Calculate gunners for each defense type
+        let defenseGunners = 0;
+        shipDesign.defenses.forEach(defense => {
+            // 1 gunner per 10 defense turrets, rounded up
+            defenseGunners += Math.ceil(defense.quantity / 10);
+        });
         const spinalWeaponGunners = shipDesign.ship.spinal_weapon ? 10 : 0;
-        const gunners = weaponCount + defenseCount + spinalWeaponGunners;
+        const gunners = turretsAndBarbettesGunners + defenseGunners + spinalWeaponGunners;
         // Service staff: for vehicle and drone maintenance
         const vehicleService = calculateVehicleServiceStaff(shipDesign.vehicles);
         const droneService = calculateDroneServiceStaff(shipDesign.drones);
