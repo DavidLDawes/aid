@@ -26,7 +26,7 @@ function App() {
     const [noStewards, setNoStewards] = useState(false);
     const [activeRules, setActiveRules] = useState(new Set(['spacecraft_design_srd']));
     const [shipDesign, setShipDesign] = useState({
-        ship: { name: '', tech_level: 'A', tonnage: 100, configuration: 'standard', fuel_weeks: 2, missile_reloads: 0, sand_reloads: 0, description: '' },
+        ship: { name: '', tech_level: 'A', tonnage: 5000, configuration: 'standard', fuel_weeks: 2, missile_reloads: 0, sand_reloads: 0, description: '' },
         engines: [],
         fittings: [
             {
@@ -411,7 +411,7 @@ function App() {
             case 0:
                 return _jsx(ShipPanel, { ship: shipDesign.ship, onUpdate: (ship) => updateShipDesign({ ship }), onLoadExistingShip: (loadedShipDesign) => setShipDesign(loadedShipDesign) });
             case 1:
-                return _jsx(EnginesPanel, { engines: shipDesign.engines, shipTonnage: shipDesign.ship.tonnage, fuelWeeks: shipDesign.ship.fuel_weeks, activeRules: activeRules, onUpdate: (engines) => updateShipDesign({ engines }), onFuelWeeksUpdate: (fuel_weeks) => updateShipDesign({ ship: { ...shipDesign.ship, fuel_weeks } }) });
+                return _jsx(EnginesPanel, { engines: shipDesign.engines, shipTonnage: shipDesign.ship.tonnage, shipTechLevel: shipDesign.ship.tech_level, fuelWeeks: shipDesign.ship.fuel_weeks, activeRules: activeRules, onUpdate: (engines) => updateShipDesign({ engines }), onFuelWeeksUpdate: (fuel_weeks) => updateShipDesign({ ship: { ...shipDesign.ship, fuel_weeks } }) });
             case 2:
                 return _jsx(FittingsPanel, { fittings: shipDesign.fittings, shipTonnage: shipDesign.ship.tonnage, onUpdate: (fittings) => updateShipDesign({ fittings }) });
             case 3:
