@@ -111,7 +111,9 @@ function App() {
         const cost = calculateCost();
         const staff = calculateStaffRequirements();
         const tonnageCode = getTonnageCode(shipDesign.ship.tonnage);
-        const shipTitle = `${shipDesign.ship.name}, ${shipDesign.ship.configuration} configuration, ${shipDesign.ship.tonnage.toLocaleString()} tons${tonnageCode ? ` (${tonnageCode})` : ''}, Tech Level ${shipDesign.ship.tech_level}`;
+        const sections = getNumberOfSections(shipDesign.ship.tonnage);
+        const hullInfo = tonnageCode && sections ? ` (hull code ${tonnageCode}, ${sections} sections)` : tonnageCode ? ` (${tonnageCode})` : '';
+        const shipTitle = `${shipDesign.ship.name}, ${shipDesign.ship.configuration} configuration, ${shipDesign.ship.tonnage.toLocaleString()} tons${hullInfo}, Tech Level ${shipDesign.ship.tech_level}`;
         // Generate print content using similar logic to SummaryPanel
         const printContent = generatePrintContent(shipTitle, mass, cost, staff);
         printWindow.document.write(printContent);

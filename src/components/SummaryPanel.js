@@ -1,6 +1,6 @@
 import { jsxs as _jsxs, jsx as _jsx, Fragment as _Fragment } from "react/jsx-runtime";
 import { useState, useEffect } from 'react';
-import { COMMS_SENSORS_TYPES, DEFENSE_TYPES, FACILITY_TYPES, CARGO_TYPES, VEHICLE_TYPES, DRONE_TYPES, BERTH_TYPES, getTonnageCode } from '../data/constants';
+import { COMMS_SENSORS_TYPES, DEFENSE_TYPES, FACILITY_TYPES, CARGO_TYPES, VEHICLE_TYPES, DRONE_TYPES, BERTH_TYPES, getTonnageCode, getNumberOfSections } from '../data/constants';
 import { databaseService } from '../services/database';
 const SummaryPanel = ({ shipDesign, mass, cost, staff, combinePilotNavigator, noStewards, onBackToShipSelect }) => {
     const [saving, setSaving] = useState(false);
@@ -70,7 +70,9 @@ const SummaryPanel = ({ shipDesign, mass, cost, staff, combinePilotNavigator, no
         const lines = [];
         // First line: ship info from the title line
         const tonnageCode = getTonnageCode(shipDesign.ship.tonnage);
-        const shipInfoLine = `${shipDesign.ship.name}, ${shipDesign.ship.configuration} configuration, ${shipDesign.ship.tonnage} tons${tonnageCode ? ` (${tonnageCode})` : ''}, Tech Level ${shipDesign.ship.tech_level}`;
+        const sections = getNumberOfSections(shipDesign.ship.tonnage);
+        const hullInfo = tonnageCode && sections ? ` (hull code ${tonnageCode}, ${sections} sections)` : tonnageCode ? ` (${tonnageCode})` : '';
+        const shipInfoLine = `${shipDesign.ship.name}, ${shipDesign.ship.configuration} configuration, ${shipDesign.ship.tonnage} tons${hullInfo}, Tech Level ${shipDesign.ship.tech_level}`;
         lines.push(shipInfoLine);
         // Second line: CSV headers
         lines.push('Category,Item,Mass,Cost');
@@ -259,7 +261,9 @@ const SummaryPanel = ({ shipDesign, mass, cost, staff, combinePilotNavigator, no
         if (!printWindow)
             return;
         const tonnageCode = getTonnageCode(shipDesign.ship.tonnage);
-        const shipTitle = `${shipDesign.ship.name}, ${shipDesign.ship.configuration} configuration, ${shipDesign.ship.tonnage} tons${tonnageCode ? ` (${tonnageCode})` : ''}, Tech Level ${shipDesign.ship.tech_level}`;
+        const sections = getNumberOfSections(shipDesign.ship.tonnage);
+        const hullInfo = tonnageCode && sections ? ` (hull code ${tonnageCode}, ${sections} sections)` : tonnageCode ? ` (${tonnageCode})` : '';
+        const shipTitle = `${shipDesign.ship.name}, ${shipDesign.ship.configuration} configuration, ${shipDesign.ship.tonnage} tons${hullInfo}, Tech Level ${shipDesign.ship.tech_level}`;
         // Generate the same table structure as displayed
         const printContent = `
       <!DOCTYPE html>
@@ -450,7 +454,11 @@ const SummaryPanel = ({ shipDesign, mass, cost, staff, combinePilotNavigator, no
         };
     }, [shipDesign, mass, cost]);
     const tonnageCodeDisplay = getTonnageCode(shipDesign.ship.tonnage);
-    return (_jsxs("div", { className: "panel-content", children: [_jsx("div", { className: "ship-title-line", children: _jsxs("h3", { children: [shipDesign.ship.name, ", ", shipDesign.ship.configuration, " configuration, ", shipDesign.ship.tonnage.toLocaleString(), " tons", tonnageCodeDisplay ? ` (${tonnageCodeDisplay})` : '', ", Tech Level ", shipDesign.ship.tech_level] }) }), _jsx("div", { className: "ship-components-table", children: _jsxs("table", { children: [_jsx("thead", { children: _jsxs("tr", { children: [_jsx("th", { children: "Category" }), _jsx("th", { children: "Item" }), _jsx("th", { children: "Mass" }), _jsx("th", { children: "Cost" })] }) }), _jsxs("tbody", { children: [(() => {
+    const sectionsDisplay = getNumberOfSections(shipDesign.ship.tonnage);
+    const hullInfoDisplay = tonnageCodeDisplay && sectionsDisplay
+        ? ` (hull code ${tonnageCodeDisplay}, ${sectionsDisplay} sections)`
+        : tonnageCodeDisplay ? ` (${tonnageCodeDisplay})` : '';
+    return (_jsxs("div", { className: "panel-content", children: [_jsx("div", { className: "ship-title-line", children: _jsxs("h3", { children: [shipDesign.ship.name, ", ", shipDesign.ship.configuration, " configuration, ", shipDesign.ship.tonnage.toLocaleString(), " tons", hullInfoDisplay, ", Tech Level ", shipDesign.ship.tech_level] }) }), _jsx("div", { className: "ship-components-table", children: _jsxs("table", { children: [_jsx("thead", { children: _jsxs("tr", { children: [_jsx("th", { children: "Category" }), _jsx("th", { children: "Item" }), _jsx("th", { children: "Mass" }), _jsx("th", { children: "Cost" })] }) }), _jsxs("tbody", { children: [(() => {
                                     // Filter out M-0 maneuver drives and create engine rows
                                     const validEngines = shipDesign.engines.filter(engine => !(engine.engine_type === 'maneuver_drive' && engine.performance === 0));
                                     return validEngines.map((engine, index) => {
