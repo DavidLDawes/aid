@@ -1,17 +1,32 @@
 import React from 'react';
-import type { Weapon } from '../types/ship';
-import { WEAPON_TYPES, getWeaponMountLimit } from '../data/constants';
+import type { Weapon, Engine } from '../types/ship';
+import { WEAPON_TYPES, getWeaponMountLimit, getAvailableSpinalWeapons } from '../data/constants';
 
 interface WeaponsPanelProps {
   weapons: Weapon[];
   shipTonnage: number;
+  shipTechLevel: string;
+  engines: Engine[];
+  spinalWeapon: string | undefined;
   missileReloads: number;
   remainingMass: number;
   onUpdate: (weapons: Weapon[]) => void;
+  onSpinalWeaponUpdate: (spinalWeapon: string | undefined) => void;
   onMissileReloadsUpdate: (reloads: number) => void;
 }
 
-const WeaponsPanel: React.FC<WeaponsPanelProps> = ({ weapons, shipTonnage, missileReloads, remainingMass, onUpdate, onMissileReloadsUpdate }) => {
+const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
+  weapons,
+  shipTonnage,
+  shipTechLevel,
+  engines,
+  spinalWeapon,
+  missileReloads,
+  remainingMass,
+  onUpdate,
+  onSpinalWeaponUpdate,
+  onMissileReloadsUpdate
+}) => {
   const mountLimit = getWeaponMountLimit(shipTonnage);
   const usedMounts = weapons.reduce((sum, weapon) => sum + weapon.quantity, 0);
   
@@ -247,6 +262,58 @@ const WeaponsPanel: React.FC<WeaponsPanelProps> = ({ weapons, shipTonnage, missi
             );
           })}
         </div>
+      </div>
+
+      <div className="spinal-weapon-section">
+        <h3>Spinal Weapon</h3>
+        {(() => {
+          const powerPlant = engines.find(e => e.engine_type === 'power_plant');
+          const powerPlantPerformance = powerPlant?.performance || 0;
+          const availableSpinalWeapons = getAvailableSpinalWeapons(shipTechLevel, powerPlantPerformance);
+
+          if (powerPlantPerformance < 2) {
+            return <p className="info-message">Spinal weapons require a Power Plant with P-2 or higher performance.</p>;
+          }
+
+          if (availableSpinalWeapons.length === 0) {
+            return <p className="info-message">No spinal weapons available at Tech Level {shipTechLevel} with P-{powerPlantPerformance} power plant.</p>;
+          }
+
+          return (
+            <>
+              <p>Select a spinal weapon for your ship. Only one spinal weapon can be installed.</p>
+              <div className="form-group">
+                <label htmlFor="spinal-weapon">Spinal Weapon Selection</label>
+                <select
+                  id="spinal-weapon"
+                  value={spinalWeapon || ''}
+                  onChange={(e) => onSpinalWeaponUpdate(e.target.value || undefined)}
+                >
+                  <option value="">None</option>
+                  {availableSpinalWeapons.map(weapon => (
+                    <option key={weapon.name} value={weapon.name}>
+                      {weapon.name} - {weapon.mass.toLocaleString()}t, Damage {weapon.damage}, {weapon.cost.toLocaleString()} MCr{weapon.tlBonus ? ` (${weapon.tlBonus})` : ''}
+                    </option>
+                  ))}
+                </select>
+                {spinalWeapon && (() => {
+                  const selectedWeapon = availableSpinalWeapons.find(w => w.name === spinalWeapon);
+                  if (selectedWeapon) {
+                    return (
+                      <small>
+                        Mass: {selectedWeapon.mass.toLocaleString()} tons,
+                        Damage: {selectedWeapon.damage},
+                        Cost: {selectedWeapon.cost.toLocaleString()} MCr
+                        {selectedWeapon.tlBonus && <span> ({selectedWeapon.tlBonus} bonus applied)</span>}
+                      </small>
+                    );
+                  }
+                  return null;
+                })()}
+              </div>
+            </>
+          );
+        })()}
       </div>
 
       {hasMissileLaunchers && (

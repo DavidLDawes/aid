@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { ShipDesign, MassCalculation, CostCalculation, StaffRequirements } from './types/ship';
-import { calculateTotalFuelMass, calculateVehicleServiceStaff, calculateDroneServiceStaff, calculateMedicalStaff, WEAPON_TYPES } from './data/constants';
+import { calculateTotalFuelMass, calculateVehicleServiceStaff, calculateDroneServiceStaff, calculateMedicalStaff, WEAPON_TYPES, getTonnageCode, getAvailableSpinalWeapons } from './data/constants';
 import { databaseService } from './services/database';
 import SelectShipPanel from './components/SelectShipPanel';
 import ShipPanel from './components/ShipPanel';
@@ -117,7 +117,8 @@ function App() {
     const mass = calculateMass();
     const cost = calculateCost();
     const staff = calculateStaffRequirements();
-    const shipTitle = `${shipDesign.ship.name}, ${shipDesign.ship.configuration} configuration, ${shipDesign.ship.tonnage} tons, Tech Level ${shipDesign.ship.tech_level}`;
+    const tonnageCode = getTonnageCode(shipDesign.ship.tonnage);
+    const shipTitle = `${shipDesign.ship.name}, ${shipDesign.ship.configuration} configuration, ${shipDesign.ship.tonnage.toLocaleString()} tons${tonnageCode ? ` (${tonnageCode})` : ''}, Tech Level ${shipDesign.ship.tech_level}`;
     
     // Generate print content using similar logic to SummaryPanel
     const printContent = generatePrintContent(shipTitle, mass, cost, staff);
@@ -252,6 +253,23 @@ function App() {
     // Add sand reload mass
     used += shipDesign.ship.sand_reloads;
 
+    // Add armor mass
+    if (shipDesign.ship.armor_percentage) {
+      const armorMass = (shipDesign.ship.tonnage * shipDesign.ship.armor_percentage) / 100;
+      used += armorMass;
+    }
+
+    // Add spinal weapon mass (with TL adjustments)
+    if (shipDesign.ship.spinal_weapon) {
+      const powerPlant = shipDesign.engines.find(e => e.engine_type === 'power_plant');
+      const powerPlantPerformance = powerPlant?.performance || 0;
+      const availableSpinalWeapons = getAvailableSpinalWeapons(shipDesign.ship.tech_level, powerPlantPerformance);
+      const spinalWeaponData = availableSpinalWeapons.find(w => w.name === shipDesign.ship.spinal_weapon);
+      if (spinalWeaponData) {
+        used += spinalWeaponData.mass;
+      }
+    }
+
     const total = shipDesign.ship.tonnage;
     const remaining = total - used;
     
@@ -298,6 +316,23 @@ function App() {
 
     // Add sand reload costs (0.1 MCr per ton)
     total += shipDesign.ship.sand_reloads * 0.1;
+
+    // Add armor costs (0.1 MCr per ton)
+    if (shipDesign.ship.armor_percentage) {
+      const armorMass = (shipDesign.ship.tonnage * shipDesign.ship.armor_percentage) / 100;
+      total += armorMass * 0.1;
+    }
+
+    // Add spinal weapon cost (with TL adjustments)
+    if (shipDesign.ship.spinal_weapon) {
+      const powerPlant = shipDesign.engines.find(e => e.engine_type === 'power_plant');
+      const powerPlantPerformance = powerPlant?.performance || 0;
+      const availableSpinalWeapons = getAvailableSpinalWeapons(shipDesign.ship.tech_level, powerPlantPerformance);
+      const spinalWeaponData = availableSpinalWeapons.find(w => w.name === shipDesign.ship.spinal_weapon);
+      if (spinalWeaponData) {
+        total += spinalWeaponData.cost;
+      }
+    }
 
     return { total };
   };
@@ -496,23 +531,30 @@ function App() {
       case 2:
         return <FittingsPanel fittings={shipDesign.fittings} shipTonnage={shipDesign.ship.tonnage} onUpdate={(fittings) => updateShipDesign({ fittings })} />;
       case 3:
-        return <WeaponsPanel 
-          weapons={shipDesign.weapons} 
-          shipTonnage={shipDesign.ship.tonnage} 
+        return <WeaponsPanel
+          weapons={shipDesign.weapons}
+          shipTonnage={shipDesign.ship.tonnage}
+          shipTechLevel={shipDesign.ship.tech_level}
+          engines={shipDesign.engines}
+          spinalWeapon={shipDesign.ship.spinal_weapon}
           missileReloads={shipDesign.ship.missile_reloads}
           remainingMass={mass.remaining + shipDesign.ship.missile_reloads}
-          onUpdate={(weapons) => updateShipDesign({ weapons })} 
+          onUpdate={(weapons) => updateShipDesign({ weapons })}
+          onSpinalWeaponUpdate={(spinal_weapon) => updateShipDesign({ ship: { ...shipDesign.ship, spinal_weapon } })}
           onMissileReloadsUpdate={(missile_reloads) => updateShipDesign({ ship: { ...shipDesign.ship, missile_reloads } })}
         />;
       case 4:
-        return <DefensesPanel 
-          defenses={shipDesign.defenses} 
-          shipTonnage={shipDesign.ship.tonnage} 
+        return <DefensesPanel
+          defenses={shipDesign.defenses}
+          shipTonnage={shipDesign.ship.tonnage}
+          shipTechLevel={shipDesign.ship.tech_level}
           weaponsCount={shipDesign.weapons.reduce((sum, weapon) => sum + weapon.quantity, 0)}
           sandReloads={shipDesign.ship.sand_reloads}
+          armorPercentage={shipDesign.ship.armor_percentage || 0}
           remainingMass={mass.remaining + shipDesign.ship.sand_reloads}
-          onUpdate={(defenses) => updateShipDesign({ defenses })} 
+          onUpdate={(defenses) => updateShipDesign({ defenses })}
           onSandReloadsUpdate={(sand_reloads) => updateShipDesign({ ship: { ...shipDesign.ship, sand_reloads } })}
+          onArmorUpdate={(armor_percentage) => updateShipDesign({ ship: { ...shipDesign.ship, armor_percentage } })}
         />;
       case 5:
         return <FacilitiesPanel facilities={shipDesign.facilities} onUpdate={(facilities) => updateShipDesign({ facilities })} />;

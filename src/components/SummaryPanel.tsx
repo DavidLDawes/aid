@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { ShipDesign, MassCalculation, CostCalculation, StaffRequirements } from '../types/ship';
-import { COMMS_SENSORS_TYPES, DEFENSE_TYPES, FACILITY_TYPES, CARGO_TYPES, VEHICLE_TYPES, DRONE_TYPES, BERTH_TYPES } from '../data/constants';
+import { COMMS_SENSORS_TYPES, DEFENSE_TYPES, FACILITY_TYPES, CARGO_TYPES, VEHICLE_TYPES, DRONE_TYPES, BERTH_TYPES, getTonnageCode } from '../data/constants';
 import { databaseService } from '../services/database';
 
 interface SummaryPanelProps {
@@ -83,7 +83,8 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
     const lines: string[] = [];
     
     // First line: ship info from the title line
-    const shipInfoLine = `${shipDesign.ship.name}, ${shipDesign.ship.configuration} configuration, ${shipDesign.ship.tonnage} tons, Tech Level ${shipDesign.ship.tech_level}`;
+    const tonnageCode = getTonnageCode(shipDesign.ship.tonnage);
+    const shipInfoLine = `${shipDesign.ship.name}, ${shipDesign.ship.configuration} configuration, ${shipDesign.ship.tonnage} tons${tonnageCode ? ` (${tonnageCode})` : ''}, Tech Level ${shipDesign.ship.tech_level}`;
     lines.push(shipInfoLine);
     
     // Second line: CSV headers
@@ -300,7 +301,8 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
-    const shipTitle = `${shipDesign.ship.name}, ${shipDesign.ship.configuration} configuration, ${shipDesign.ship.tonnage} tons, Tech Level ${shipDesign.ship.tech_level}`;
+    const tonnageCode = getTonnageCode(shipDesign.ship.tonnage);
+    const shipTitle = `${shipDesign.ship.name}, ${shipDesign.ship.configuration} configuration, ${shipDesign.ship.tonnage} tons${tonnageCode ? ` (${tonnageCode})` : ''}, Tech Level ${shipDesign.ship.tech_level}`;
     
     // Generate the same table structure as displayed
     const printContent = `
@@ -581,10 +583,12 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
     };
   }, [shipDesign, mass, cost]);
 
+  const tonnageCodeDisplay = getTonnageCode(shipDesign.ship.tonnage);
+
   return (
     <div className="panel-content">
       <div className="ship-title-line">
-        <h3>{shipDesign.ship.name}, {shipDesign.ship.configuration} configuration, {shipDesign.ship.tonnage} tons, Tech Level {shipDesign.ship.tech_level}</h3>
+        <h3>{shipDesign.ship.name}, {shipDesign.ship.configuration} configuration, {shipDesign.ship.tonnage.toLocaleString()} tons{tonnageCodeDisplay ? ` (${tonnageCodeDisplay})` : ''}, Tech Level {shipDesign.ship.tech_level}</h3>
       </div>
 
       <div className="ship-components-table">

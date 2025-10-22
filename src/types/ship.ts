@@ -7,6 +7,8 @@ export interface Ship {
   fuel_weeks: number;
   missile_reloads: number;
   sand_reloads: number;
+  armor_percentage?: number;
+  spinal_weapon?: string; // Name of the spinal weapon (e.g., "Particle Spinal Mount A")
   description?: string;
 }
 

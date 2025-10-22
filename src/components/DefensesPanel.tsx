@@ -1,18 +1,32 @@
 import React from 'react';
 import type { Defense } from '../types/ship';
-import { DEFENSE_TYPES, getWeaponMountLimit } from '../data/constants';
+import { DEFENSE_TYPES, getWeaponMountLimit, getAvailableArmorOptions, calculateArmorMass, calculateArmorCost, getArmorFactorPerIncrement } from '../data/constants';
 
 interface DefensesPanelProps {
   defenses: Defense[];
   shipTonnage: number;
+  shipTechLevel: string;
   weaponsCount: number;
   sandReloads: number;
+  armorPercentage: number;
   remainingMass: number;
   onUpdate: (defenses: Defense[]) => void;
   onSandReloadsUpdate: (reloads: number) => void;
+  onArmorUpdate: (percentage: number) => void;
 }
 
-const DefensesPanel: React.FC<DefensesPanelProps> = ({ defenses, shipTonnage, weaponsCount, sandReloads, remainingMass, onUpdate, onSandReloadsUpdate }) => {
+const DefensesPanel: React.FC<DefensesPanelProps> = ({
+  defenses,
+  shipTonnage,
+  shipTechLevel,
+  weaponsCount,
+  sandReloads,
+  armorPercentage,
+  remainingMass,
+  onUpdate,
+  onSandReloadsUpdate,
+  onArmorUpdate
+}) => {
   const maxMountLimit = getWeaponMountLimit(shipTonnage);
   const currentTurretCount = defenses.reduce((sum, defense) => sum + defense.quantity, 0);
   const availableSlots = maxMountLimit - weaponsCount - currentTurretCount;
@@ -126,6 +140,35 @@ const DefensesPanel: React.FC<DefensesPanelProps> = ({ defenses, shipTonnage, we
         </div>
       </div>
 
+      <div className="armor-section">
+        <h3>Armor</h3>
+        <p>
+          Tech Level {shipTechLevel} armor provides AF-{getArmorFactorPerIncrement(shipTechLevel)} per 5% of ship tonnage.
+          {getArmorFactorPerIncrement(shipTechLevel) === 4 ? ' (Crystaliron)' : ' (Advanced Armor)'}
+        </p>
+        <div className="form-group">
+          <label htmlFor="armor-percentage">Armor Coverage</label>
+          <select
+            id="armor-percentage"
+            value={armorPercentage || 0}
+            onChange={(e) => onArmorUpdate(parseInt(e.target.value))}
+          >
+            <option value="0">No Armor (AF-0)</option>
+            {getAvailableArmorOptions(shipTechLevel).map(option => (
+              <option key={option.percentage} value={option.percentage}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          {armorPercentage > 0 && (
+            <small>
+              Mass: {calculateArmorMass(shipTonnage, armorPercentage).toFixed(1)} tons,
+              Cost: {calculateArmorCost(calculateArmorMass(shipTonnage, armorPercentage)).toFixed(2)} MCr
+            </small>
+          )}
+        </div>
+      </div>
+
       {hasSandcasters && (
         <div className="sand-reloads-section">
           <h3>Sand Reloads</h3>
@@ -141,11 +184,11 @@ const DefensesPanel: React.FC<DefensesPanelProps> = ({ defenses, shipTonnage, we
               onChange={(e) => onSandReloadsUpdate(Math.max(0, parseInt(e.target.value) || 0))}
             />
             <small>
-              0 - {maxSandReloads + sandReloads} tons available. 
+              0 - {maxSandReloads + sandReloads} tons available.
               Cost: {(sandReloads * 0.1).toFixed(1)} MCr (0.1 MCr per ton)
             </small>
           </div>
-          
+
           {sandReloads > 0 && (
             <div className="sand-summary">
               <p><strong>Sand Reloads:</strong> {sandReloads} tons ({(sandReloads * 0.1).toFixed(1)} MCr)</p>

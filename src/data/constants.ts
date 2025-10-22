@@ -30,6 +30,52 @@ export function getMaxJumpByTechLevel(techLevel: string): number {
   return Math.min(maxJump, 6);
 }
 
+// Tonnage code table for capital ships (3,000+ tons)
+export const TONNAGE_CODES = [
+  { minTonnage: 3000, code: 'CA' },
+  { minTonnage: 4000, code: 'CB' },
+  { minTonnage: 5000, code: 'CC' },
+  { minTonnage: 6000, code: 'CD' },
+  { minTonnage: 7500, code: 'CE' },
+  { minTonnage: 10000, code: 'CF' },
+  { minTonnage: 15000, code: 'CG' },
+  { minTonnage: 20000, code: 'CH' },
+  { minTonnage: 25000, code: 'CJ' },
+  { minTonnage: 30000, code: 'CK' },
+  { minTonnage: 40000, code: 'CL' },
+  { minTonnage: 50000, code: 'CM' },
+  { minTonnage: 60000, code: 'CN' },
+  { minTonnage: 75000, code: 'CP' },
+  { minTonnage: 100000, code: 'CQ' },
+  { minTonnage: 200000, code: 'CR' },
+  { minTonnage: 300000, code: 'CS' },
+  { minTonnage: 400000, code: 'CT' },
+  { minTonnage: 500000, code: 'CU' },
+  { minTonnage: 600000, code: 'CV' },
+  { minTonnage: 700000, code: 'CW' },
+  { minTonnage: 800000, code: 'CX' },
+  { minTonnage: 900000, code: 'CY' },
+  { minTonnage: 1000000, code: 'CZ' }
+];
+
+// Get tonnage code based on ship tonnage
+export function getTonnageCode(tonnage: number): string | null {
+  // Ships under 3,000 tons don't have a tonnage code
+  if (tonnage < 3000) {
+    return null;
+  }
+
+  // Find the highest threshold that the ship meets
+  // Iterate in reverse to find the largest matching code
+  for (let i = TONNAGE_CODES.length - 1; i >= 0; i--) {
+    if (tonnage >= TONNAGE_CODES[i].minTonnage) {
+      return TONNAGE_CODES[i].code;
+    }
+  }
+
+  return null;
+}
+
 // Generate hull sizes as multiples of 100 from 100 to 1,000,000
 export const HULL_SIZES = Array.from({ length: 10000 }, (_, i) => {
   const tonnage = (i + 1) * 100;
@@ -147,9 +193,58 @@ export function calculateTotalFuelMass(shipTonnage: number, jumpPerformance: num
   const jumpFuel = calculateJumpFuel(shipTonnage, jumpPerformance);
   const maneuverFuel = calculateManeuverFuel(shipTonnage, maneuverPerformance, weeks);
   const totalFuel = jumpFuel + maneuverFuel;
-  
+
   // If antimatter is enabled, fuel takes only 10% of normal values
   return useAntimatter ? totalFuel * 0.1 : totalFuel;
+}
+
+// Armor calculations based on tech level
+// TL A-D (10-13): Crystaliron, AF-4 per 5% of ship tonnage
+// TL E+ (14+): Advanced armor, AF-6 per 5% of ship tonnage
+export function getArmorFactorPerIncrement(techLevel: string): number {
+  const tlIndex = getTechLevelIndex(techLevel);
+  // TL A-D (indices 0-3) = AF-4 per 5%
+  // TL E+ (indices 4+) = AF-6 per 5%
+  return tlIndex >= 4 ? 6 : 4;
+}
+
+export function getMaxArmorFactor(techLevel: string): number {
+  // Max armor factor equals the tech level number
+  // TL A (10) = max AF 10, TL B (11) = max AF 11, etc.
+  const tlIndex = getTechLevelIndex(techLevel);
+  return tlIndex + 10; // A=10, B=11, C=12, D=13, E=14, F=15, G=16, H=17
+}
+
+export function getAvailableArmorOptions(techLevel: string): Array<{ percentage: number; armorFactor: number; label: string }> {
+  const afPerIncrement = getArmorFactorPerIncrement(techLevel);
+  const maxAF = getMaxArmorFactor(techLevel);
+  const options = [];
+
+  // Each 5% increment provides AF based on tech level
+  for (let percentage = 5; percentage <= 100; percentage += 5) {
+    const armorFactor = Math.floor(percentage / 5) * afPerIncrement;
+
+    // Stop if we exceed max armor factor for this tech level
+    if (armorFactor > maxAF) break;
+
+    const armorType = afPerIncrement === 4 ? 'Crystaliron' : 'Advanced';
+    options.push({
+      percentage,
+      armorFactor,
+      label: `${percentage}% (AF-${armorFactor}, ${armorType})`
+    });
+  }
+
+  return options;
+}
+
+export function calculateArmorMass(shipTonnage: number, armorPercentage: number): number {
+  return (shipTonnage * armorPercentage) / 100;
+}
+
+export function calculateArmorCost(armorMass: number): number {
+  // Armor costs 0.1 MCr per ton
+  return armorMass * 0.1;
 }
 
 export const WEAPON_TYPES = [
@@ -169,6 +264,69 @@ export const WEAPON_TYPES = [
   { name: 'Triple Missile Launcher Turret', mass: 1, cost: 3.3 },
   { name: 'Hard Point', mass: 1, cost: 1 }
 ];
+
+// Spinal weapon types - requires P-2+ power plant
+export const SPINAL_WEAPON_TYPES = [
+  // Particle weapons
+  { name: 'Particle Spinal Mount A', type: 'particle', code: 'A', baseTL: 10, baseMass: 5000, baseDamage: 200, baseCost: 3500 },
+  { name: 'Particle Spinal Mount B', type: 'particle', code: 'B', baseTL: 12, baseMass: 3000, baseDamage: 300, baseCost: 2100 },
+  { name: 'Particle Spinal Mount C', type: 'particle', code: 'C', baseTL: 10, baseMass: 5000, baseDamage: 300, baseCost: 3500 },
+  { name: 'Particle Spinal Mount D', type: 'particle', code: 'D', baseTL: 14, baseMass: 3500, baseDamage: 400, baseCost: 2500 },
+  { name: 'Particle Spinal Mount E', type: 'particle', code: 'E', baseTL: 12, baseMass: 4000, baseDamage: 400, baseCost: 2800 },
+  // Meson weapons
+  { name: 'Meson Spinal Mount A', type: 'meson', code: 'A', baseTL: 12, baseMass: 5000, baseDamage: 200, baseCost: 5000 },
+  { name: 'Meson Spinal Mount B', type: 'meson', code: 'B', baseTL: 12, baseMass: 8000, baseDamage: 250, baseCost: 8000 },
+  { name: 'Meson Spinal Mount C', type: 'meson', code: 'C', baseTL: 13, baseMass: 10000, baseDamage: 350, baseCost: 10000 },
+  { name: 'Meson Spinal Mount D', type: 'meson', code: 'D', baseTL: 15, baseMass: 14000, baseDamage: 450, baseCost: 14000 }
+];
+
+// Calculate TL bonus modifiers for spinal weapons
+function calculateSpinalWeaponTLBonus(weaponType: 'particle' | 'meson', tlDifference: number): { sizeModifier: number; damageModifier: number } {
+  if (tlDifference <= 0) {
+    return { sizeModifier: 1.0, damageModifier: 1.0 };
+  }
+
+  // Cap at TL+4
+  const cappedTLDiff = Math.min(tlDifference, 4);
+
+  if (weaponType === 'particle') {
+    // Particle: Size/Cost -10% per TL, Damage +5% per TL
+    const sizeModifier = 1.0 - (cappedTLDiff * 0.10);
+    const damageModifier = 1.0 + (cappedTLDiff * 0.05);
+    return { sizeModifier, damageModifier };
+  } else {
+    // Meson: Size/Cost -20% per TL, Damage +10% per TL
+    const sizeModifier = 1.0 - (cappedTLDiff * 0.20);
+    const damageModifier = 1.0 + (cappedTLDiff * 0.10);
+    return { sizeModifier, damageModifier };
+  }
+}
+
+// Get available spinal weapons based on tech level and power plant performance
+// Returns weapons with TL-adjusted mass, damage, and cost
+export function getAvailableSpinalWeapons(techLevel: string, powerPlantPerformance: number) {
+  // Spinal weapons require P-2 or higher
+  if (powerPlantPerformance < 2) {
+    return [];
+  }
+
+  const techLevelNum = convertTechLevelToNumber(techLevel);
+
+  return SPINAL_WEAPON_TYPES
+    .filter(weapon => techLevelNum >= weapon.baseTL)
+    .map(weapon => {
+      const tlDifference = techLevelNum - weapon.baseTL;
+      const { sizeModifier, damageModifier } = calculateSpinalWeaponTLBonus(weapon.type as 'particle' | 'meson', tlDifference);
+
+      return {
+        ...weapon,
+        mass: Math.round(weapon.baseMass * sizeModifier),
+        cost: Math.round(weapon.baseCost * sizeModifier),
+        damage: Math.round(weapon.baseDamage * damageModifier),
+        tlBonus: tlDifference > 0 ? `TL+${tlDifference}` : undefined
+      };
+    });
+}
 
 export const DEFENSE_TYPES = [
   { name: 'Sandcaster Turret', type: 'sandcaster_turret', mass: 1, cost: 1.3 },
