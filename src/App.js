@@ -1,6 +1,6 @@
 import { jsx as _jsx, Fragment as _Fragment, jsxs as _jsxs } from "react/jsx-runtime";
 import { useState, useEffect, useCallback } from 'react';
-import { calculateTotalFuelMass, calculateVehicleServiceStaff, calculateDroneServiceStaff, calculateMedicalStaff, WEAPON_TYPES, getTonnageCode, getAvailableSpinalWeapons, getNumberOfSections } from './data/constants';
+import { calculateTotalFuelMass, calculateVehicleServiceStaff, calculateDroneServiceStaff, calculateMedicalStaff, WEAPON_TYPES, getTonnageCode, getAvailableSpinalWeapons, getNumberOfSections, getMinimumComputer, COMPUTER_TYPES } from './data/constants';
 import { databaseService } from './services/database';
 import SelectShipPanel from './components/SelectShipPanel';
 import ShipPanel from './components/ShipPanel';
@@ -367,7 +367,25 @@ function App() {
                     shipDesign.engines.some(e => e.engine_type === 'jump_drive' && e.drive_code && e.performance >= 1);
             // Maneuver drive is optional (defaults to M-0)
             case 2: // Fittings
-                return shipDesign.fittings.some(f => f.fitting_type === 'bridge' || f.fitting_type === 'half_bridge');
+                // Check for bridge
+                const hasBridge = shipDesign.fittings.some(f => f.fitting_type === 'bridge' || f.fitting_type === 'half_bridge');
+                if (!hasBridge)
+                    return false;
+                // Check for minimum computer requirement
+                const jumpDrive = shipDesign.engines.find(e => e.engine_type === 'jump_drive');
+                const jumpPerformance = jumpDrive?.performance || 0;
+                const minimumComputer = getMinimumComputer(shipDesign.ship.tonnage, jumpPerformance);
+                if (minimumComputer) {
+                    const computer = shipDesign.fittings.find(f => f.fitting_type === 'computer');
+                    if (!computer)
+                        return false;
+                    // Check if installed computer meets minimum requirement
+                    const installedComputerIndex = COMPUTER_TYPES.findIndex(c => c.model === computer.computer_model);
+                    const minimumComputerIndex = COMPUTER_TYPES.findIndex(c => c.name === minimumComputer.name);
+                    if (installedComputerIndex < minimumComputerIndex)
+                        return false;
+                }
+                return true;
             case 5: // Rec/Health
                 return shipDesign.facilities.some(f => f.facility_type === 'commissary');
             default:
@@ -456,7 +474,7 @@ function App() {
             case 1:
                 return _jsx(EnginesPanel, { engines: shipDesign.engines, shipTonnage: shipDesign.ship.tonnage, shipTechLevel: shipDesign.ship.tech_level, fuelWeeks: shipDesign.ship.fuel_weeks, activeRules: activeRules, onUpdate: (engines) => updateShipDesign({ engines }), onFuelWeeksUpdate: (fuel_weeks) => updateShipDesign({ ship: { ...shipDesign.ship, fuel_weeks } }) });
             case 2:
-                return _jsx(FittingsPanel, { fittings: shipDesign.fittings, shipTonnage: shipDesign.ship.tonnage, onUpdate: (fittings) => updateShipDesign({ fittings }) });
+                return _jsx(FittingsPanel, { fittings: shipDesign.fittings, shipTonnage: shipDesign.ship.tonnage, shipTechLevel: shipDesign.ship.tech_level, engines: shipDesign.engines, onUpdate: (fittings) => updateShipDesign({ fittings }) });
             case 3:
                 return _jsx(WeaponsPanel, { weapons: shipDesign.weapons, shipTonnage: shipDesign.ship.tonnage, shipTechLevel: shipDesign.ship.tech_level, engines: shipDesign.engines, spinalWeapon: shipDesign.ship.spinal_weapon, missileReloads: shipDesign.ship.missile_reloads, remainingMass: mass.remaining + shipDesign.ship.missile_reloads, onUpdate: (weapons) => updateShipDesign({ weapons }), onSpinalWeaponUpdate: (spinal_weapon) => updateShipDesign({ ship: { ...shipDesign.ship, spinal_weapon } }), onMissileReloadsUpdate: (missile_reloads) => updateShipDesign({ ship: { ...shipDesign.ship, missile_reloads } }) });
             case 4:

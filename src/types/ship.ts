@@ -24,11 +24,12 @@ export interface Engine {
 
 export interface Fitting {
   id?: number;
-  fitting_type: 'bridge' | 'half_bridge' | 'launch_tube' | 'comms_sensors';
+  fitting_type: 'bridge' | 'half_bridge' | 'launch_tube' | 'comms_sensors' | 'computer';
   mass: number;
   cost: number;
   launch_vehicle_mass?: number;
   comms_sensors_type?: 'standard' | 'basic_civilian' | 'basic_military' | 'advanced' | 'very_advanced';
+  computer_model?: 'core_3' | 'core_4' | 'core_5' | 'core_6' | 'core_7' | 'core_8' | 'core_9';
 }
 
 export interface Weapon {

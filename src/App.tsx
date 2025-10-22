@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { ShipDesign, MassCalculation, CostCalculation, StaffRequirements } from './types/ship';
-import { calculateTotalFuelMass, calculateVehicleServiceStaff, calculateDroneServiceStaff, calculateMedicalStaff, WEAPON_TYPES, getTonnageCode, getAvailableSpinalWeapons, getNumberOfSections } from './data/constants';
+import { calculateTotalFuelMass, calculateVehicleServiceStaff, calculateDroneServiceStaff, calculateMedicalStaff, WEAPON_TYPES, getTonnageCode, getAvailableSpinalWeapons, getNumberOfSections, getMinimumComputer, COMPUTER_TYPES } from './data/constants';
 import { databaseService } from './services/database';
 import SelectShipPanel from './components/SelectShipPanel';
 import ShipPanel from './components/ShipPanel';
@@ -422,7 +422,27 @@ function App() {
         // Maneuver drive is optional (defaults to M-0)
       
       case 2: // Fittings
-        return shipDesign.fittings.some(f => f.fitting_type === 'bridge' || f.fitting_type === 'half_bridge');
+        // Check for bridge
+        const hasBridge = shipDesign.fittings.some(f => f.fitting_type === 'bridge' || f.fitting_type === 'half_bridge');
+        if (!hasBridge) return false;
+
+        // Check for minimum computer requirement
+        const jumpDrive = shipDesign.engines.find(e => e.engine_type === 'jump_drive');
+        const jumpPerformance = jumpDrive?.performance || 0;
+        const minimumComputer = getMinimumComputer(shipDesign.ship.tonnage, jumpPerformance);
+
+        if (minimumComputer) {
+          const computer = shipDesign.fittings.find(f => f.fitting_type === 'computer');
+          if (!computer) return false;
+
+          // Check if installed computer meets minimum requirement
+          const installedComputerIndex = COMPUTER_TYPES.findIndex(c => c.model === computer.computer_model);
+          const minimumComputerIndex = COMPUTER_TYPES.findIndex(c => c.name === minimumComputer.name);
+
+          if (installedComputerIndex < minimumComputerIndex) return false;
+        }
+
+        return true;
       
       case 5: // Rec/Health
         return shipDesign.facilities.some(f => f.facility_type === 'commissary');
@@ -543,7 +563,13 @@ function App() {
           onFuelWeeksUpdate={(fuel_weeks) => updateShipDesign({ ship: { ...shipDesign.ship, fuel_weeks } })}
         />;
       case 2:
-        return <FittingsPanel fittings={shipDesign.fittings} shipTonnage={shipDesign.ship.tonnage} onUpdate={(fittings) => updateShipDesign({ fittings })} />;
+        return <FittingsPanel
+          fittings={shipDesign.fittings}
+          shipTonnage={shipDesign.ship.tonnage}
+          shipTechLevel={shipDesign.ship.tech_level}
+          engines={shipDesign.engines}
+          onUpdate={(fittings) => updateShipDesign({ fittings })}
+        />;
       case 3:
         return <WeaponsPanel
           weapons={shipDesign.weapons}

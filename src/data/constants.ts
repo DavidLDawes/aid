@@ -466,6 +466,63 @@ export const COMMS_SENSORS_TYPES = [
   { name: 'Very Advanced', type: 'very_advanced', mass: 5, cost: 4 }
 ];
 
+// Computer types - no tonnage, only cost
+export const COMPUTER_TYPES = [
+  { name: 'Core/3', model: 'core_3', techLevel: 9, rating: 40, cost: 12 },
+  { name: 'Core/4', model: 'core_4', techLevel: 10, rating: 50, cost: 20 },
+  { name: 'Core/5', model: 'core_5', techLevel: 11, rating: 60, cost: 30 },
+  { name: 'Core/6', model: 'core_6', techLevel: 12, rating: 70, cost: 50 },
+  { name: 'Core/7', model: 'core_7', techLevel: 13, rating: 80, cost: 70 },
+  { name: 'Core/8', model: 'core_8', techLevel: 14, rating: 90, cost: 100 },
+  { name: 'Core/9', model: 'core_9', techLevel: 15, rating: 100, cost: 130 }
+];
+
+// Get minimum required computer based on ship size and jump performance
+export function getMinimumComputer(shipTonnage: number, jumpPerformance: number): typeof COMPUTER_TYPES[0] | null {
+  // No computer required for ships under 3,000 tons
+  if (shipTonnage < 3000) {
+    return null;
+  }
+
+  // Determine minimum computer based on ship size and jump
+  if (shipTonnage >= 3000 && shipTonnage <= 5000) {
+    return jumpPerformance >= 2 ? COMPUTER_TYPES[0] : null; // Core/3
+  } else if (shipTonnage >= 5001 && shipTonnage <= 10000) {
+    return jumpPerformance >= 2 ? COMPUTER_TYPES[1] : null; // Core/4
+  } else if (shipTonnage >= 10001 && shipTonnage <= 50000) {
+    return jumpPerformance >= 3 ? COMPUTER_TYPES[2] : null; // Core/5
+  } else if (shipTonnage >= 50001 && shipTonnage <= 100000) {
+    return jumpPerformance >= 4 ? COMPUTER_TYPES[3] : null; // Core/6
+  } else if (shipTonnage >= 100001) {
+    if (jumpPerformance >= 6) {
+      return COMPUTER_TYPES[5]; // Core/8 for J-6+
+    } else if (jumpPerformance >= 5) {
+      return COMPUTER_TYPES[4]; // Core/7 for J-5
+    } else {
+      return null;
+    }
+  }
+
+  return null;
+}
+
+// Get available computers based on ship requirements and tech level
+export function getAvailableComputers(shipTonnage: number, jumpPerformance: number, shipTechLevel: string) {
+  const minimumComputer = getMinimumComputer(shipTonnage, jumpPerformance);
+
+  if (!minimumComputer) {
+    return [];
+  }
+
+  const shipTL = convertTechLevelToNumber(shipTechLevel);
+  const minIndex = COMPUTER_TYPES.findIndex(c => c.name === minimumComputer.name);
+
+  // Return all computers from minimum required and up that meet TL requirements
+  return COMPUTER_TYPES.filter((computer, index) =>
+    index >= minIndex && computer.techLevel <= shipTL
+  );
+}
+
 export function getWeaponMountLimit(shipTonnage: number): number {
   return Math.floor(shipTonnage / 100);
 }
