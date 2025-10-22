@@ -64,6 +64,30 @@ export function getTonnageCode(tonnage) {
     }
     return null;
 }
+// Get number of sections based on hull code
+export function getNumberOfSections(tonnage) {
+    const hullCode = getTonnageCode(tonnage);
+    if (!hullCode) {
+        return null; // Ships under 3,000 tons don't have sections
+    }
+    // Determine sections based on hull code ranges
+    // CA-CE: 2 sections
+    if (hullCode >= 'CA' && hullCode <= 'CE')
+        return 2;
+    // CF-CK: 3 sections
+    if (hullCode >= 'CF' && hullCode <= 'CK')
+        return 3;
+    // CL-CQ: 4 sections
+    if (hullCode >= 'CL' && hullCode <= 'CQ')
+        return 4;
+    // CR-CV: 5 sections
+    if (hullCode >= 'CR' && hullCode <= 'CV')
+        return 5;
+    // CW-CZ: 6 sections
+    if (hullCode >= 'CW' && hullCode <= 'CZ')
+        return 6;
+    return null;
+}
 // Generate hull sizes as multiples of 100 from 100 to 1,000,000
 export const HULL_SIZES = Array.from({ length: 10000 }, (_, i) => {
     const tonnage = (i + 1) * 100;
@@ -222,16 +246,16 @@ export const WEAPON_TYPES = [
 // Spinal weapon types - requires P-2+ power plant
 export const SPINAL_WEAPON_TYPES = [
     // Particle weapons
-    { name: 'Particle Spinal Mount A', type: 'particle', code: 'A', baseTL: 10, baseMass: 5000, baseDamage: 200, baseCost: 3500 },
+    { name: 'Particle Spinal Mount A', type: 'particle', code: 'A', baseTL: 8, baseMass: 5000, baseDamage: 200, baseCost: 3500 },
     { name: 'Particle Spinal Mount B', type: 'particle', code: 'B', baseTL: 12, baseMass: 3000, baseDamage: 300, baseCost: 2100 },
     { name: 'Particle Spinal Mount C', type: 'particle', code: 'C', baseTL: 10, baseMass: 5000, baseDamage: 300, baseCost: 3500 },
     { name: 'Particle Spinal Mount D', type: 'particle', code: 'D', baseTL: 14, baseMass: 3500, baseDamage: 400, baseCost: 2500 },
     { name: 'Particle Spinal Mount E', type: 'particle', code: 'E', baseTL: 12, baseMass: 4000, baseDamage: 400, baseCost: 2800 },
     // Meson weapons
-    { name: 'Meson Spinal Mount A', type: 'meson', code: 'A', baseTL: 12, baseMass: 5000, baseDamage: 200, baseCost: 5000 },
-    { name: 'Meson Spinal Mount B', type: 'meson', code: 'B', baseTL: 12, baseMass: 8000, baseDamage: 250, baseCost: 8000 },
-    { name: 'Meson Spinal Mount C', type: 'meson', code: 'C', baseTL: 13, baseMass: 10000, baseDamage: 350, baseCost: 10000 },
-    { name: 'Meson Spinal Mount D', type: 'meson', code: 'D', baseTL: 15, baseMass: 14000, baseDamage: 450, baseCost: 14000 }
+    { name: 'Meson Spinal Mount A', type: 'meson', code: 'A', baseTL: 11, baseMass: 5000, baseDamage: 200, baseCost: 5000 },
+    { name: 'Meson Spinal Mount B', type: 'meson', code: 'B', baseTL: 11, baseMass: 8000, baseDamage: 250, baseCost: 8000 },
+    { name: 'Meson Spinal Mount C', type: 'meson', code: 'C', baseTL: 12, baseMass: 10000, baseDamage: 350, baseCost: 10000 },
+    { name: 'Meson Spinal Mount D', type: 'meson', code: 'D', baseTL: 13, baseMass: 14000, baseDamage: 450, baseCost: 14000 }
 ];
 // Calculate TL bonus modifiers for spinal weapons
 function calculateSpinalWeaponTLBonus(weaponType, tlDifference) {

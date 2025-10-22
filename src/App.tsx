@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { ShipDesign, MassCalculation, CostCalculation, StaffRequirements } from './types/ship';
-import { calculateTotalFuelMass, calculateVehicleServiceStaff, calculateDroneServiceStaff, calculateMedicalStaff, WEAPON_TYPES, getTonnageCode, getAvailableSpinalWeapons } from './data/constants';
+import { calculateTotalFuelMass, calculateVehicleServiceStaff, calculateDroneServiceStaff, calculateMedicalStaff, WEAPON_TYPES, getTonnageCode, getAvailableSpinalWeapons, getNumberOfSections } from './data/constants';
 import { databaseService } from './services/database';
 import SelectShipPanel from './components/SelectShipPanel';
 import ShipPanel from './components/ShipPanel';
@@ -27,7 +27,7 @@ function App() {
   const [noStewards, setNoStewards] = useState(false);
   const [activeRules, setActiveRules] = useState<Set<string>>(new Set(['spacecraft_design_srd']));
   const [shipDesign, setShipDesign] = useState<ShipDesign>({
-    ship: { name: '', tech_level: 'A', tonnage: 5000, configuration: 'standard', fuel_weeks: 2, missile_reloads: 0, sand_reloads: 0, description: '' },
+    ship: { name: '', tech_level: 'A', tonnage: 5000, configuration: 'standard', fuel_weeks: 2, missile_reloads: 0, sand_reloads: 0, sections: 2, description: '' },
     engines: [],
     fittings: [
       {
@@ -453,7 +453,20 @@ function App() {
   };
 
   const updateShipDesign = (updates: Partial<ShipDesign>) => {
-    setShipDesign(prev => ({ ...prev, ...updates }));
+    setShipDesign(prev => {
+      const newDesign = { ...prev, ...updates };
+
+      // Automatically update sections when tonnage changes
+      if (updates.ship?.tonnage !== undefined) {
+        const sections = getNumberOfSections(updates.ship.tonnage);
+        newDesign.ship = {
+          ...newDesign.ship,
+          sections: sections ?? undefined
+        };
+      }
+
+      return newDesign;
+    });
   };
 
   const handleNewShip = () => {

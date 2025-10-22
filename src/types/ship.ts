@@ -9,6 +9,7 @@ export interface Ship {
   sand_reloads: number;
   armor_percentage?: number;
   spinal_weapon?: string; // Name of the spinal weapon (e.g., "Particle Spinal Mount A")
+  sections?: number; // Number of sections for capital ships (2-6 based on hull code)
   description?: string;
 }
 

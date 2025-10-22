@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import type { Ship, ShipDesign } from '../types/ship';
-import { TECH_LEVELS, HULL_SIZES } from '../data/constants';
+import { TECH_LEVELS, HULL_SIZES, getTonnageCode, getNumberOfSections } from '../data/constants';
 import { databaseService } from '../services/database';
 
 interface ShipPanelProps {
@@ -198,6 +198,21 @@ const ShipPanel: React.FC<ShipPanelProps> = ({ ship, onUpdate, onLoadExistingShi
             <option value="distributed">Distributed (multiple sections, atmosphere/gravity incompatible)</option>
           </select>
         </div>
+
+        {(() => {
+          const hullCode = getTonnageCode(ship.tonnage);
+          const sections = getNumberOfSections(ship.tonnage);
+
+          if (hullCode && sections) {
+            return (
+              <div className="info-message">
+                <p><strong>Hull Code:</strong> {hullCode}</p>
+                <p><strong>Sections:</strong> {sections}</p>
+              </div>
+            );
+          }
+          return null;
+        })()}
       </div>
 
       <div className="ship-description-row">
