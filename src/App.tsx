@@ -222,8 +222,8 @@ function App() {
     // Add weapon masses
     used += shipDesign.weapons.reduce((sum, weapon) => sum + (weapon.mass * weapon.quantity), 0);
     
-    // Add defense masses
-    used += shipDesign.defenses.reduce((sum, defense) => sum + (defense.mass * defense.quantity), 0);
+    // Add defense masses (mass is already multiplied by quantity in the defense object)
+    used += shipDesign.defenses.reduce((sum, defense) => sum + defense.mass, 0);
     
     // Add berth masses
     used += shipDesign.berths.reduce((sum, berth) => sum + (berth.mass * berth.quantity), 0);
@@ -295,8 +295,8 @@ function App() {
     // Add weapon costs
     total += shipDesign.weapons.reduce((sum, weapon) => sum + (weapon.cost * weapon.quantity), 0);
     
-    // Add defense costs
-    total += shipDesign.defenses.reduce((sum, defense) => sum + (defense.cost * defense.quantity), 0);
+    // Add defense costs (cost is already multiplied by quantity in the defense object)
+    total += shipDesign.defenses.reduce((sum, defense) => sum + defense.cost, 0);
     
     // Add berth costs
     total += shipDesign.berths.reduce((sum, berth) => sum + (berth.cost * berth.quantity), 0);
@@ -378,15 +378,33 @@ function App() {
         turretsAndBarbettesGunners += Math.ceil(weapon.quantity / 10);
       });
 
-    // Calculate gunners for each defense type
-    let defenseGunners = 0;
-    shipDesign.defenses.forEach(defense => {
-      // 1 gunner per 10 defense turrets, rounded up
-      defenseGunners += Math.ceil(defense.quantity / 10);
+    // Calculate gunners for defense turrets (sandcasters and point defense)
+    let defenseTurretGunners = 0;
+    shipDesign.defenses
+      .filter(defense => !['nuclear_damper', 'meson_screen', 'black_globe'].includes(defense.defense_type))
+      .forEach(defense => {
+        // 1 gunner per 10 defense turrets, rounded up
+        defenseTurretGunners += Math.ceil(defense.quantity / 10);
+      });
+
+    // Calculate gunners for defensive screens
+    // Each screen type: minimum 4 gunners if installed, or tons/100 rounded up if > 400 tons
+    let screenGunners = 0;
+    const screenTypes = ['nuclear_damper', 'meson_screen', 'black_globe'] as const;
+    screenTypes.forEach(screenType => {
+      const screen = shipDesign.defenses.find(d => d.defense_type === screenType);
+      if (screen && screen.quantity > 0) {
+        const totalTons = screen.mass; // mass is already multiplied by quantity in the defense object
+        if (totalTons > 400) {
+          screenGunners += Math.ceil(totalTons / 100);
+        } else {
+          screenGunners += 4; // minimum 4 gunners per screen type
+        }
+      }
     });
 
     const spinalWeaponGunners = shipDesign.ship.spinal_weapon ? 10 : 0;
-    const gunners = turretsAndBarbettesGunners + defenseGunners + spinalWeaponGunners;
+    const gunners = turretsAndBarbettesGunners + defenseTurretGunners + screenGunners + spinalWeaponGunners;
     
     // Service staff: for vehicle and drone maintenance
     const vehicleService = calculateVehicleServiceStaff(shipDesign.vehicles);

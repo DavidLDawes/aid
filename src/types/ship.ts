@@ -42,7 +42,7 @@ export interface Weapon {
 
 export interface Defense {
   id?: number;
-  defense_type: 'sandcaster_turret' | 'dual_sandcaster_turret' | 'triple_sandcaster_turret' | 'point_defense_laser_turret' | 'dual_point_defense_laser_turret';
+  defense_type: 'sandcaster_turret' | 'dual_sandcaster_turret' | 'triple_sandcaster_turret' | 'point_defense_laser_turret' | 'dual_point_defense_laser_turret' | 'nuclear_damper' | 'meson_screen' | 'black_globe';
   mass: number;
   cost: number;
   quantity: number;

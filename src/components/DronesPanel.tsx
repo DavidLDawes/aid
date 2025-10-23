@@ -36,6 +36,32 @@ const DronesPanel: React.FC<DronesPanelProps> = ({ drones, onUpdate }) => {
     onUpdate(newDrones);
   };
 
+  const updateDroneQuantity = (droneType: typeof DRONE_TYPES[0], quantity: number) => {
+    const validQuantity = Math.max(0, quantity);
+    const existingDrone = drones.find(d => d.drone_type === droneType.type);
+
+    if (validQuantity === 0) {
+      // Remove the drone if quantity is 0
+      onUpdate(drones.filter(d => d.drone_type !== droneType.type));
+    } else if (existingDrone) {
+      // Update existing drone
+      const newDrones = drones.map(d =>
+        d.drone_type === droneType.type
+          ? { ...d, quantity: validQuantity }
+          : d
+      );
+      onUpdate(newDrones);
+    } else {
+      // Add new drone
+      onUpdate([...drones, {
+        drone_type: droneType.type as Drone['drone_type'],
+        quantity: validQuantity,
+        mass: droneType.mass,
+        cost: droneType.cost
+      }]);
+    }
+  };
+
   const groupedDrones = [];
   for (let i = 0; i < DRONE_TYPES.length; i += 3) {
     groupedDrones.push(DRONE_TYPES.slice(i, i + 3));
@@ -62,14 +88,20 @@ const DronesPanel: React.FC<DronesPanelProps> = ({ drones, onUpdate }) => {
                     )}
                   </div>
                   <div className="quantity-control">
-                    <button 
+                    <button
                       onClick={() => removeDrone(droneType.type)}
                       disabled={quantity === 0}
                     >
                       -
                     </button>
-                    <span>{quantity}</span>
-                    <button 
+                    <input
+                      type="number"
+                      min="0"
+                      value={quantity}
+                      onChange={(e) => updateDroneQuantity(droneType, parseInt(e.target.value) || 0)}
+                      style={{ width: '60px', textAlign: 'center' }}
+                    />
+                    <button
                       onClick={() => addDrone(droneType)}
                     >
                       +

@@ -299,6 +299,21 @@ export function getAvailableSpinalWeapons(techLevel, powerPlantPerformance) {
         };
     });
 }
+export function getSpinalWeaponMass(spinalWeaponName, techLevel) {
+    const techLevelNum = convertTechLevelToNumber(techLevel);
+    const baseWeapon = SPINAL_WEAPON_TYPES.find(w => w.name === spinalWeaponName);
+    if (!baseWeapon)
+        return 0;
+    const tlDifference = techLevelNum - baseWeapon.baseTL;
+    const { sizeModifier } = calculateSpinalWeaponTLBonus(baseWeapon.type, tlDifference);
+    return Math.round(baseWeapon.baseMass * sizeModifier);
+}
+export function getSpinalWeaponMountUsage(spinalWeaponName, techLevel) {
+    if (!spinalWeaponName)
+        return 0;
+    const mass = getSpinalWeaponMass(spinalWeaponName, techLevel);
+    return Math.floor(mass / 100);
+}
 export const DEFENSE_TYPES = [
     { name: 'Sandcaster Turret', type: 'sandcaster_turret', mass: 1, cost: 1.3 },
     { name: 'Dual Sandcaster Turret', type: 'dual_sandcaster_turret', mass: 1, cost: 1.5 },
@@ -306,6 +321,54 @@ export const DEFENSE_TYPES = [
     { name: 'Point Defense Laser Turret', type: 'point_defense_laser_turret', mass: 1, cost: 1 },
     { name: 'Dual Point Defense Laser Turret', type: 'dual_point_defense_laser_turret', mass: 1, cost: 1.5 }
 ];
+// Screen types with TL-based quantity limits
+export const SCREEN_TL_LIMITS = {
+    nuclear_damper: { 12: 1, 13: 2, 14: 4, 15: 6 },
+    meson_screen: { 12: 1, 13: 2, 14: 4, 15: 6 },
+    black_globe: { 15: 3 }
+};
+// Screen specs by hull code
+const SCREEN_SPECS_BY_HULL = {
+    'CA-CE': { nuclear_damper: { mass: 20, cost: 30 }, meson_screen: { mass: 50, cost: 70 }, black_globe: { mass: 10, cost: 100 } },
+    'CF-CK': { nuclear_damper: { mass: 30, cost: 40 }, meson_screen: { mass: 60, cost: 80 }, black_globe: { mass: 15, cost: 150 } },
+    'CL-CQ': { nuclear_damper: { mass: 40, cost: 50 }, meson_screen: { mass: 70, cost: 90 }, black_globe: { mass: 20, cost: 200 } },
+    'CR-CV': { nuclear_damper: { mass: 50, cost: 60 }, meson_screen: { mass: 80, cost: 100 }, black_globe: { mass: 25, cost: 250 } },
+    'CW-CZ': { nuclear_damper: { mass: 60, cost: 70 }, meson_screen: { mass: 90, cost: 110 }, black_globe: { mass: 30, cost: 300 } }
+};
+// Get maximum screens allowed based on TL
+export function getMaxScreens(screenType, techLevel) {
+    const tlNum = convertTechLevelToNumber(techLevel);
+    const limits = SCREEN_TL_LIMITS[screenType];
+    // Find the highest TL we meet or exceed
+    let maxScreens = 0;
+    Object.entries(limits).forEach(([tl, count]) => {
+        if (tlNum >= parseInt(tl)) {
+            maxScreens = count;
+        }
+    });
+    return maxScreens;
+}
+// Get screen specs based on hull code
+export function getScreenSpecs(screenType, shipTonnage) {
+    const hullCode = getTonnageCode(shipTonnage);
+    if (!hullCode)
+        return null;
+    // Determine hull code range
+    let hullRange;
+    if (hullCode >= 'CA' && hullCode <= 'CE')
+        hullRange = 'CA-CE';
+    else if (hullCode >= 'CF' && hullCode <= 'CK')
+        hullRange = 'CF-CK';
+    else if (hullCode >= 'CL' && hullCode <= 'CQ')
+        hullRange = 'CL-CQ';
+    else if (hullCode >= 'CR' && hullCode <= 'CV')
+        hullRange = 'CR-CV';
+    else if (hullCode >= 'CW' && hullCode <= 'CZ')
+        hullRange = 'CW-CZ';
+    else
+        return null;
+    return SCREEN_SPECS_BY_HULL[hullRange][screenType];
+}
 export const BERTH_TYPES = [
     { name: 'Staterooms', type: 'staterooms', mass: 4, cost: 0.5, required: true },
     { name: 'Luxury Staterooms', type: 'luxury_staterooms', mass: 5, cost: 0.6, required: false },
