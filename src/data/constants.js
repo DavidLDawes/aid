@@ -11,364 +11,161 @@ export function isTechLevelAtLeast(currentLevel, requiredLevel) {
     }
     return currentIndex >= requiredIndex;
 }
-export const HULL_SIZES = [
-    { tonnage: 100, code: '1', cost: 2 },
-    { tonnage: 200, code: '2', cost: 8 },
-    { tonnage: 300, code: '3', cost: 12 },
-    { tonnage: 400, code: '4', cost: 16 },
-    { tonnage: 500, code: '5', cost: 32 },
-    { tonnage: 600, code: '6', cost: 48 },
-    { tonnage: 700, code: '7', cost: 64 },
-    { tonnage: 800, code: '8', cost: 80 },
-    { tonnage: 900, code: '9', cost: 90 },
-    { tonnage: 1000, code: 'A', cost: 100 },
-    { tonnage: 1200, code: 'C', cost: 120 },
-    { tonnage: 1400, code: 'E', cost: 140 },
-    { tonnage: 1600, code: 'G', cost: 160 },
-    { tonnage: 1800, code: 'J', cost: 180 },
-    { tonnage: 2000, code: 'L', cost: 200 }
+// Calculate maximum jump performance based on tech level
+// TL A (10) = J-1, TL B (11) = J-2, TL C (12) = J-3, TL D (13) = J-4, TL E (14) = J-5, TL F+ (15+) = J-6
+export function getMaxJumpByTechLevel(techLevel) {
+    const tlIndex = getTechLevelIndex(techLevel);
+    // Tech level A (index 0) = TL 10 = J-1
+    // Tech level B (index 1) = TL 11 = J-2
+    // etc.
+    const maxJump = tlIndex + 1;
+    // Cap at J-6 (for TL F and above)
+    return Math.min(maxJump, 6);
+}
+// Tonnage code table for capital ships (3,000+ tons)
+export const TONNAGE_CODES = [
+    { minTonnage: 3000, code: 'CA' },
+    { minTonnage: 4000, code: 'CB' },
+    { minTonnage: 5000, code: 'CC' },
+    { minTonnage: 6000, code: 'CD' },
+    { minTonnage: 7500, code: 'CE' },
+    { minTonnage: 10000, code: 'CF' },
+    { minTonnage: 15000, code: 'CG' },
+    { minTonnage: 20000, code: 'CH' },
+    { minTonnage: 25000, code: 'CJ' },
+    { minTonnage: 30000, code: 'CK' },
+    { minTonnage: 40000, code: 'CL' },
+    { minTonnage: 50000, code: 'CM' },
+    { minTonnage: 60000, code: 'CN' },
+    { minTonnage: 75000, code: 'CP' },
+    { minTonnage: 100000, code: 'CQ' },
+    { minTonnage: 200000, code: 'CR' },
+    { minTonnage: 300000, code: 'CS' },
+    { minTonnage: 400000, code: 'CT' },
+    { minTonnage: 500000, code: 'CU' },
+    { minTonnage: 600000, code: 'CV' },
+    { minTonnage: 700000, code: 'CW' },
+    { minTonnage: 800000, code: 'CX' },
+    { minTonnage: 900000, code: 'CY' },
+    { minTonnage: 1000000, code: 'CZ' }
 ];
-export const ENGINE_DRIVES = {
-    A: [
-        { hullIndex: 0, performance: 2 },
-        { hullIndex: 1, performance: 1 }
-    ],
-    B: [
-        { hullIndex: 0, performance: 4 },
-        { hullIndex: 1, performance: 2 },
-        { hullIndex: 2, performance: 1 },
-        { hullIndex: 3, performance: 1 }
-    ],
-    C: [
-        { hullIndex: 0, performance: 6 },
-        { hullIndex: 1, performance: 3 },
-        { hullIndex: 2, performance: 2 },
-        { hullIndex: 3, performance: 1 },
-        { hullIndex: 4, performance: 1 },
-        { hullIndex: 5, performance: 1 }
-    ],
-    D: [
-        { hullIndex: 1, performance: 4 },
-        { hullIndex: 2, performance: 2 },
-        { hullIndex: 3, performance: 2 },
-        { hullIndex: 4, performance: 1 },
-        { hullIndex: 5, performance: 1 },
-        { hullIndex: 6, performance: 1 },
-        { hullIndex: 7, performance: 1 }
-    ],
-    E: [
-        { hullIndex: 1, performance: 5 },
-        { hullIndex: 2, performance: 3 },
-        { hullIndex: 3, performance: 2 },
-        { hullIndex: 4, performance: 2 },
-        { hullIndex: 5, performance: 1 },
-        { hullIndex: 6, performance: 1 },
-        { hullIndex: 7, performance: 1 },
-        { hullIndex: 8, performance: 1 },
-        { hullIndex: 9, performance: 1 }
-    ],
-    F: [
-        { hullIndex: 1, performance: 6 },
-        { hullIndex: 2, performance: 4 },
-        { hullIndex: 3, performance: 3 },
-        { hullIndex: 4, performance: 2 },
-        { hullIndex: 5, performance: 2 },
-        { hullIndex: 6, performance: 1 },
-        { hullIndex: 7, performance: 1 },
-        { hullIndex: 8, performance: 1 },
-        { hullIndex: 9, performance: 1 },
-        { hullIndex: 10, performance: 1 }
-    ],
-    G: [
-        { hullIndex: 2, performance: 4 },
-        { hullIndex: 3, performance: 3 },
-        { hullIndex: 4, performance: 2 },
-        { hullIndex: 5, performance: 2 },
-        { hullIndex: 6, performance: 2 },
-        { hullIndex: 7, performance: 2 },
-        { hullIndex: 8, performance: 1 },
-        { hullIndex: 9, performance: 1 },
-        { hullIndex: 10, performance: 1 },
-        { hullIndex: 11, performance: 1 }
-    ],
-    H: [
-        { hullIndex: 2, performance: 5 },
-        { hullIndex: 3, performance: 4 },
-        { hullIndex: 4, performance: 3 },
-        { hullIndex: 5, performance: 2 },
-        { hullIndex: 6, performance: 2 },
-        { hullIndex: 7, performance: 2 },
-        { hullIndex: 8, performance: 2 },
-        { hullIndex: 9, performance: 2 },
-        { hullIndex: 10, performance: 1 },
-        { hullIndex: 11, performance: 1 },
-        { hullIndex: 12, performance: 1 }
-    ],
-    J: [
-        { hullIndex: 2, performance: 6 },
-        { hullIndex: 3, performance: 4 },
-        { hullIndex: 4, performance: 3 },
-        { hullIndex: 5, performance: 3 },
-        { hullIndex: 6, performance: 2 },
-        { hullIndex: 7, performance: 2 },
-        { hullIndex: 8, performance: 2 },
-        { hullIndex: 9, performance: 2 },
-        { hullIndex: 10, performance: 2 },
-        { hullIndex: 11, performance: 1 },
-        { hullIndex: 12, performance: 1 },
-        { hullIndex: 13, performance: 1 }
-    ],
-    K: [
-        { hullIndex: 3, performance: 5 },
-        { hullIndex: 4, performance: 4 },
-        { hullIndex: 5, performance: 3 },
-        { hullIndex: 6, performance: 3 },
-        { hullIndex: 7, performance: 3 },
-        { hullIndex: 8, performance: 2 },
-        { hullIndex: 9, performance: 2 },
-        { hullIndex: 10, performance: 2 },
-        { hullIndex: 11, performance: 2 },
-        { hullIndex: 12, performance: 1 },
-        { hullIndex: 13, performance: 1 },
-        { hullIndex: 14, performance: 1 }
-    ],
-    L: [
-        { hullIndex: 3, performance: 5 },
-        { hullIndex: 4, performance: 4 },
-        { hullIndex: 5, performance: 3 },
-        { hullIndex: 6, performance: 3 },
-        { hullIndex: 7, performance: 3 },
-        { hullIndex: 8, performance: 3 },
-        { hullIndex: 9, performance: 3 },
-        { hullIndex: 10, performance: 2 },
-        { hullIndex: 11, performance: 2 },
-        { hullIndex: 12, performance: 2 },
-        { hullIndex: 13, performance: 1 },
-        { hullIndex: 14, performance: 1 }
-    ],
-    M: [
-        { hullIndex: 3, performance: 6 },
-        { hullIndex: 4, performance: 4 },
-        { hullIndex: 5, performance: 4 },
-        { hullIndex: 6, performance: 3 },
-        { hullIndex: 7, performance: 3 },
-        { hullIndex: 8, performance: 3 },
-        { hullIndex: 9, performance: 3 },
-        { hullIndex: 10, performance: 3 },
-        { hullIndex: 11, performance: 2 },
-        { hullIndex: 12, performance: 2 },
-        { hullIndex: 13, performance: 2 },
-        { hullIndex: 14, performance: 1 }
-    ],
-    N: [
-        { hullIndex: 3, performance: 6 },
-        { hullIndex: 4, performance: 5 },
-        { hullIndex: 5, performance: 4 },
-        { hullIndex: 6, performance: 4 },
-        { hullIndex: 7, performance: 4 },
-        { hullIndex: 8, performance: 3 },
-        { hullIndex: 9, performance: 3 },
-        { hullIndex: 10, performance: 3 },
-        { hullIndex: 11, performance: 3 },
-        { hullIndex: 12, performance: 2 },
-        { hullIndex: 13, performance: 2 },
-        { hullIndex: 14, performance: 2 }
-    ],
-    P: [
-        { hullIndex: 4, performance: 5 },
-        { hullIndex: 5, performance: 4 },
-        { hullIndex: 6, performance: 4 },
-        { hullIndex: 7, performance: 4 },
-        { hullIndex: 8, performance: 4 },
-        { hullIndex: 9, performance: 4 },
-        { hullIndex: 10, performance: 3 },
-        { hullIndex: 11, performance: 3 },
-        { hullIndex: 12, performance: 3 },
-        { hullIndex: 13, performance: 2 },
-        { hullIndex: 14, performance: 2 }
-    ],
-    Q: [
-        { hullIndex: 4, performance: 6 },
-        { hullIndex: 5, performance: 5 },
-        { hullIndex: 6, performance: 4 },
-        { hullIndex: 7, performance: 4 },
-        { hullIndex: 8, performance: 4 },
-        { hullIndex: 9, performance: 4 },
-        { hullIndex: 10, performance: 4 },
-        { hullIndex: 11, performance: 3 },
-        { hullIndex: 12, performance: 3 },
-        { hullIndex: 13, performance: 3 },
-        { hullIndex: 14, performance: 2 }
-    ],
-    R: [
-        { hullIndex: 4, performance: 6 },
-        { hullIndex: 5, performance: 5 },
-        { hullIndex: 6, performance: 5 },
-        { hullIndex: 7, performance: 5 },
-        { hullIndex: 8, performance: 4 },
-        { hullIndex: 9, performance: 4 },
-        { hullIndex: 10, performance: 4 },
-        { hullIndex: 11, performance: 4 },
-        { hullIndex: 12, performance: 3 },
-        { hullIndex: 13, performance: 3 },
-        { hullIndex: 14, performance: 3 }
-    ],
-    S: [
-        { hullIndex: 4, performance: 6 },
-        { hullIndex: 5, performance: 5 },
-        { hullIndex: 6, performance: 5 },
-        { hullIndex: 7, performance: 5 },
-        { hullIndex: 8, performance: 5 },
-        { hullIndex: 9, performance: 5 },
-        { hullIndex: 10, performance: 4 },
-        { hullIndex: 11, performance: 4 },
-        { hullIndex: 12, performance: 4 },
-        { hullIndex: 13, performance: 3 },
-        { hullIndex: 14, performance: 3 }
-    ],
-    T: [
-        { hullIndex: 5, performance: 6 },
-        { hullIndex: 6, performance: 5 },
-        { hullIndex: 7, performance: 5 },
-        { hullIndex: 8, performance: 5 },
-        { hullIndex: 9, performance: 5 },
-        { hullIndex: 10, performance: 5 },
-        { hullIndex: 11, performance: 4 },
-        { hullIndex: 12, performance: 4 },
-        { hullIndex: 13, performance: 4 },
-        { hullIndex: 14, performance: 3 }
-    ],
-    U: [
-        { hullIndex: 5, performance: 6 },
-        { hullIndex: 6, performance: 6 },
-        { hullIndex: 7, performance: 5 },
-        { hullIndex: 8, performance: 5 },
-        { hullIndex: 9, performance: 5 },
-        { hullIndex: 10, performance: 5 },
-        { hullIndex: 11, performance: 4 },
-        { hullIndex: 12, performance: 4 },
-        { hullIndex: 13, performance: 4 },
-        { hullIndex: 14, performance: 4 }
-    ],
-    V: [
-        { hullIndex: 5, performance: 6 },
-        { hullIndex: 6, performance: 6 },
-        { hullIndex: 7, performance: 6 },
-        { hullIndex: 8, performance: 5 },
-        { hullIndex: 9, performance: 5 },
-        { hullIndex: 10, performance: 5 },
-        { hullIndex: 11, performance: 5 },
-        { hullIndex: 12, performance: 4 },
-        { hullIndex: 13, performance: 4 },
-        { hullIndex: 14, performance: 4 }
-    ],
-    W: [
-        { hullIndex: 6, performance: 6 },
-        { hullIndex: 7, performance: 6 },
-        { hullIndex: 8, performance: 6 },
-        { hullIndex: 9, performance: 5 },
-        { hullIndex: 10, performance: 5 },
-        { hullIndex: 11, performance: 5 },
-        { hullIndex: 12, performance: 4 },
-        { hullIndex: 13, performance: 4 },
-        { hullIndex: 14, performance: 4 }
-    ],
-    X: [
-        { hullIndex: 6, performance: 6 },
-        { hullIndex: 7, performance: 6 },
-        { hullIndex: 8, performance: 6 },
-        { hullIndex: 9, performance: 6 },
-        { hullIndex: 10, performance: 5 },
-        { hullIndex: 11, performance: 5 },
-        { hullIndex: 12, performance: 5 },
-        { hullIndex: 13, performance: 4 },
-        { hullIndex: 14, performance: 4 }
-    ],
-    Y: [
-        { hullIndex: 6, performance: 6 },
-        { hullIndex: 7, performance: 6 },
-        { hullIndex: 8, performance: 6 },
-        { hullIndex: 9, performance: 6 },
-        { hullIndex: 10, performance: 5 },
-        { hullIndex: 11, performance: 5 },
-        { hullIndex: 12, performance: 5 },
-        { hullIndex: 13, performance: 4 },
-        { hullIndex: 14, performance: 4 }
-    ],
-    Z: [
-        { hullIndex: 6, performance: 6 },
-        { hullIndex: 7, performance: 6 },
-        { hullIndex: 8, performance: 6 },
-        { hullIndex: 9, performance: 6 },
-        { hullIndex: 10, performance: 6 },
-        { hullIndex: 11, performance: 5 },
-        { hullIndex: 12, performance: 5 },
-        { hullIndex: 13, performance: 5 },
-        { hullIndex: 14, performance: 4 }
-    ]
-};
-export const ENGINE_SPECS = {
-    A: { jump_drive: { tons: 10, cost: 10 }, maneuver_drive: { tons: 2, cost: 4 }, power_plant: { tons: 4, cost: 8 } },
-    B: { jump_drive: { tons: 15, cost: 20 }, maneuver_drive: { tons: 3, cost: 8 }, power_plant: { tons: 7, cost: 16 } },
-    C: { jump_drive: { tons: 20, cost: 30 }, maneuver_drive: { tons: 5, cost: 12 }, power_plant: { tons: 10, cost: 24 } },
-    D: { jump_drive: { tons: 25, cost: 40 }, maneuver_drive: { tons: 7, cost: 16 }, power_plant: { tons: 13, cost: 32 } },
-    E: { jump_drive: { tons: 30, cost: 50 }, maneuver_drive: { tons: 9, cost: 20 }, power_plant: { tons: 16, cost: 40 } },
-    F: { jump_drive: { tons: 35, cost: 60 }, maneuver_drive: { tons: 11, cost: 24 }, power_plant: { tons: 19, cost: 48 } },
-    G: { jump_drive: { tons: 40, cost: 70 }, maneuver_drive: { tons: 13, cost: 28 }, power_plant: { tons: 22, cost: 56 } },
-    H: { jump_drive: { tons: 45, cost: 80 }, maneuver_drive: { tons: 15, cost: 32 }, power_plant: { tons: 25, cost: 64 } },
-    J: { jump_drive: { tons: 50, cost: 90 }, maneuver_drive: { tons: 17, cost: 36 }, power_plant: { tons: 28, cost: 72 } },
-    K: { jump_drive: { tons: 55, cost: 100 }, maneuver_drive: { tons: 19, cost: 40 }, power_plant: { tons: 31, cost: 80 } },
-    L: { jump_drive: { tons: 60, cost: 110 }, maneuver_drive: { tons: 21, cost: 44 }, power_plant: { tons: 34, cost: 88 } },
-    M: { jump_drive: { tons: 65, cost: 120 }, maneuver_drive: { tons: 23, cost: 48 }, power_plant: { tons: 37, cost: 96 } },
-    N: { jump_drive: { tons: 70, cost: 130 }, maneuver_drive: { tons: 25, cost: 52 }, power_plant: { tons: 40, cost: 104 } },
-    P: { jump_drive: { tons: 75, cost: 140 }, maneuver_drive: { tons: 27, cost: 56 }, power_plant: { tons: 43, cost: 112 } },
-    Q: { jump_drive: { tons: 80, cost: 150 }, maneuver_drive: { tons: 29, cost: 60 }, power_plant: { tons: 46, cost: 120 } },
-    R: { jump_drive: { tons: 85, cost: 160 }, maneuver_drive: { tons: 31, cost: 64 }, power_plant: { tons: 49, cost: 128 } },
-    S: { jump_drive: { tons: 90, cost: 170 }, maneuver_drive: { tons: 33, cost: 68 }, power_plant: { tons: 52, cost: 136 } },
-    T: { jump_drive: { tons: 95, cost: 180 }, maneuver_drive: { tons: 35, cost: 72 }, power_plant: { tons: 55, cost: 144 } },
-    U: { jump_drive: { tons: 100, cost: 190 }, maneuver_drive: { tons: 37, cost: 76 }, power_plant: { tons: 58, cost: 152 } },
-    V: { jump_drive: { tons: 105, cost: 200 }, maneuver_drive: { tons: 39, cost: 80 }, power_plant: { tons: 61, cost: 160 } },
-    W: { jump_drive: { tons: 110, cost: 210 }, maneuver_drive: { tons: 41, cost: 84 }, power_plant: { tons: 64, cost: 168 } },
-    X: { jump_drive: { tons: 115, cost: 220 }, maneuver_drive: { tons: 43, cost: 88 }, power_plant: { tons: 67, cost: 176 } },
-    Y: { jump_drive: { tons: 120, cost: 230 }, maneuver_drive: { tons: 45, cost: 92 }, power_plant: { tons: 70, cost: 184 } },
-    Z: { jump_drive: { tons: 125, cost: 240 }, maneuver_drive: { tons: 47, cost: 96 }, power_plant: { tons: 73, cost: 192 } }
-};
-export function getAvailableEngines(hullTonnage, engineType, powerPlantPerformance) {
-    const hullIndex = HULL_SIZES.findIndex(hull => hull.tonnage === hullTonnage);
-    if (hullIndex === -1)
-        return [];
-    const availableEngines = [];
-    for (const [driveCode, hullCompatibility] of Object.entries(ENGINE_DRIVES)) {
-        const compatibility = hullCompatibility.find(h => h.hullIndex === hullIndex);
-        if (compatibility) {
-            // For Jump and Maneuver drives, check power plant requirement
-            if ((engineType === 'jump_drive' || engineType === 'maneuver_drive') && powerPlantPerformance !== undefined) {
-                if (compatibility.performance > powerPlantPerformance) {
-                    continue; // Skip this drive if it requires more power than available
-                }
-            }
-            const performanceLabel = engineType === 'jump_drive' ? 'J' :
-                engineType === 'maneuver_drive' ? 'M' : 'P';
-            const specs = ENGINE_SPECS[driveCode];
-            // Defensive check: skip if specs don't exist for this drive code
-            if (!specs) {
-                console.warn(`Missing engine specs for drive code: ${driveCode}`);
-                continue;
-            }
-            const engineSpec = specs[engineType];
-            // Defensive check: skip if specific engine type specs don't exist
-            if (!engineSpec) {
-                console.warn(`Missing ${engineType} specs for drive code: ${driveCode}`);
-                continue;
-            }
-            availableEngines.push({
-                code: driveCode,
-                performance: compatibility.performance,
-                mass: engineSpec.tons,
-                cost: engineSpec.cost,
-                label: `Drive ${driveCode} (${performanceLabel}-${compatibility.performance}) - ${engineSpec.tons}t, ${engineSpec.cost}MCr`
-            });
+// Get tonnage code based on ship tonnage
+export function getTonnageCode(tonnage) {
+    // Ships under 3,000 tons don't have a tonnage code
+    if (tonnage < 3000) {
+        return null;
+    }
+    // Find the highest threshold that the ship meets
+    // Iterate in reverse to find the largest matching code
+    for (let i = TONNAGE_CODES.length - 1; i >= 0; i--) {
+        if (tonnage >= TONNAGE_CODES[i].minTonnage) {
+            return TONNAGE_CODES[i].code;
         }
+    }
+    return null;
+}
+// Get number of sections based on hull code
+export function getNumberOfSections(tonnage) {
+    const hullCode = getTonnageCode(tonnage);
+    if (!hullCode) {
+        return null; // Ships under 3,000 tons don't have sections
+    }
+    // Determine sections based on hull code ranges
+    // CA-CE: 2 sections
+    if (hullCode >= 'CA' && hullCode <= 'CE')
+        return 2;
+    // CF-CK: 3 sections
+    if (hullCode >= 'CF' && hullCode <= 'CK')
+        return 3;
+    // CL-CQ: 4 sections
+    if (hullCode >= 'CL' && hullCode <= 'CQ')
+        return 4;
+    // CR-CV: 5 sections
+    if (hullCode >= 'CR' && hullCode <= 'CV')
+        return 5;
+    // CW-CZ: 6 sections
+    if (hullCode >= 'CW' && hullCode <= 'CZ')
+        return 6;
+    return null;
+}
+// Generate hull sizes as multiples of 100 from 100 to 1,000,000
+export const HULL_SIZES = Array.from({ length: 10000 }, (_, i) => {
+    const tonnage = (i + 1) * 100;
+    // Hull cost is tonnage / 10 MCr (simplified formula)
+    const cost = tonnage / 10;
+    // Generate hull code (simplified: just use tonnage value)
+    const code = tonnage.toString();
+    return { tonnage, code, cost };
+});
+// Engine performance percentages as a function of ship displacement
+export const ENGINE_PERFORMANCE_PERCENTAGES = {
+    power_plant: {
+        1: 1.5,
+        2: 2.0,
+        3: 2.5,
+        4: 3.0,
+        5: 4.0,
+        6: 5.0
+    },
+    maneuver_drive: {
+        1: 1.0,
+        2: 1.25,
+        3: 1.5,
+        4: 1.75,
+        5: 2.5,
+        6: 3.25
+    },
+    jump_drive: {
+        1: 2.0,
+        2: 3.0,
+        3: 4.0,
+        4: 5.0,
+        5: 6.0,
+        6: 7.0
+    }
+};
+// Cost per ton for each engine type (in MCr per ton)
+export const ENGINE_COST_PER_TON = {
+    power_plant: 2.0,
+    maneuver_drive: 2.0,
+    jump_drive: 1.0
+};
+// Calculate engine mass and cost based on performance and ship tonnage
+export function calculateEngineMassAndCost(shipTonnage, engineType, performance) {
+    if (performance < 1 || performance > 6) {
+        return { mass: 0, cost: 0 };
+    }
+    const percentage = ENGINE_PERFORMANCE_PERCENTAGES[engineType][performance];
+    const mass = (shipTonnage * percentage) / 100;
+    const costPerTon = ENGINE_COST_PER_TON[engineType];
+    const cost = mass * costPerTon;
+    return { mass, cost };
+}
+export function getAvailableEngines(hullTonnage, engineType, powerPlantPerformance, techLevel) {
+    const availableEngines = [];
+    const performanceLabel = engineType === 'jump_drive' ? 'J' :
+        engineType === 'maneuver_drive' ? 'M' : 'P';
+    // For jump drives, determine max performance based on tech level
+    let maxPerformance = 6;
+    if (engineType === 'jump_drive' && techLevel) {
+        maxPerformance = getMaxJumpByTechLevel(techLevel);
+    }
+    // Generate engines for performance ratings 1 up to max allowed
+    for (let performance = 1; performance <= maxPerformance; performance++) {
+        // For Jump and Maneuver drives, check power plant requirement
+        if ((engineType === 'jump_drive' || engineType === 'maneuver_drive') && powerPlantPerformance !== undefined) {
+            if (performance > powerPlantPerformance) {
+                continue; // Skip this drive if it requires more power than available
+            }
+        }
+        const { mass, cost } = calculateEngineMassAndCost(hullTonnage, engineType, performance);
+        availableEngines.push({
+            code: `${performanceLabel}-${performance}`,
+            performance: performance,
+            mass: mass,
+            cost: cost,
+            label: `${performanceLabel}-${performance} (${mass.toFixed(1)}t, ${cost.toFixed(2)} MCr)`
+        });
     }
     return availableEngines;
 }
@@ -388,6 +185,47 @@ export function calculateTotalFuelMass(shipTonnage, jumpPerformance, maneuverPer
     // If antimatter is enabled, fuel takes only 10% of normal values
     return useAntimatter ? totalFuel * 0.1 : totalFuel;
 }
+// Armor calculations based on tech level
+// TL A-D (10-13): Crystaliron, AF-4 per 5% of ship tonnage
+// TL E+ (14+): Advanced armor, AF-6 per 5% of ship tonnage
+export function getArmorFactorPerIncrement(techLevel) {
+    const tlIndex = getTechLevelIndex(techLevel);
+    // TL A-D (indices 0-3) = AF-4 per 5%
+    // TL E+ (indices 4+) = AF-6 per 5%
+    return tlIndex >= 4 ? 6 : 4;
+}
+export function getMaxArmorFactor(techLevel) {
+    // Max armor factor equals the tech level number
+    // TL A (10) = max AF 10, TL B (11) = max AF 11, etc.
+    const tlIndex = getTechLevelIndex(techLevel);
+    return tlIndex + 10; // A=10, B=11, C=12, D=13, E=14, F=15, G=16, H=17
+}
+export function getAvailableArmorOptions(techLevel) {
+    const afPerIncrement = getArmorFactorPerIncrement(techLevel);
+    const maxAF = getMaxArmorFactor(techLevel);
+    const options = [];
+    // Each 5% increment provides AF based on tech level
+    for (let percentage = 5; percentage <= 100; percentage += 5) {
+        const armorFactor = Math.floor(percentage / 5) * afPerIncrement;
+        // Stop if we exceed max armor factor for this tech level
+        if (armorFactor > maxAF)
+            break;
+        const armorType = afPerIncrement === 4 ? 'Crystaliron' : 'Advanced';
+        options.push({
+            percentage,
+            armorFactor,
+            label: `${percentage}% (AF-${armorFactor}, ${armorType})`
+        });
+    }
+    return options;
+}
+export function calculateArmorMass(shipTonnage, armorPercentage) {
+    return (shipTonnage * armorPercentage) / 100;
+}
+export function calculateArmorCost(armorMass) {
+    // Armor costs 0.1 MCr per ton
+    return armorMass * 0.1;
+}
 export const WEAPON_TYPES = [
     { name: 'Pulse Laser Turret', mass: 2, cost: 1.5 },
     { name: 'Dual Pulse Laser Turret', mass: 2, cost: 2 },
@@ -405,6 +243,77 @@ export const WEAPON_TYPES = [
     { name: 'Triple Missile Launcher Turret', mass: 1, cost: 3.3 },
     { name: 'Hard Point', mass: 1, cost: 1 }
 ];
+// Spinal weapon types - requires P-2+ power plant
+export const SPINAL_WEAPON_TYPES = [
+    // Particle weapons
+    { name: 'Particle Spinal Mount A', type: 'particle', code: 'A', baseTL: 8, baseMass: 5000, baseDamage: 200, baseCost: 3500 },
+    { name: 'Particle Spinal Mount B', type: 'particle', code: 'B', baseTL: 12, baseMass: 3000, baseDamage: 300, baseCost: 2100 },
+    { name: 'Particle Spinal Mount C', type: 'particle', code: 'C', baseTL: 10, baseMass: 5000, baseDamage: 300, baseCost: 3500 },
+    { name: 'Particle Spinal Mount D', type: 'particle', code: 'D', baseTL: 14, baseMass: 3500, baseDamage: 400, baseCost: 2500 },
+    { name: 'Particle Spinal Mount E', type: 'particle', code: 'E', baseTL: 12, baseMass: 4000, baseDamage: 400, baseCost: 2800 },
+    // Meson weapons
+    { name: 'Meson Spinal Mount A', type: 'meson', code: 'A', baseTL: 11, baseMass: 5000, baseDamage: 200, baseCost: 5000 },
+    { name: 'Meson Spinal Mount B', type: 'meson', code: 'B', baseTL: 11, baseMass: 8000, baseDamage: 250, baseCost: 8000 },
+    { name: 'Meson Spinal Mount C', type: 'meson', code: 'C', baseTL: 12, baseMass: 10000, baseDamage: 350, baseCost: 10000 },
+    { name: 'Meson Spinal Mount D', type: 'meson', code: 'D', baseTL: 13, baseMass: 14000, baseDamage: 450, baseCost: 14000 }
+];
+// Calculate TL bonus modifiers for spinal weapons
+function calculateSpinalWeaponTLBonus(weaponType, tlDifference) {
+    if (tlDifference <= 0) {
+        return { sizeModifier: 1.0, damageModifier: 1.0 };
+    }
+    // Cap at TL+4
+    const cappedTLDiff = Math.min(tlDifference, 4);
+    if (weaponType === 'particle') {
+        // Particle: Size/Cost -10% per TL, Damage +5% per TL
+        const sizeModifier = 1.0 - (cappedTLDiff * 0.10);
+        const damageModifier = 1.0 + (cappedTLDiff * 0.05);
+        return { sizeModifier, damageModifier };
+    }
+    else {
+        // Meson: Size/Cost -20% per TL, Damage +10% per TL
+        const sizeModifier = 1.0 - (cappedTLDiff * 0.20);
+        const damageModifier = 1.0 + (cappedTLDiff * 0.10);
+        return { sizeModifier, damageModifier };
+    }
+}
+// Get available spinal weapons based on tech level and power plant performance
+// Returns weapons with TL-adjusted mass, damage, and cost
+export function getAvailableSpinalWeapons(techLevel, powerPlantPerformance) {
+    // Spinal weapons require P-2 or higher
+    if (powerPlantPerformance < 2) {
+        return [];
+    }
+    const techLevelNum = convertTechLevelToNumber(techLevel);
+    return SPINAL_WEAPON_TYPES
+        .filter(weapon => techLevelNum >= weapon.baseTL)
+        .map(weapon => {
+        const tlDifference = techLevelNum - weapon.baseTL;
+        const { sizeModifier, damageModifier } = calculateSpinalWeaponTLBonus(weapon.type, tlDifference);
+        return {
+            ...weapon,
+            mass: Math.round(weapon.baseMass * sizeModifier),
+            cost: Math.round(weapon.baseCost * sizeModifier),
+            damage: Math.round(weapon.baseDamage * damageModifier),
+            tlBonus: tlDifference > 0 ? `TL+${tlDifference}` : undefined
+        };
+    });
+}
+export function getSpinalWeaponMass(spinalWeaponName, techLevel) {
+    const techLevelNum = convertTechLevelToNumber(techLevel);
+    const baseWeapon = SPINAL_WEAPON_TYPES.find(w => w.name === spinalWeaponName);
+    if (!baseWeapon)
+        return 0;
+    const tlDifference = techLevelNum - baseWeapon.baseTL;
+    const { sizeModifier } = calculateSpinalWeaponTLBonus(baseWeapon.type, tlDifference);
+    return Math.round(baseWeapon.baseMass * sizeModifier);
+}
+export function getSpinalWeaponMountUsage(spinalWeaponName, techLevel) {
+    if (!spinalWeaponName)
+        return 0;
+    const mass = getSpinalWeaponMass(spinalWeaponName, techLevel);
+    return Math.floor(mass / 100);
+}
 export const DEFENSE_TYPES = [
     { name: 'Sandcaster Turret', type: 'sandcaster_turret', mass: 1, cost: 1.3 },
     { name: 'Dual Sandcaster Turret', type: 'dual_sandcaster_turret', mass: 1, cost: 1.5 },
@@ -412,6 +321,54 @@ export const DEFENSE_TYPES = [
     { name: 'Point Defense Laser Turret', type: 'point_defense_laser_turret', mass: 1, cost: 1 },
     { name: 'Dual Point Defense Laser Turret', type: 'dual_point_defense_laser_turret', mass: 1, cost: 1.5 }
 ];
+// Screen types with TL-based quantity limits
+export const SCREEN_TL_LIMITS = {
+    nuclear_damper: { 12: 1, 13: 2, 14: 4, 15: 6 },
+    meson_screen: { 12: 1, 13: 2, 14: 4, 15: 6 },
+    black_globe: { 15: 3 }
+};
+// Screen specs by hull code
+const SCREEN_SPECS_BY_HULL = {
+    'CA-CE': { nuclear_damper: { mass: 20, cost: 30 }, meson_screen: { mass: 50, cost: 70 }, black_globe: { mass: 10, cost: 100 } },
+    'CF-CK': { nuclear_damper: { mass: 30, cost: 40 }, meson_screen: { mass: 60, cost: 80 }, black_globe: { mass: 15, cost: 150 } },
+    'CL-CQ': { nuclear_damper: { mass: 40, cost: 50 }, meson_screen: { mass: 70, cost: 90 }, black_globe: { mass: 20, cost: 200 } },
+    'CR-CV': { nuclear_damper: { mass: 50, cost: 60 }, meson_screen: { mass: 80, cost: 100 }, black_globe: { mass: 25, cost: 250 } },
+    'CW-CZ': { nuclear_damper: { mass: 60, cost: 70 }, meson_screen: { mass: 90, cost: 110 }, black_globe: { mass: 30, cost: 300 } }
+};
+// Get maximum screens allowed based on TL
+export function getMaxScreens(screenType, techLevel) {
+    const tlNum = convertTechLevelToNumber(techLevel);
+    const limits = SCREEN_TL_LIMITS[screenType];
+    // Find the highest TL we meet or exceed
+    let maxScreens = 0;
+    Object.entries(limits).forEach(([tl, count]) => {
+        if (tlNum >= parseInt(tl)) {
+            maxScreens = count;
+        }
+    });
+    return maxScreens;
+}
+// Get screen specs based on hull code
+export function getScreenSpecs(screenType, shipTonnage) {
+    const hullCode = getTonnageCode(shipTonnage);
+    if (!hullCode)
+        return null;
+    // Determine hull code range
+    let hullRange;
+    if (hullCode >= 'CA' && hullCode <= 'CE')
+        hullRange = 'CA-CE';
+    else if (hullCode >= 'CF' && hullCode <= 'CK')
+        hullRange = 'CF-CK';
+    else if (hullCode >= 'CL' && hullCode <= 'CQ')
+        hullRange = 'CL-CQ';
+    else if (hullCode >= 'CR' && hullCode <= 'CV')
+        hullRange = 'CR-CV';
+    else if (hullCode >= 'CW' && hullCode <= 'CZ')
+        hullRange = 'CW-CZ';
+    else
+        return null;
+    return SCREEN_SPECS_BY_HULL[hullRange][screenType];
+}
 export const BERTH_TYPES = [
     { name: 'Staterooms', type: 'staterooms', mass: 4, cost: 0.5, required: true },
     { name: 'Luxury Staterooms', type: 'luxury_staterooms', mass: 5, cost: 0.6, required: false },
@@ -510,6 +467,59 @@ export const COMMS_SENSORS_TYPES = [
     { name: 'Advanced', type: 'advanced', mass: 3, cost: 2 },
     { name: 'Very Advanced', type: 'very_advanced', mass: 5, cost: 4 }
 ];
+// Computer types - no tonnage, only cost
+export const COMPUTER_TYPES = [
+    { name: 'Core/3', model: 'core_3', techLevel: 9, rating: 40, cost: 12 },
+    { name: 'Core/4', model: 'core_4', techLevel: 10, rating: 50, cost: 20 },
+    { name: 'Core/5', model: 'core_5', techLevel: 11, rating: 60, cost: 30 },
+    { name: 'Core/6', model: 'core_6', techLevel: 12, rating: 70, cost: 50 },
+    { name: 'Core/7', model: 'core_7', techLevel: 13, rating: 80, cost: 70 },
+    { name: 'Core/8', model: 'core_8', techLevel: 14, rating: 90, cost: 100 },
+    { name: 'Core/9', model: 'core_9', techLevel: 15, rating: 100, cost: 130 }
+];
+// Get minimum required computer based on ship size and jump performance
+export function getMinimumComputer(shipTonnage, jumpPerformance) {
+    // No computer required for ships under 3,000 tons
+    if (shipTonnage < 3000) {
+        return null;
+    }
+    // Determine minimum computer based on ship size and jump
+    if (shipTonnage >= 3000 && shipTonnage <= 5000) {
+        return jumpPerformance >= 2 ? COMPUTER_TYPES[0] : null; // Core/3
+    }
+    else if (shipTonnage >= 5001 && shipTonnage <= 10000) {
+        return jumpPerformance >= 2 ? COMPUTER_TYPES[1] : null; // Core/4
+    }
+    else if (shipTonnage >= 10001 && shipTonnage <= 50000) {
+        return jumpPerformance >= 3 ? COMPUTER_TYPES[2] : null; // Core/5
+    }
+    else if (shipTonnage >= 50001 && shipTonnage <= 100000) {
+        return jumpPerformance >= 4 ? COMPUTER_TYPES[3] : null; // Core/6
+    }
+    else if (shipTonnage >= 100001) {
+        if (jumpPerformance >= 6) {
+            return COMPUTER_TYPES[5]; // Core/8 for J-6+
+        }
+        else if (jumpPerformance >= 5) {
+            return COMPUTER_TYPES[4]; // Core/7 for J-5
+        }
+        else {
+            return null;
+        }
+    }
+    return null;
+}
+// Get available computers based on ship requirements and tech level
+export function getAvailableComputers(shipTonnage, jumpPerformance, shipTechLevel) {
+    const minimumComputer = getMinimumComputer(shipTonnage, jumpPerformance);
+    if (!minimumComputer) {
+        return [];
+    }
+    const shipTL = convertTechLevelToNumber(shipTechLevel);
+    const minIndex = COMPUTER_TYPES.findIndex(c => c.name === minimumComputer.name);
+    // Return all computers from minimum required and up that meet TL requirements
+    return COMPUTER_TYPES.filter((computer, index) => index >= minIndex && computer.techLevel <= shipTL);
+}
 export function getWeaponMountLimit(shipTonnage) {
     return Math.floor(shipTonnage / 100);
 }

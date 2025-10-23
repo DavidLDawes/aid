@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import type { Ship, ShipDesign } from '../types/ship';
-import { TECH_LEVELS, HULL_SIZES } from '../data/constants';
+import { TECH_LEVELS, HULL_SIZES, getTonnageCode, getNumberOfSections } from '../data/constants';
 import { databaseService } from '../services/database';
 
 interface ShipPanelProps {
@@ -20,6 +20,14 @@ const ShipPanel: React.FC<ShipPanelProps> = ({ ship, onUpdate, onLoadExistingShi
     existingShipFound: false,
     showConflictDialog: false,
     existingShip: null
+  });
+
+  const [hullSizeWarning, setHullSizeWarning] = useState<{
+    showWarning: boolean;
+    pendingTonnage: number | null;
+  }>({
+    showWarning: false,
+    pendingTonnage: null
   });
 
   const checkShipName = useCallback(async (name: string) => {
@@ -83,6 +91,29 @@ const ShipPanel: React.FC<ShipPanelProps> = ({ ship, onUpdate, onLoadExistingShi
     onUpdate({ ...ship, [field]: value });
   };
 
+  const handleTonnageChange = (newTonnage: number) => {
+    // Check if tonnage is below 3,000 tons
+    if (newTonnage < 3000) {
+      setHullSizeWarning({
+        showWarning: true,
+        pendingTonnage: newTonnage
+      });
+    } else {
+      onUpdate({ ...ship, tonnage: newTonnage });
+    }
+  };
+
+  const handleContinueWithSmallShip = () => {
+    if (hullSizeWarning.pendingTonnage !== null) {
+      onUpdate({ ...ship, tonnage: hullSizeWarning.pendingTonnage });
+    }
+    setHullSizeWarning({ showWarning: false, pendingTonnage: null });
+  };
+
+  const handleCancelSmallShip = () => {
+    setHullSizeWarning({ showWarning: false, pendingTonnage: null });
+  };
+
   const handleLoadExistingShip = () => {
     if (nameCheckState.existingShip && onLoadExistingShip) {
       onLoadExistingShip(nameCheckState.existingShip);
@@ -132,11 +163,11 @@ const ShipPanel: React.FC<ShipPanelProps> = ({ ship, onUpdate, onLoadExistingShi
           <select
             id="tonnage"
             value={ship.tonnage}
-            onChange={(e) => handleInputChange('tonnage', parseInt(e.target.value))}
+            onChange={(e) => handleTonnageChange(parseInt(e.target.value))}
           >
             {HULL_SIZES.map(hull => (
               <option key={hull.tonnage} value={hull.tonnage}>
-                {hull.tonnage} tons (Hull {hull.code}) - {hull.cost} MCr
+                {hull.tonnage.toLocaleString()} tons - {hull.cost.toLocaleString()} MCr
               </option>
             ))}
           </select>
@@ -167,6 +198,21 @@ const ShipPanel: React.FC<ShipPanelProps> = ({ ship, onUpdate, onLoadExistingShi
             <option value="distributed">Distributed (multiple sections, atmosphere/gravity incompatible)</option>
           </select>
         </div>
+
+        {(() => {
+          const hullCode = getTonnageCode(ship.tonnage);
+          const sections = getNumberOfSections(ship.tonnage);
+
+          if (hullCode && sections) {
+            return (
+              <div className="info-message">
+                <p><strong>Hull Code:</strong> {hullCode}</p>
+                <p><strong>Sections:</strong> {sections}</p>
+              </div>
+            );
+          }
+          return null;
+        })()}
       </div>
 
       <div className="ship-description-row">
@@ -183,6 +229,38 @@ const ShipPanel: React.FC<ShipPanelProps> = ({ ship, onUpdate, onLoadExistingShi
           <small>{(ship.description || '').length}/250 characters</small>
         </div>
       </div>
+
+      {hullSizeWarning.showWarning && (
+        <div className="ship-name-conflict-dialog">
+          <div className="conflict-dialog-content">
+            <h3>⚠️ Capital Ship Warning</h3>
+            <p>
+              <strong>Too small for a capital ship, designing it anyway</strong>
+            </p>
+            <p>
+              You've selected a hull size of <strong>{hullSizeWarning.pendingTonnage?.toLocaleString()} tons</strong>,
+              which is below the 3,000-ton threshold typically used for capital ships.
+            </p>
+            <p>
+              Would you like to continue with this smaller hull size?
+            </p>
+            <div className="conflict-dialog-actions">
+              <button
+                onClick={handleContinueWithSmallShip}
+                className="load-existing-btn"
+              >
+                Continue
+              </button>
+              <button
+                onClick={handleCancelSmallShip}
+                className="change-name-btn"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {nameCheckState.showConflictDialog && nameCheckState.existingShip && (
         <div className="ship-name-conflict-dialog">
@@ -201,20 +279,20 @@ const ShipPanel: React.FC<ShipPanelProps> = ({ ship, onUpdate, onLoadExistingShi
               </ul>
             </div>
             <div className="conflict-dialog-actions">
-              <button 
+              <button
                 onClick={handleLoadExistingShip}
                 className="load-existing-btn"
                 disabled={!onLoadExistingShip}
               >
                 Load Existing Ship
               </button>
-              <button 
+              <button
                 onClick={handleChangeNameFocus}
                 className="change-name-btn"
               >
                 Choose Different Name
               </button>
-              <button 
+              <button
                 onClick={handleKeepNewName}
                 className="keep-name-btn"
               >

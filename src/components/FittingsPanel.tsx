@@ -1,18 +1,21 @@
 import React from 'react';
-import type { Fitting } from '../types/ship';
-import { getBridgeMassAndCost, COMMS_SENSORS_TYPES } from '../data/constants';
+import type { Fitting, Engine } from '../types/ship';
+import { getBridgeMassAndCost, COMMS_SENSORS_TYPES, getAvailableComputers, getMinimumComputer, COMPUTER_TYPES } from '../data/constants';
 
 interface FittingsPanelProps {
   fittings: Fitting[];
   shipTonnage: number;
+  shipTechLevel: string;
+  engines: Engine[];
   onUpdate: (fittings: Fitting[]) => void;
 }
 
-const FittingsPanel: React.FC<FittingsPanelProps> = ({ fittings, shipTonnage, onUpdate }) => {
+const FittingsPanel: React.FC<FittingsPanelProps> = ({ fittings, shipTonnage, shipTechLevel, engines, onUpdate }) => {
   const hasBridge = fittings.some(f => f.fitting_type === 'bridge');
   const hasHalfBridge = fittings.some(f => f.fitting_type === 'half_bridge');
   const launchTubes = fittings.filter(f => f.fitting_type === 'launch_tube');
   const commsSensors = fittings.find(f => f.fitting_type === 'comms_sensors');
+  const computer = fittings.find(f => f.fitting_type === 'computer');
 
   const setBridgeType = (isHalfBridge: boolean) => {
     const { mass, cost } = getBridgeMassAndCost(shipTonnage, isHalfBridge);
@@ -64,13 +67,31 @@ const FittingsPanel: React.FC<FittingsPanelProps> = ({ fittings, shipTonnage, on
 
   const setCommsSensorsType = (sensorType: typeof COMMS_SENSORS_TYPES[0]) => {
     const newFittings = fittings.filter(f => f.fitting_type !== 'comms_sensors');
-    
+
     newFittings.push({
       fitting_type: 'comms_sensors',
       comms_sensors_type: sensorType.type as any,
       mass: sensorType.mass,
       cost: sensorType.cost
     });
+
+    onUpdate(newFittings);
+  };
+
+  const setComputerType = (computerModel: string | null) => {
+    const newFittings = fittings.filter(f => f.fitting_type !== 'computer');
+
+    if (computerModel) {
+      const selectedComputer = COMPUTER_TYPES.find(c => c.model === computerModel);
+      if (selectedComputer) {
+        newFittings.push({
+          fitting_type: 'computer',
+          computer_model: computerModel as any,
+          mass: 0, // Computers don't take tonnage
+          cost: selectedComputer.cost
+        });
+      }
+    }
 
     onUpdate(newFittings);
   };
@@ -156,12 +177,81 @@ const FittingsPanel: React.FC<FittingsPanelProps> = ({ fittings, shipTonnage, on
         </select>
       </div>
 
+      <div className="form-group">
+        <h3>Computer</h3>
+        {(() => {
+          const jumpDrive = engines.find(e => e.engine_type === 'jump_drive');
+          const jumpPerformance = jumpDrive?.performance || 0;
+          const minimumComputer = getMinimumComputer(shipTonnage, jumpPerformance);
+          const availableComputers = getAvailableComputers(shipTonnage, jumpPerformance, shipTechLevel);
+
+          if (!minimumComputer) {
+            return <p className="info-message">No computer required for ships under 3,000 tons or without jump drives.</p>;
+          }
+
+          if (availableComputers.length === 0) {
+            return <p className="info-message">Ship requires {minimumComputer.name} but current tech level is too low (TL {minimumComputer.techLevel} required).</p>;
+          }
+
+          return (
+            <>
+              <p>
+                Minimum required: <strong>{minimumComputer.name}</strong> (TL {minimumComputer.techLevel}, Rating {minimumComputer.rating})
+                <br />
+                <small>Based on ship size ({shipTonnage.toLocaleString()} tons) and jump performance (J-{jumpPerformance})</small>
+              </p>
+              <label htmlFor="computer">Computer Model</label>
+              <select
+                id="computer"
+                value={computer?.computer_model || ''}
+                onChange={(e) => setComputerType(e.target.value || null)}
+              >
+                <option value="">None</option>
+                {availableComputers.map(comp => (
+                  <option key={comp.model} value={comp.model}>
+                    {comp.name} - Rating {comp.rating}, TL {comp.techLevel}, {comp.cost} MCr
+                  </option>
+                ))}
+              </select>
+              {computer && (() => {
+                const selectedComp = COMPUTER_TYPES.find(c => c.model === computer.computer_model);
+                if (selectedComp) {
+                  return (
+                    <small>
+                      Selected: {selectedComp.name}, Rating {selectedComp.rating}, Cost: {selectedComp.cost} MCr (0 tons)
+                    </small>
+                  );
+                }
+                return null;
+              })()}
+            </>
+          );
+        })()}
+      </div>
+
       <div className="validation-info">
         <h3>Requirements:</h3>
         <ul>
           <li className={hasBridge || hasHalfBridge ? 'valid' : 'invalid'}>
             ✓ Bridge or Half Bridge selected
           </li>
+          {(() => {
+            const jumpDrive = engines.find(e => e.engine_type === 'jump_drive');
+            const jumpPerformance = jumpDrive?.performance || 0;
+            const minimumComputer = getMinimumComputer(shipTonnage, jumpPerformance);
+
+            if (minimumComputer) {
+              const hasValidComputer = computer && COMPUTER_TYPES.findIndex(c => c.model === computer.computer_model) >=
+                COMPUTER_TYPES.findIndex(c => c.name === minimumComputer.name);
+
+              return (
+                <li className={hasValidComputer ? 'valid' : 'invalid'}>
+                  {hasValidComputer ? '✓' : '✗'} Computer ({minimumComputer.name} or better required)
+                </li>
+              );
+            }
+            return null;
+          })()}
         </ul>
       </div>
     </div>
