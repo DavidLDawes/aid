@@ -689,7 +689,7 @@ function App() {
             </>
           )}
           <h1>
-            Starship Designer
+            Traveller Capital Starship Designer
             {!showSelectShip && currentPanel > 0 && shipDesign.ship.name.trim() && 
               `: ${shipDesign.ship.name}`
             }
