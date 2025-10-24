@@ -1,7 +1,7 @@
 # Traveller Starship Designer
 New atttempt at a Starship Designer, built with Claude. Using a Wizard UI and local storage for the DB.
 ## Quick Start
-npminstall
+npm install
 npm run dev
 ## Docker Quick Start
 **Build Command**:
@@ -19,8 +19,6 @@ Got it roughly working, output is a table in a web page, or a CSV, or print the 
 Next up: figure out how to deploy it in GCP
 
 **TODO List**
-* Defenses: Add Nucelar Shields & Meson Shields
-* Defenses: Add Armor
 * Defenses: Add Stealth, Reflec, Ablative, Explosoive options
 * Defenses: Add Security
 * Distinguish Commercial vs. Military designs. Commercial->Lasers, Sandcasters * PD only, no Shields or Armor either.
