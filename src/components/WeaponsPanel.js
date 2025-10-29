@@ -8,29 +8,6 @@ const WeaponsPanel = ({ weapons, shipTonnage, shipTechLevel, engines, spinalWeap
     const hasMissileLaunchers = weapons.some(weapon => weapon.weapon_name.toLowerCase().includes('missile launcher') && weapon.quantity > 0);
     // Calculate maximum missile reloads based on remaining mass
     const maxMissileReloads = Math.floor(remainingMass - missileReloads);
-    const addWeapon = (weaponType) => {
-        const existingWeapon = weapons.find(w => w.weapon_name === weaponType.name);
-        if (existingWeapon) {
-            const newWeapons = weapons.map(w => w.weapon_name === weaponType.name
-                ? { ...w, quantity: w.quantity + 1 }
-                : w);
-            onUpdate(newWeapons);
-        }
-        else {
-            onUpdate([...weapons, {
-                    weapon_name: weaponType.name,
-                    mass: weaponType.mass,
-                    cost: weaponType.cost,
-                    quantity: 1
-                }]);
-        }
-    };
-    const removeWeapon = (weaponName) => {
-        const newWeapons = weapons.map(w => w.weapon_name === weaponName
-            ? { ...w, quantity: Math.max(0, w.quantity - 1) }
-            : w).filter(w => w.quantity > 0);
-        onUpdate(newWeapons);
-    };
     const updateWeaponQuantity = (weaponType, requestedQuantity) => {
         const validQuantity = Math.max(0, Math.floor(requestedQuantity));
         const existingWeapon = weapons.find(w => w.weapon_name === weaponType.name);
@@ -111,33 +88,27 @@ const WeaponsPanel = ({ weapons, shipTonnage, shipTechLevel, engines, spinalWeap
     return (_jsxs("div", { className: "panel-content", children: [_jsxs("p", { children: ["Available weapon mounts: ", mountLimit, " (Used: ", usedMounts, ", Remaining: ", availableSlots, ")", spinalMountUsage > 0 && _jsxs("span", { children: [" | Spinal weapon: ", spinalMountUsage, " mounts"] }), currentHardPoints > 0 && _jsxs("span", { children: [" | Hard Points: ", currentHardPoints] })] }), _jsx("div", { style: { marginBottom: '10px' }, children: _jsxs("button", { onClick: maxOutHardPoints, disabled: availableSlots === 0, style: { padding: '5px 10px' }, children: ["Max Hard Points (", availableSlots, " available)"] }) }), _jsxs("div", { className: "weapons-grouped-layout", children: [_jsx("div", { className: "weapon-group-row", children: WEAPON_TYPES.filter(w => w.name.includes('Pulse Laser')).map(weaponType => {
                             const currentWeapon = weapons.find(w => w.weapon_name === weaponType.name);
                             const quantity = currentWeapon?.quantity || 0;
-                            const canAdd = usedMounts < mountLimit;
-                            return (_jsxs("div", { className: "component-item", children: [_jsx("div", { className: "component-info", children: _jsxs("h4", { children: [weaponType.name, ", ", weaponType.mass, " tons, ", weaponType.cost, " MCr"] }) }), _jsxs("div", { className: "quantity-control", children: [_jsx("button", { onClick: () => removeWeapon(weaponType.name), disabled: quantity === 0, children: "-" }), _jsx("input", { type: "number", min: "0", value: quantity, onChange: (e) => updateWeaponQuantity(weaponType, parseInt(e.target.value) || 0), style: { width: '60px', textAlign: 'center' } }), _jsx("button", { onClick: () => addWeapon(weaponType), disabled: !canAdd && weaponType.name !== 'Hard Point' && currentHardPoints === 0, children: "+" })] })] }, weaponType.name));
+                            return (_jsxs("div", { className: "component-item", children: [_jsx("div", { className: "component-info", children: _jsxs("h4", { children: [weaponType.name, ", ", weaponType.mass, " tons, ", weaponType.cost, " MCr"] }) }), _jsx("div", { className: "quantity-control", children: _jsxs("label", { children: ["Quantity:", _jsx("input", { type: "number", min: "0", value: quantity, onChange: (e) => updateWeaponQuantity(weaponType, parseInt(e.target.value) || 0), style: { width: '60px', marginLeft: '0.5rem' } })] }) })] }, weaponType.name));
                         }) }), _jsx("div", { className: "weapon-group-row", children: WEAPON_TYPES.filter(w => w.name.includes('Beam Laser')).map(weaponType => {
                             const currentWeapon = weapons.find(w => w.weapon_name === weaponType.name);
                             const quantity = currentWeapon?.quantity || 0;
-                            const canAdd = usedMounts < mountLimit;
-                            return (_jsxs("div", { className: "component-item", children: [_jsx("div", { className: "component-info", children: _jsxs("h4", { children: [weaponType.name, ", ", weaponType.mass, " tons, ", weaponType.cost, " MCr"] }) }), _jsxs("div", { className: "quantity-control", children: [_jsx("button", { onClick: () => removeWeapon(weaponType.name), disabled: quantity === 0, children: "-" }), _jsx("input", { type: "number", min: "0", value: quantity, onChange: (e) => updateWeaponQuantity(weaponType, parseInt(e.target.value) || 0), style: { width: '60px', textAlign: 'center' } }), _jsx("button", { onClick: () => addWeapon(weaponType), disabled: !canAdd && weaponType.name !== 'Hard Point' && currentHardPoints === 0, children: "+" })] })] }, weaponType.name));
+                            return (_jsxs("div", { className: "component-item", children: [_jsx("div", { className: "component-info", children: _jsxs("h4", { children: [weaponType.name, ", ", weaponType.mass, " tons, ", weaponType.cost, " MCr"] }) }), _jsx("div", { className: "quantity-control", children: _jsxs("label", { children: ["Quantity:", _jsx("input", { type: "number", min: "0", value: quantity, onChange: (e) => updateWeaponQuantity(weaponType, parseInt(e.target.value) || 0), style: { width: '60px', marginLeft: '0.5rem' } })] }) })] }, weaponType.name));
                         }) }), _jsx("div", { className: "weapon-group-row", children: WEAPON_TYPES.filter(w => w.name.includes('Plasma Beam')).map(weaponType => {
                             const currentWeapon = weapons.find(w => w.weapon_name === weaponType.name);
                             const quantity = currentWeapon?.quantity || 0;
-                            const canAdd = usedMounts < mountLimit;
-                            return (_jsxs("div", { className: "component-item", children: [_jsx("div", { className: "component-info", children: _jsxs("h4", { children: [weaponType.name, ", ", weaponType.mass, " tons, ", weaponType.cost, " MCr"] }) }), _jsxs("div", { className: "quantity-control", children: [_jsx("button", { onClick: () => removeWeapon(weaponType.name), disabled: quantity === 0, children: "-" }), _jsx("input", { type: "number", min: "0", value: quantity, onChange: (e) => updateWeaponQuantity(weaponType, parseInt(e.target.value) || 0), style: { width: '60px', textAlign: 'center' } }), _jsx("button", { onClick: () => addWeapon(weaponType), disabled: !canAdd && weaponType.name !== 'Hard Point' && currentHardPoints === 0, children: "+" })] })] }, weaponType.name));
+                            return (_jsxs("div", { className: "component-item", children: [_jsx("div", { className: "component-info", children: _jsxs("h4", { children: [weaponType.name, ", ", weaponType.mass, " tons, ", weaponType.cost, " MCr"] }) }), _jsx("div", { className: "quantity-control", children: _jsxs("label", { children: ["Quantity:", _jsx("input", { type: "number", min: "0", value: quantity, onChange: (e) => updateWeaponQuantity(weaponType, parseInt(e.target.value) || 0), style: { width: '60px', marginLeft: '0.5rem' } })] }) })] }, weaponType.name));
                         }) }), _jsx("div", { className: "weapon-group-row", children: WEAPON_TYPES.filter(w => w.name.includes('Fusion Gun')).map(weaponType => {
                             const currentWeapon = weapons.find(w => w.weapon_name === weaponType.name);
                             const quantity = currentWeapon?.quantity || 0;
-                            const canAdd = usedMounts < mountLimit;
-                            return (_jsxs("div", { className: "component-item", children: [_jsx("div", { className: "component-info", children: _jsxs("h4", { children: [weaponType.name, ", ", weaponType.mass, " tons, ", weaponType.cost, " MCr"] }) }), _jsxs("div", { className: "quantity-control", children: [_jsx("button", { onClick: () => removeWeapon(weaponType.name), disabled: quantity === 0, children: "-" }), _jsx("input", { type: "number", min: "0", value: quantity, onChange: (e) => updateWeaponQuantity(weaponType, parseInt(e.target.value) || 0), style: { width: '60px', textAlign: 'center' } }), _jsx("button", { onClick: () => addWeapon(weaponType), disabled: !canAdd && weaponType.name !== 'Hard Point' && currentHardPoints === 0, children: "+" })] })] }, weaponType.name));
+                            return (_jsxs("div", { className: "component-item", children: [_jsx("div", { className: "component-info", children: _jsxs("h4", { children: [weaponType.name, ", ", weaponType.mass, " tons, ", weaponType.cost, " MCr"] }) }), _jsx("div", { className: "quantity-control", children: _jsxs("label", { children: ["Quantity:", _jsx("input", { type: "number", min: "0", value: quantity, onChange: (e) => updateWeaponQuantity(weaponType, parseInt(e.target.value) || 0), style: { width: '60px', marginLeft: '0.5rem' } })] }) })] }, weaponType.name));
                         }) }), _jsx("div", { className: "weapon-group-row", children: WEAPON_TYPES.filter(w => w.name.includes('Missile Launcher')).map(weaponType => {
                             const currentWeapon = weapons.find(w => w.weapon_name === weaponType.name);
                             const quantity = currentWeapon?.quantity || 0;
-                            const canAdd = usedMounts < mountLimit;
-                            return (_jsxs("div", { className: "component-item", children: [_jsx("div", { className: "component-info", children: _jsxs("h4", { children: [weaponType.name, ", ", weaponType.mass, " tons, ", weaponType.cost, " MCr"] }) }), _jsxs("div", { className: "quantity-control", children: [_jsx("button", { onClick: () => removeWeapon(weaponType.name), disabled: quantity === 0, children: "-" }), _jsx("input", { type: "number", min: "0", value: quantity, onChange: (e) => updateWeaponQuantity(weaponType, parseInt(e.target.value) || 0), style: { width: '60px', textAlign: 'center' } }), _jsx("button", { onClick: () => addWeapon(weaponType), disabled: !canAdd && weaponType.name !== 'Hard Point' && currentHardPoints === 0, children: "+" })] })] }, weaponType.name));
+                            return (_jsxs("div", { className: "component-item", children: [_jsx("div", { className: "component-info", children: _jsxs("h4", { children: [weaponType.name, ", ", weaponType.mass, " tons, ", weaponType.cost, " MCr"] }) }), _jsx("div", { className: "quantity-control", children: _jsxs("label", { children: ["Quantity:", _jsx("input", { type: "number", min: "0", value: quantity, onChange: (e) => updateWeaponQuantity(weaponType, parseInt(e.target.value) || 0), style: { width: '60px', marginLeft: '0.5rem' } })] }) })] }, weaponType.name));
                         }) }), _jsx("div", { className: "weapon-group-row", children: WEAPON_TYPES.filter(w => w.name === 'Hard Point' || w.name === 'Particle Beam Barbette').map(weaponType => {
                             const currentWeapon = weapons.find(w => w.weapon_name === weaponType.name);
                             const quantity = currentWeapon?.quantity || 0;
-                            const canAdd = usedMounts < mountLimit;
-                            return (_jsxs("div", { className: "component-item", children: [_jsx("div", { className: "component-info", children: _jsxs("h4", { children: [weaponType.name, ", ", weaponType.mass, " tons, ", weaponType.cost, " MCr"] }) }), _jsxs("div", { className: "quantity-control", children: [_jsx("button", { onClick: () => removeWeapon(weaponType.name), disabled: quantity === 0, children: "-" }), _jsx("input", { type: "number", min: "0", value: quantity, onChange: (e) => updateWeaponQuantity(weaponType, parseInt(e.target.value) || 0), style: { width: '60px', textAlign: 'center' } }), _jsx("button", { onClick: () => addWeapon(weaponType), disabled: !canAdd && weaponType.name !== 'Hard Point' && currentHardPoints === 0, children: "+" })] })] }, weaponType.name));
+                            return (_jsxs("div", { className: "component-item", children: [_jsx("div", { className: "component-info", children: _jsxs("h4", { children: [weaponType.name, ", ", weaponType.mass, " tons, ", weaponType.cost, " MCr"] }) }), _jsx("div", { className: "quantity-control", children: _jsxs("label", { children: ["Quantity:", _jsx("input", { type: "number", min: "0", value: quantity, onChange: (e) => updateWeaponQuantity(weaponType, parseInt(e.target.value) || 0), style: { width: '60px', marginLeft: '0.5rem' } })] }) })] }, weaponType.name));
                         }) })] }), _jsxs("div", { className: "spinal-weapon-section", children: [_jsx("h3", { children: "Spinal Weapon" }), (() => {
                         const powerPlant = engines.find(e => e.engine_type === 'power_plant');
                         const powerPlantPerformance = powerPlant?.performance || 0;

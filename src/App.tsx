@@ -600,6 +600,7 @@ function App() {
           shipTonnage={shipDesign.ship.tonnage}
           shipTechLevel={shipDesign.ship.tech_level}
           engines={shipDesign.engines}
+          shipSections={shipDesign.ship.sections}
           onUpdate={(fittings) => updateShipDesign({ fittings })}
         />;
       case 3:

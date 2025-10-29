@@ -39,34 +39,6 @@ const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
   // Calculate maximum missile reloads based on remaining mass
   const maxMissileReloads = Math.floor(remainingMass - missileReloads);
 
-  const addWeapon = (weaponType: typeof WEAPON_TYPES[0]) => {
-    const existingWeapon = weapons.find(w => w.weapon_name === weaponType.name);
-    if (existingWeapon) {
-      const newWeapons = weapons.map(w =>
-        w.weapon_name === weaponType.name
-          ? { ...w, quantity: w.quantity + 1 }
-          : w
-      );
-      onUpdate(newWeapons);
-    } else {
-      onUpdate([...weapons, {
-        weapon_name: weaponType.name,
-        mass: weaponType.mass,
-        cost: weaponType.cost,
-        quantity: 1
-      }]);
-    }
-  };
-
-  const removeWeapon = (weaponName: string) => {
-    const newWeapons = weapons.map(w =>
-      w.weapon_name === weaponName
-        ? { ...w, quantity: Math.max(0, w.quantity - 1) }
-        : w
-    ).filter(w => w.quantity > 0);
-    onUpdate(newWeapons);
-  };
-
   const updateWeaponQuantity = (weaponType: typeof WEAPON_TYPES[0], requestedQuantity: number) => {
     const validQuantity = Math.max(0, Math.floor(requestedQuantity));
     const existingWeapon = weapons.find(w => w.weapon_name === weaponType.name);
@@ -182,7 +154,6 @@ const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
           {WEAPON_TYPES.filter(w => w.name.includes('Pulse Laser')).map(weaponType => {
             const currentWeapon = weapons.find(w => w.weapon_name === weaponType.name);
             const quantity = currentWeapon?.quantity || 0;
-            const canAdd = usedMounts < mountLimit;
 
             return (
               <div key={weaponType.name} className="component-item">
@@ -190,25 +161,16 @@ const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
                   <h4>{weaponType.name}, {weaponType.mass} tons, {weaponType.cost} MCr</h4>
                 </div>
                 <div className="quantity-control">
-                  <button
-                    onClick={() => removeWeapon(weaponType.name)}
-                    disabled={quantity === 0}
-                  >
-                    -
-                  </button>
-                  <input
-                    type="number"
-                    min="0"
-                    value={quantity}
-                    onChange={(e) => updateWeaponQuantity(weaponType, parseInt(e.target.value) || 0)}
-                    style={{ width: '60px', textAlign: 'center' }}
-                  />
-                  <button
-                    onClick={() => addWeapon(weaponType)}
-                    disabled={!canAdd && weaponType.name !== 'Hard Point' && currentHardPoints === 0}
-                  >
-                    +
-                  </button>
+                  <label>
+                    Quantity:
+                    <input
+                      type="number"
+                      min="0"
+                      value={quantity}
+                      onChange={(e) => updateWeaponQuantity(weaponType, parseInt(e.target.value) || 0)}
+                      style={{ width: '60px', marginLeft: '0.5rem' }}
+                    />
+                  </label>
                 </div>
               </div>
             );
@@ -220,7 +182,6 @@ const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
           {WEAPON_TYPES.filter(w => w.name.includes('Beam Laser')).map(weaponType => {
             const currentWeapon = weapons.find(w => w.weapon_name === weaponType.name);
             const quantity = currentWeapon?.quantity || 0;
-            const canAdd = usedMounts < mountLimit;
 
             return (
               <div key={weaponType.name} className="component-item">
@@ -228,25 +189,16 @@ const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
                   <h4>{weaponType.name}, {weaponType.mass} tons, {weaponType.cost} MCr</h4>
                 </div>
                 <div className="quantity-control">
-                  <button
-                    onClick={() => removeWeapon(weaponType.name)}
-                    disabled={quantity === 0}
-                  >
-                    -
-                  </button>
-                  <input
-                    type="number"
-                    min="0"
-                    value={quantity}
-                    onChange={(e) => updateWeaponQuantity(weaponType, parseInt(e.target.value) || 0)}
-                    style={{ width: '60px', textAlign: 'center' }}
-                  />
-                  <button
-                    onClick={() => addWeapon(weaponType)}
-                    disabled={!canAdd && weaponType.name !== 'Hard Point' && currentHardPoints === 0}
-                  >
-                    +
-                  </button>
+                  <label>
+                    Quantity:
+                    <input
+                      type="number"
+                      min="0"
+                      value={quantity}
+                      onChange={(e) => updateWeaponQuantity(weaponType, parseInt(e.target.value) || 0)}
+                      style={{ width: '60px', marginLeft: '0.5rem' }}
+                    />
+                  </label>
                 </div>
               </div>
             );
@@ -258,7 +210,6 @@ const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
           {WEAPON_TYPES.filter(w => w.name.includes('Plasma Beam')).map(weaponType => {
             const currentWeapon = weapons.find(w => w.weapon_name === weaponType.name);
             const quantity = currentWeapon?.quantity || 0;
-            const canAdd = usedMounts < mountLimit;
 
             return (
               <div key={weaponType.name} className="component-item">
@@ -266,25 +217,16 @@ const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
                   <h4>{weaponType.name}, {weaponType.mass} tons, {weaponType.cost} MCr</h4>
                 </div>
                 <div className="quantity-control">
-                  <button
-                    onClick={() => removeWeapon(weaponType.name)}
-                    disabled={quantity === 0}
-                  >
-                    -
-                  </button>
-                  <input
-                    type="number"
-                    min="0"
-                    value={quantity}
-                    onChange={(e) => updateWeaponQuantity(weaponType, parseInt(e.target.value) || 0)}
-                    style={{ width: '60px', textAlign: 'center' }}
-                  />
-                  <button
-                    onClick={() => addWeapon(weaponType)}
-                    disabled={!canAdd && weaponType.name !== 'Hard Point' && currentHardPoints === 0}
-                  >
-                    +
-                  </button>
+                  <label>
+                    Quantity:
+                    <input
+                      type="number"
+                      min="0"
+                      value={quantity}
+                      onChange={(e) => updateWeaponQuantity(weaponType, parseInt(e.target.value) || 0)}
+                      style={{ width: '60px', marginLeft: '0.5rem' }}
+                    />
+                  </label>
                 </div>
               </div>
             );
@@ -296,7 +238,6 @@ const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
           {WEAPON_TYPES.filter(w => w.name.includes('Fusion Gun')).map(weaponType => {
             const currentWeapon = weapons.find(w => w.weapon_name === weaponType.name);
             const quantity = currentWeapon?.quantity || 0;
-            const canAdd = usedMounts < mountLimit;
 
             return (
               <div key={weaponType.name} className="component-item">
@@ -304,25 +245,16 @@ const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
                   <h4>{weaponType.name}, {weaponType.mass} tons, {weaponType.cost} MCr</h4>
                 </div>
                 <div className="quantity-control">
-                  <button
-                    onClick={() => removeWeapon(weaponType.name)}
-                    disabled={quantity === 0}
-                  >
-                    -
-                  </button>
-                  <input
-                    type="number"
-                    min="0"
-                    value={quantity}
-                    onChange={(e) => updateWeaponQuantity(weaponType, parseInt(e.target.value) || 0)}
-                    style={{ width: '60px', textAlign: 'center' }}
-                  />
-                  <button
-                    onClick={() => addWeapon(weaponType)}
-                    disabled={!canAdd && weaponType.name !== 'Hard Point' && currentHardPoints === 0}
-                  >
-                    +
-                  </button>
+                  <label>
+                    Quantity:
+                    <input
+                      type="number"
+                      min="0"
+                      value={quantity}
+                      onChange={(e) => updateWeaponQuantity(weaponType, parseInt(e.target.value) || 0)}
+                      style={{ width: '60px', marginLeft: '0.5rem' }}
+                    />
+                  </label>
                 </div>
               </div>
             );
@@ -334,7 +266,6 @@ const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
           {WEAPON_TYPES.filter(w => w.name.includes('Missile Launcher')).map(weaponType => {
             const currentWeapon = weapons.find(w => w.weapon_name === weaponType.name);
             const quantity = currentWeapon?.quantity || 0;
-            const canAdd = usedMounts < mountLimit;
 
             return (
               <div key={weaponType.name} className="component-item">
@@ -342,25 +273,16 @@ const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
                   <h4>{weaponType.name}, {weaponType.mass} tons, {weaponType.cost} MCr</h4>
                 </div>
                 <div className="quantity-control">
-                  <button
-                    onClick={() => removeWeapon(weaponType.name)}
-                    disabled={quantity === 0}
-                  >
-                    -
-                  </button>
-                  <input
-                    type="number"
-                    min="0"
-                    value={quantity}
-                    onChange={(e) => updateWeaponQuantity(weaponType, parseInt(e.target.value) || 0)}
-                    style={{ width: '60px', textAlign: 'center' }}
-                  />
-                  <button
-                    onClick={() => addWeapon(weaponType)}
-                    disabled={!canAdd && weaponType.name !== 'Hard Point' && currentHardPoints === 0}
-                  >
-                    +
-                  </button>
+                  <label>
+                    Quantity:
+                    <input
+                      type="number"
+                      min="0"
+                      value={quantity}
+                      onChange={(e) => updateWeaponQuantity(weaponType, parseInt(e.target.value) || 0)}
+                      style={{ width: '60px', marginLeft: '0.5rem' }}
+                    />
+                  </label>
                 </div>
               </div>
             );
@@ -372,7 +294,6 @@ const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
           {WEAPON_TYPES.filter(w => w.name === 'Hard Point' || w.name === 'Particle Beam Barbette').map(weaponType => {
             const currentWeapon = weapons.find(w => w.weapon_name === weaponType.name);
             const quantity = currentWeapon?.quantity || 0;
-            const canAdd = usedMounts < mountLimit;
 
             return (
               <div key={weaponType.name} className="component-item">
@@ -380,25 +301,16 @@ const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
                   <h4>{weaponType.name}, {weaponType.mass} tons, {weaponType.cost} MCr</h4>
                 </div>
                 <div className="quantity-control">
-                  <button
-                    onClick={() => removeWeapon(weaponType.name)}
-                    disabled={quantity === 0}
-                  >
-                    -
-                  </button>
-                  <input
-                    type="number"
-                    min="0"
-                    value={quantity}
-                    onChange={(e) => updateWeaponQuantity(weaponType, parseInt(e.target.value) || 0)}
-                    style={{ width: '60px', textAlign: 'center' }}
-                  />
-                  <button
-                    onClick={() => addWeapon(weaponType)}
-                    disabled={!canAdd && weaponType.name !== 'Hard Point' && currentHardPoints === 0}
-                  >
-                    +
-                  </button>
+                  <label>
+                    Quantity:
+                    <input
+                      type="number"
+                      min="0"
+                      value={quantity}
+                      onChange={(e) => updateWeaponQuantity(weaponType, parseInt(e.target.value) || 0)}
+                      style={{ width: '60px', marginLeft: '0.5rem' }}
+                    />
+                  </label>
                 </div>
               </div>
             );

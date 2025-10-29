@@ -96,10 +96,7 @@ const BerthsPanel: React.FC<BerthsPanelProps> = ({ berths, staffRequirements, ad
         <div className="berth-group-row">
           {BERTH_TYPES.map(berthType => {
             const quantity = getBerthQuantity(berthType.type);
-            const isStateroom = berthType.type === 'staterooms' || berthType.type === 'luxury_staterooms';
-            const totalStaterooms = getTotalStaterooms();
-            const canReduceStaterooms = !isStateroom || (totalStaterooms > getEffectiveCrewCount());
-            
+
             return (
               <div key={berthType.type} className="component-item">
                 <div className="component-info">
@@ -110,18 +107,16 @@ const BerthsPanel: React.FC<BerthsPanelProps> = ({ berths, staffRequirements, ad
                   )}
                 </div>
                 <div className="quantity-control">
-                  <button 
-                    onClick={() => updateBerthQuantity(berthType, Math.max(0, quantity - 1))}
-                    disabled={quantity === 0 || (isStateroom && !canReduceStaterooms)}
-                  >
-                    -
-                  </button>
-                  <span>{quantity}</span>
-                  <button 
-                    onClick={() => updateBerthQuantity(berthType, quantity + 1)}
-                  >
-                    +
-                  </button>
+                  <label>
+                    Quantity:
+                    <input
+                      type="number"
+                      min="0"
+                      value={quantity}
+                      onChange={(e) => updateBerthQuantity(berthType, parseInt(e.target.value) || 0)}
+                      style={{ width: '60px', marginLeft: '0.5rem' }}
+                    />
+                  </label>
                 </div>
               </div>
             );

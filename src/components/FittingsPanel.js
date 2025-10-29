@@ -1,18 +1,36 @@
 import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-runtime";
-import { getBridgeMassAndCost, COMMS_SENSORS_TYPES, getAvailableComputers, getMinimumComputer, COMPUTER_TYPES } from '../data/constants';
-const FittingsPanel = ({ fittings, shipTonnage, shipTechLevel, engines, onUpdate }) => {
+import { getBridgeMassAndCost, COMMS_SENSORS_TYPES, getMinimumComputer, COMPUTER_TYPES, TECH_LEVELS } from '../data/constants';
+const FittingsPanel = ({ fittings, shipTonnage, shipTechLevel, engines, shipSections, onUpdate }) => {
     const hasBridge = fittings.some(f => f.fitting_type === 'bridge');
     const hasHalfBridge = fittings.some(f => f.fitting_type === 'half_bridge');
     const launchTubes = fittings.filter(f => f.fitting_type === 'launch_tube');
     const commsSensors = fittings.find(f => f.fitting_type === 'comms_sensors');
     const computer = fittings.find(f => f.fitting_type === 'computer');
+    // Calculate bridge multiplier based on sections (each section needs command module)
+    const sectionMultiplier = shipSections || 1;
+    // Generate bridge label text based on sections
+    const getBridgeLabel = (isHalfBridge) => {
+        const bridgeType = isHalfBridge ? 'Half Bridge' : 'Bridge';
+        if (!shipSections || shipSections < 2) {
+            return bridgeType;
+        }
+        if (shipSections === 2) {
+            return `${bridgeType} and Section Command`;
+        }
+        // For 3+ sections: "Bridge and N Section Commands"
+        const sectionCommands = shipSections - 1;
+        return `${bridgeType} and ${sectionCommands} Section Command${sectionCommands > 1 ? 's' : ''}`;
+    };
     const setBridgeType = (isHalfBridge) => {
         const { mass, cost } = getBridgeMassAndCost(shipTonnage, isHalfBridge);
         const newFittings = fittings.filter(f => f.fitting_type !== 'bridge' && f.fitting_type !== 'half_bridge');
+        // Multiply by section count for capital ships
+        const totalMass = mass * sectionMultiplier;
+        const totalCost = cost * sectionMultiplier;
         newFittings.push({
             fitting_type: isHalfBridge ? 'half_bridge' : 'bridge',
-            mass,
-            cost
+            mass: totalMass,
+            cost: totalCost
         });
         onUpdate(newFittings);
     };
@@ -73,7 +91,7 @@ const FittingsPanel = ({ fittings, shipTonnage, shipTechLevel, engines, onUpdate
         }
         onUpdate(newFittings);
     };
-    return (_jsxs("div", { className: "panel-content", children: [_jsxs("div", { className: "form-group", children: [_jsx("h3", { children: "Bridge Type (Required) *" }), _jsxs("div", { className: "radio-group", children: [_jsxs("label", { children: [_jsx("input", { type: "radio", checked: hasBridge, onChange: () => setBridgeType(false) }), "Full Bridge (", getBridgeMassAndCost(shipTonnage, false).mass, " tons, ", getBridgeMassAndCost(shipTonnage, false).cost, " MCr)"] }), _jsxs("label", { children: [_jsx("input", { type: "radio", checked: hasHalfBridge, onChange: () => setBridgeType(true) }), "Half Bridge (", getBridgeMassAndCost(shipTonnage, true).mass, " tons, ", getBridgeMassAndCost(shipTonnage, true).cost, " MCr)"] })] })] }), _jsxs("div", { className: "form-group", children: [_jsx("h3", { children: "Launch Tubes (Optional)" }), _jsx("p", { children: "Launch tubes allow deployment of vehicles. Each tube is sized for a specific vehicle mass." }), launchTubes.map((tube, index) => (_jsxs("div", { className: "component-item", children: [_jsx("div", { className: "component-info", children: _jsxs("h4", { children: ["Launch Tube ", index + 1, " for ", tube.launch_vehicle_mass || 1, " ton vehicle"] }) }), _jsxs("div", { className: "component-controls", children: [_jsxs("label", { children: ["Vehicle Mass:", _jsx("input", { type: "number", min: "0.1", step: "0.1", value: tube.launch_vehicle_mass || 1, onChange: (e) => updateLaunchTube(index, parseFloat(e.target.value) || 1), style: { width: '80px', marginLeft: '0.5rem' } }), "tons"] }), _jsx("button", { onClick: () => removeLaunchTube(index), className: "remove-btn", children: "Remove" })] })] }, index))), _jsx("button", { onClick: addLaunchTube, className: "add-btn", children: "Add Launch Tube" })] }), _jsxs("div", { className: "form-group", children: [_jsx("h3", { children: "Comms & Sensors" }), _jsx("p", { children: "Communications and sensor systems for the starship. Standard is included by default." }), _jsx("label", { htmlFor: "comms-sensors", children: "Comms & Sensors Type" }), _jsx("select", { id: "comms-sensors", value: commsSensors?.comms_sensors_type || 'standard', onChange: (e) => {
+    return (_jsxs("div", { className: "panel-content", children: [_jsxs("div", { className: "form-group", children: [_jsx("h3", { children: "Bridge Type (Required) *" }), shipSections && shipSections >= 2 && (_jsxs("p", { className: "info-message", children: ["Capital ships require a bridge plus command modules for each section (", shipSections, " total)."] })), _jsxs("div", { className: "radio-group", children: [_jsxs("label", { children: [_jsx("input", { type: "radio", checked: hasBridge, onChange: () => setBridgeType(false) }), getBridgeLabel(false), " (", getBridgeMassAndCost(shipTonnage, false).mass * sectionMultiplier, " tons, ", getBridgeMassAndCost(shipTonnage, false).cost * sectionMultiplier, " MCr)"] }), _jsxs("label", { children: [_jsx("input", { type: "radio", checked: hasHalfBridge, onChange: () => setBridgeType(true) }), getBridgeLabel(true), " (", getBridgeMassAndCost(shipTonnage, true).mass * sectionMultiplier, " tons, ", getBridgeMassAndCost(shipTonnage, true).cost * sectionMultiplier, " MCr)"] })] })] }), _jsxs("div", { className: "form-group", children: [_jsx("h3", { children: "Launch Tubes (Optional)" }), _jsx("p", { children: "Launch tubes allow deployment of vehicles. Each tube is sized for a specific vehicle mass." }), launchTubes.map((tube, index) => (_jsxs("div", { className: "component-item", children: [_jsx("div", { className: "component-info", children: _jsxs("h4", { children: ["Launch Tube ", index + 1, " for ", tube.launch_vehicle_mass || 1, " ton vehicle"] }) }), _jsxs("div", { className: "component-controls", children: [_jsxs("label", { children: ["Vehicle Mass:", _jsx("input", { type: "number", min: "0.1", step: "0.1", value: tube.launch_vehicle_mass || 1, onChange: (e) => updateLaunchTube(index, parseFloat(e.target.value) || 1), style: { width: '80px', marginLeft: '0.5rem' } }), "tons"] }), _jsx("button", { onClick: () => removeLaunchTube(index), className: "remove-btn", children: "Remove" })] })] }, index))), _jsx("button", { onClick: addLaunchTube, className: "add-btn", children: "Add Launch Tube" })] }), _jsxs("div", { className: "form-group", children: [_jsx("h3", { children: "Comms & Sensors" }), _jsx("p", { children: "Communications and sensor systems for the starship. Standard is included by default." }), _jsx("label", { htmlFor: "comms-sensors", children: "Comms & Sensors Type" }), _jsx("select", { id: "comms-sensors", value: commsSensors?.comms_sensors_type || 'standard', onChange: (e) => {
                             const selectedType = COMMS_SENSORS_TYPES.find(t => t.type === e.target.value);
                             if (selectedType) {
                                 setCommsSensorsType(selectedType);
@@ -82,20 +100,31 @@ const FittingsPanel = ({ fittings, shipTonnage, shipTechLevel, engines, onUpdate
                         const jumpDrive = engines.find(e => e.engine_type === 'jump_drive');
                         const jumpPerformance = jumpDrive?.performance || 0;
                         const minimumComputer = getMinimumComputer(shipTonnage, jumpPerformance);
-                        const availableComputers = getAvailableComputers(shipTonnage, jumpPerformance, shipTechLevel);
-                        if (!minimumComputer) {
-                            return _jsx("p", { className: "info-message", children: "No computer required for ships under 3,000 tons or without jump drives." });
-                        }
-                        if (availableComputers.length === 0) {
-                            return _jsxs("p", { className: "info-message", children: ["Ship requires ", minimumComputer.name, " but current tech level is too low (TL ", minimumComputer.techLevel, " required)."] });
-                        }
-                        return (_jsxs(_Fragment, { children: [_jsxs("p", { children: ["Minimum required: ", _jsx("strong", { children: minimumComputer.name }), " (TL ", minimumComputer.techLevel, ", Rating ", minimumComputer.rating, ")", _jsx("br", {}), _jsxs("small", { children: ["Based on ship size (", shipTonnage.toLocaleString(), " tons) and jump performance (J-", jumpPerformance, ")"] })] }), _jsx("label", { htmlFor: "computer", children: "Computer Model" }), _jsxs("select", { id: "computer", value: computer?.computer_model || '', onChange: (e) => setComputerType(e.target.value || null), children: [_jsx("option", { value: "", children: "None" }), availableComputers.map(comp => (_jsxs("option", { value: comp.model, children: [comp.name, " - Rating ", comp.rating, ", TL ", comp.techLevel, ", ", comp.cost, " MCr"] }, comp.model)))] }), computer && (() => {
-                                    const selectedComp = COMPUTER_TYPES.find(c => c.model === computer.computer_model);
-                                    if (selectedComp) {
-                                        return (_jsxs("small", { children: ["Selected: ", selectedComp.name, ", Rating ", selectedComp.rating, ", Cost: ", selectedComp.cost, " MCr (0 tons)"] }));
-                                    }
-                                    return null;
-                                })()] }));
+                        // Always show computers that meet tech level requirements
+                        // TECH_LEVELS: ['A', 'B', 'C', ...] where A=TL10, B=TL11, etc.
+                        const allAvailableComputers = COMPUTER_TYPES.filter(comp => {
+                            const shipTechLevelIndex = TECH_LEVELS.indexOf(shipTechLevel);
+                            if (shipTechLevelIndex === -1)
+                                return false;
+                            const shipNumericTL = shipTechLevelIndex + 10; // A=10, B=11, C=12, etc.
+                            return comp.techLevel <= shipNumericTL;
+                        });
+                        // Determine the starting index for available computers based on minimum requirement
+                        const minimumIndex = minimumComputer
+                            ? COMPUTER_TYPES.findIndex(c => c.name === minimumComputer.name)
+                            : -1;
+                        return (_jsxs(_Fragment, { children: [minimumComputer ? (_jsxs("p", { children: ["Minimum required: ", _jsx("strong", { children: minimumComputer.name }), " (TL ", minimumComputer.techLevel, ", Rating ", minimumComputer.rating, ")", _jsx("br", {}), _jsxs("small", { children: ["Based on ship size (", shipTonnage.toLocaleString(), " tons) and jump performance (J-", jumpPerformance, ")"] })] })) : (_jsxs("p", { className: "info-message", children: ["No computer required for this configuration, but you may install one if desired.", jumpPerformance === 0 && _jsxs(_Fragment, { children: [_jsx("br", {}), _jsx("small", { children: "Ships with jump drives may require computers depending on tonnage and jump performance." })] })] })), allAvailableComputers.length === 0 ? (_jsx("p", { className: "warning-message", children: minimumComputer
+                                        ? `Ship requires ${minimumComputer.name} but current tech level is too low (TL ${minimumComputer.techLevel} required).`
+                                        : `No computers available at current tech level (TL ${shipTechLevel}).` })) : (_jsxs(_Fragment, { children: [_jsx("label", { htmlFor: "computer", children: "Computer Model" }), _jsxs("select", { id: "computer", value: computer?.computer_model || '', onChange: (e) => setComputerType(e.target.value || null), children: [_jsx("option", { value: "", children: "None" }), allAvailableComputers.map(comp => {
+                                                    const isValid = minimumIndex === -1 || COMPUTER_TYPES.findIndex(c => c.model === comp.model) >= minimumIndex;
+                                                    return (_jsxs("option", { value: comp.model, children: [comp.name, " - Rating ", comp.rating, ", TL ", comp.techLevel, ", ", comp.cost, " MCr", !isValid ? ' (below minimum)' : ''] }, comp.model));
+                                                })] }), computer && (() => {
+                                            const selectedComp = COMPUTER_TYPES.find(c => c.model === computer.computer_model);
+                                            if (selectedComp) {
+                                                return (_jsxs("small", { children: ["Selected: ", selectedComp.name, ", Rating ", selectedComp.rating, ", Cost: ", selectedComp.cost, " MCr (0 tons)"] }));
+                                            }
+                                            return null;
+                                        })()] }))] }));
                     })()] }), _jsxs("div", { className: "validation-info", children: [_jsx("h3", { children: "Requirements:" }), _jsxs("ul", { children: [_jsx("li", { className: hasBridge || hasHalfBridge ? 'valid' : 'invalid', children: "\u2713 Bridge or Half Bridge selected" }), (() => {
                                 const jumpDrive = engines.find(e => e.engine_type === 'jump_drive');
                                 const jumpPerformance = jumpDrive?.performance || 0;

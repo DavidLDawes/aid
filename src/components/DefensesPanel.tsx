@@ -39,37 +39,6 @@ const DefensesPanel: React.FC<DefensesPanelProps> = ({
   // Calculate maximum sand reloads based on remaining mass
   const maxSandReloads = Math.floor(remainingMass - sandReloads);
 
-  const addDefense = (defenseType: typeof DEFENSE_TYPES[0]) => {
-    if (availableSlots <= 0) return;
-    
-    const existingDefense = defenses.find(d => d.defense_type === defenseType.type);
-    if (existingDefense) {
-      const newDefenses = defenses.map(d =>
-        d.defense_type === defenseType.type
-          ? { ...d, quantity: d.quantity + 1 }
-          : d
-      );
-      onUpdate(newDefenses);
-    } else {
-      const newDefense: Defense = {
-        defense_type: defenseType.type as Defense['defense_type'],
-        quantity: 1,
-        mass: defenseType.mass,
-        cost: defenseType.cost
-      };
-      onUpdate([...defenses, newDefense]);
-    }
-  };
-
-  const removeDefense = (defenseType: string) => {
-    const newDefenses = defenses.map(d =>
-      d.defense_type === defenseType
-        ? { ...d, quantity: Math.max(0, d.quantity - 1) }
-        : d
-    ).filter(d => d.quantity > 0);
-    onUpdate(newDefenses);
-  };
-
   const updateDefenseQuantity = (defenseType: typeof DEFENSE_TYPES[0], quantity: number) => {
     const validQuantity = Math.max(0, Math.floor(quantity));
     const existingDefense = defenses.find(d => d.defense_type === defenseType.type);
@@ -125,7 +94,6 @@ const DefensesPanel: React.FC<DefensesPanelProps> = ({
           {DEFENSE_TYPES.filter(d => d.name.includes('Sandcaster')).map(defenseType => {
             const currentDefense = defenses.find(d => d.defense_type === defenseType.type);
             const quantity = currentDefense?.quantity || 0;
-            const canAdd = availableSlots > 0;
 
             return (
               <div key={defenseType.type} className="component-item">
@@ -133,25 +101,16 @@ const DefensesPanel: React.FC<DefensesPanelProps> = ({
                   <h4>{defenseType.name}, {defenseType.mass} tons, {defenseType.cost} MCr</h4>
                 </div>
                 <div className="quantity-control">
-                  <button
-                    onClick={() => removeDefense(defenseType.type)}
-                    disabled={quantity === 0}
-                  >
-                    -
-                  </button>
-                  <input
-                    type="number"
-                    min="0"
-                    value={quantity}
-                    onChange={(e) => updateDefenseQuantity(defenseType, parseInt(e.target.value) || 0)}
-                    style={{ width: '60px', textAlign: 'center' }}
-                  />
-                  <button
-                    onClick={() => addDefense(defenseType)}
-                    disabled={!canAdd}
-                  >
-                    +
-                  </button>
+                  <label>
+                    Quantity:
+                    <input
+                      type="number"
+                      min="0"
+                      value={quantity}
+                      onChange={(e) => updateDefenseQuantity(defenseType, parseInt(e.target.value) || 0)}
+                      style={{ width: '60px', marginLeft: '0.5rem' }}
+                    />
+                  </label>
                 </div>
               </div>
             );
@@ -163,7 +122,6 @@ const DefensesPanel: React.FC<DefensesPanelProps> = ({
           {DEFENSE_TYPES.filter(d => d.name.includes('Point Defense')).map(defenseType => {
             const currentDefense = defenses.find(d => d.defense_type === defenseType.type);
             const quantity = currentDefense?.quantity || 0;
-            const canAdd = availableSlots > 0;
 
             return (
               <div key={defenseType.type} className="component-item">
@@ -171,25 +129,16 @@ const DefensesPanel: React.FC<DefensesPanelProps> = ({
                   <h4>{defenseType.name}, {defenseType.mass} tons, {defenseType.cost} MCr</h4>
                 </div>
                 <div className="quantity-control">
-                  <button
-                    onClick={() => removeDefense(defenseType.type)}
-                    disabled={quantity === 0}
-                  >
-                    -
-                  </button>
-                  <input
-                    type="number"
-                    min="0"
-                    value={quantity}
-                    onChange={(e) => updateDefenseQuantity(defenseType, parseInt(e.target.value) || 0)}
-                    style={{ width: '60px', textAlign: 'center' }}
-                  />
-                  <button
-                    onClick={() => addDefense(defenseType)}
-                    disabled={!canAdd}
-                  >
-                    +
-                  </button>
+                  <label>
+                    Quantity:
+                    <input
+                      type="number"
+                      min="0"
+                      value={quantity}
+                      onChange={(e) => updateDefenseQuantity(defenseType, parseInt(e.target.value) || 0)}
+                      style={{ width: '60px', marginLeft: '0.5rem' }}
+                    />
+                  </label>
                 </div>
               </div>
             );
