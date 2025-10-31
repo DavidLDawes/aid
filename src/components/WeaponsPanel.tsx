@@ -1,6 +1,6 @@
 import React from 'react';
 import type { Weapon, Engine } from '../types/ship';
-import { WEAPON_TYPES, getWeaponMountLimit, getAvailableSpinalWeapons, getSpinalWeaponMountUsage } from '../data/constants';
+import { WEAPON_TYPES, BAY_WEAPON_TYPES, getWeaponMountLimit, getAvailableSpinalWeapons, getSpinalWeaponMountUsage, getMaxBayWeapons, getAvailableBayWeapons } from '../data/constants';
 
 interface WeaponsPanelProps {
   weapons: Weapon[];
@@ -29,7 +29,23 @@ const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
 }) => {
   const mountLimit = getWeaponMountLimit(shipTonnage);
   const spinalMountUsage = getSpinalWeaponMountUsage(spinalWeapon, shipTechLevel);
-  const usedMounts = weapons.reduce((sum, weapon) => sum + weapon.quantity, 0) + spinalMountUsage;
+
+  // Separate bay weapons from turret/barbette weapons
+  const bayWeaponNames = BAY_WEAPON_TYPES.map(b => b.name);
+  const turretWeapons = weapons.filter(w => !bayWeaponNames.includes(w.weapon_name));
+  const bayWeapons = weapons.filter(w => bayWeaponNames.includes(w.weapon_name));
+
+  // Bay weapons also consume weapon mount slots (1 slot per bay weapon)
+  const usedBayWeapons = bayWeapons.reduce((sum, weapon) => sum + weapon.quantity, 0);
+  const usedMounts = turretWeapons.reduce((sum, weapon) => sum + weapon.quantity, 0) + usedBayWeapons + spinalMountUsage;
+
+  // Calculate bay weapon limits (power/tonnage AND weapon mount slots)
+  const powerPlant = engines.find(e => e.engine_type === 'power_plant');
+  const powerPlantPerformance = powerPlant?.performance || 0;
+  const maxBayWeaponsByPower = getMaxBayWeapons(powerPlantPerformance, shipTonnage);
+  const availableMountSlots = mountLimit - usedMounts;
+  // Bay weapons are limited by the LOWER of: power/tonnage limit OR available mount slots
+  const maxBayWeapons = Math.min(maxBayWeaponsByPower, availableMountSlots + usedBayWeapons);
   
   // Check if any missile launchers are installed
   const hasMissileLaunchers = weapons.some(weapon => 
@@ -127,6 +143,29 @@ const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
     }
   };
 
+  const updateBayWeaponQuantity = (bayWeaponType: typeof BAY_WEAPON_TYPES[0], requestedQuantity: number) => {
+    const validQuantity = Math.max(0, Math.floor(requestedQuantity));
+
+    // Don't allow exceeding max bay weapons
+    const otherBayWeapons = bayWeapons.filter(w => w.weapon_name !== bayWeaponType.name);
+    const otherBayWeaponsCount = otherBayWeapons.reduce((sum, w) => sum + w.quantity, 0);
+    const maxAllowed = maxBayWeapons - otherBayWeaponsCount;
+    const clampedQuantity = Math.min(validQuantity, maxAllowed);
+
+    let newWeapons = weapons.filter(w => w.weapon_name !== bayWeaponType.name);
+
+    if (clampedQuantity > 0) {
+      newWeapons.push({
+        weapon_name: bayWeaponType.name,
+        mass: bayWeaponType.mass,
+        cost: bayWeaponType.cost,
+        quantity: clampedQuantity
+      });
+    }
+
+    onUpdate(newWeapons);
+  };
+
   const hardPointWeapon = weapons.find(w => w.weapon_name === 'Hard Point');
   const currentHardPoints = hardPointWeapon?.quantity || 0;
   const availableSlots = mountLimit - usedMounts;
@@ -136,6 +175,7 @@ const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
       <p>
         Available weapon mounts: {mountLimit} (Used: {usedMounts}, Remaining: {availableSlots})
         {spinalMountUsage > 0 && <span> | Spinal weapon: {spinalMountUsage} mounts</span>}
+        {usedBayWeapons > 0 && <span> | Bay weapons: {usedBayWeapons} mounts</span>}
         {currentHardPoints > 0 && <span> | Hard Points: {currentHardPoints}</span>}
       </p>
       <div style={{ marginBottom: '10px' }}>
@@ -316,6 +356,62 @@ const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
             );
           })}
         </div>
+      </div>
+
+      <div className="bay-weapons-section">
+        <h3>Bay Weapons</h3>
+        {powerPlantPerformance < 1 ? (
+          <p className="info-message">Bay weapons require a Power Plant with P-1 or higher performance.</p>
+        ) : (
+          <>
+            <p>
+              Available bay weapon slots: <strong>{maxBayWeapons}</strong> (Used: {usedBayWeapons}, Remaining: {maxBayWeapons - usedBayWeapons})
+              <br />
+              <small>
+                Power/Tonnage limit: {maxBayWeaponsByPower} (P-{powerPlantPerformance} × {shipTonnage.toLocaleString()} tons ÷ 1,000)
+                {availableMountSlots + usedBayWeapons < maxBayWeaponsByPower && (
+                  <span> • Weapon mount limit: {availableMountSlots + usedBayWeapons} <strong>(limiting factor)</strong></span>
+                )}
+              </small>
+              <br />
+              <small>Each bay weapon: 50 tons, 1 weapon mount, 2 gunners</small>
+            </p>
+
+            <div className="weapons-grouped-layout">
+              <div className="weapon-group-row">
+                {getAvailableBayWeapons(shipTechLevel).map(bayWeaponType => {
+                  const currentBayWeapon = bayWeapons.find(w => w.weapon_name === bayWeaponType.name);
+                  const quantity = currentBayWeapon?.quantity || 0;
+
+                  return (
+                    <div key={bayWeaponType.name} className="component-item">
+                      <div className="component-info">
+                        <h4>{bayWeaponType.name}</h4>
+                        <p>{bayWeaponType.mass} tons, {bayWeaponType.cost} MCr{bayWeaponType.minTechLevel ? `, TL-${bayWeaponType.minTechLevel}+` : ''}</p>
+                        {quantity > 0 && (
+                          <p><strong>Total:</strong> {(bayWeaponType.mass * quantity).toFixed(1)} tons, {(bayWeaponType.cost * quantity).toFixed(1)} MCr, {quantity * 2} gunners</p>
+                        )}
+                      </div>
+                      <div className="quantity-control">
+                        <label>
+                          Quantity:
+                          <input
+                            type="number"
+                            min="0"
+                            max={maxBayWeapons}
+                            value={quantity}
+                            onChange={(e) => updateBayWeaponQuantity(bayWeaponType, parseInt(e.target.value) || 0)}
+                            style={{ width: '60px', marginLeft: '0.5rem' }}
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       <div className="spinal-weapon-section">

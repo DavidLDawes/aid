@@ -1,20 +1,23 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import type { ShipDesign, MassCalculation, CostCalculation, StaffRequirements } from './types/ship';
-import { calculateTotalFuelMass, calculateVehicleServiceStaff, calculateDroneServiceStaff, calculateMedicalStaff, WEAPON_TYPES, getTonnageCode, getAvailableSpinalWeapons, getNumberOfSections, getMinimumComputer, COMPUTER_TYPES } from './data/constants';
+import { calculateTotalFuelMass, calculateVehicleServiceStaff, calculateDroneServiceStaff, calculateMedicalStaff, WEAPON_TYPES, BAY_WEAPON_TYPES, getTonnageCode, getAvailableSpinalWeapons, getNumberOfSections, getMinimumComputer, COMPUTER_TYPES } from './data/constants';
 import { databaseService } from './services/database';
+// Eagerly load only the ship selection panel (first screen)
 import SelectShipPanel from './components/SelectShipPanel';
-import ShipPanel from './components/ShipPanel';
-import EnginesPanel from './components/EnginesPanel';
-import FittingsPanel from './components/FittingsPanel';
-import WeaponsPanel from './components/WeaponsPanel';
-import DefensesPanel from './components/DefensesPanel';
-import BerthsPanel from './components/BerthsPanel';
-import FacilitiesPanel from './components/FacilitiesPanel';
-import CargoPanel from './components/CargoPanel';
-import VehiclesPanel from './components/VehiclesPanel';
-import DronesPanel from './components/DronesPanel';
-import StaffPanel from './components/StaffPanel';
-import SummaryPanel from './components/SummaryPanel';
+// Lazy load all design panels to reduce initial bundle size
+const ShipPanel = lazy(() => import('./components/ShipPanel'));
+const EnginesPanel = lazy(() => import('./components/EnginesPanel'));
+const FittingsPanel = lazy(() => import('./components/FittingsPanel'));
+const WeaponsPanel = lazy(() => import('./components/WeaponsPanel'));
+const DefensesPanel = lazy(() => import('./components/DefensesPanel'));
+const BerthsPanel = lazy(() => import('./components/BerthsPanel'));
+const FacilitiesPanel = lazy(() => import('./components/FacilitiesPanel'));
+const CargoPanel = lazy(() => import('./components/CargoPanel'));
+const VehiclesPanel = lazy(() => import('./components/VehiclesPanel'));
+const DronesPanel = lazy(() => import('./components/DronesPanel'));
+const StaffPanel = lazy(() => import('./components/StaffPanel'));
+const SummaryPanel = lazy(() => import('./components/SummaryPanel'));
+// Keep UI components eagerly loaded as they're small and always visible
 import MassSidebar from './components/MassSidebar';
 import FileMenu from './components/FileMenu';
 import RulesMenu from './components/RulesMenu';
@@ -369,10 +372,11 @@ function App() {
     }
     
     // Gunners: 1 per 10 instances of same weapon type (turrets/barbettes), +10 for spinal weapon
-    // Calculate gunners for each weapon type (excluding Hard Points)
+    // Calculate gunners for each weapon type (excluding Hard Points and bay weapons)
+    const bayWeaponNames = BAY_WEAPON_TYPES.map(b => b.name);
     let turretsAndBarbettesGunners = 0;
     shipDesign.weapons
-      .filter(weapon => weapon.weapon_name !== 'Hard Point')
+      .filter(weapon => weapon.weapon_name !== 'Hard Point' && !bayWeaponNames.includes(weapon.weapon_name))
       .forEach(weapon => {
         // 1 gunner per 10 weapons, rounded up
         turretsAndBarbettesGunners += Math.ceil(weapon.quantity / 10);
@@ -404,7 +408,12 @@ function App() {
     });
 
     const spinalWeaponGunners = shipDesign.ship.spinal_weapon ? 10 : 0;
-    const gunners = turretsAndBarbettesGunners + defenseTurretGunners + screenGunners + spinalWeaponGunners;
+
+    // Bay weapons: 2 gunners per bay weapon
+    const bayWeapons = shipDesign.weapons.filter(w => bayWeaponNames.includes(w.weapon_name));
+    const bayWeaponGunners = bayWeapons.reduce((sum, weapon) => sum + (weapon.quantity * 2), 0);
+
+    const gunners = turretsAndBarbettesGunners + defenseTurretGunners + screenGunners + spinalWeaponGunners + bayWeaponGunners;
     
     // Service staff: for vehicle and drone maintenance
     const vehicleService = calculateVehicleServiceStaff(shipDesign.vehicles);
@@ -715,7 +724,9 @@ function App() {
       <div className="app-content">
         <main className="main-panel">
           <h2>{showSelectShip ? 'Select Ship' : panels[currentPanel]}</h2>
-          {renderCurrentPanel()}
+          <Suspense fallback={<div className="loading-panel">Loading panel...</div>}>
+            {renderCurrentPanel()}
+          </Suspense>
           
           {!showSelectShip && (
             <>

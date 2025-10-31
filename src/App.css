@@ -1227,3 +1227,15 @@
   color: #2c3e50;
   margin-bottom: 1rem;
 }
+
+/* Lazy loading fallback */
+.loading-panel {
+  padding: 3rem;
+  text-align: center;
+  color: #7f8c8d;
+  font-style: italic;
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

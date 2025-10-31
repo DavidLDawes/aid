@@ -1,20 +1,23 @@
 import { jsx as _jsx, Fragment as _Fragment, jsxs as _jsxs } from "react/jsx-runtime";
-import { useState, useEffect, useCallback } from 'react';
-import { calculateTotalFuelMass, calculateVehicleServiceStaff, calculateDroneServiceStaff, calculateMedicalStaff, WEAPON_TYPES, getTonnageCode, getAvailableSpinalWeapons, getNumberOfSections, getMinimumComputer, COMPUTER_TYPES } from './data/constants';
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
+import { calculateTotalFuelMass, calculateVehicleServiceStaff, calculateDroneServiceStaff, calculateMedicalStaff, WEAPON_TYPES, BAY_WEAPON_TYPES, getTonnageCode, getAvailableSpinalWeapons, getNumberOfSections, getMinimumComputer, COMPUTER_TYPES } from './data/constants';
 import { databaseService } from './services/database';
+// Eagerly load only the ship selection panel (first screen)
 import SelectShipPanel from './components/SelectShipPanel';
-import ShipPanel from './components/ShipPanel';
-import EnginesPanel from './components/EnginesPanel';
-import FittingsPanel from './components/FittingsPanel';
-import WeaponsPanel from './components/WeaponsPanel';
-import DefensesPanel from './components/DefensesPanel';
-import BerthsPanel from './components/BerthsPanel';
-import FacilitiesPanel from './components/FacilitiesPanel';
-import CargoPanel from './components/CargoPanel';
-import VehiclesPanel from './components/VehiclesPanel';
-import DronesPanel from './components/DronesPanel';
-import StaffPanel from './components/StaffPanel';
-import SummaryPanel from './components/SummaryPanel';
+// Lazy load all design panels to reduce initial bundle size
+const ShipPanel = lazy(() => import('./components/ShipPanel'));
+const EnginesPanel = lazy(() => import('./components/EnginesPanel'));
+const FittingsPanel = lazy(() => import('./components/FittingsPanel'));
+const WeaponsPanel = lazy(() => import('./components/WeaponsPanel'));
+const DefensesPanel = lazy(() => import('./components/DefensesPanel'));
+const BerthsPanel = lazy(() => import('./components/BerthsPanel'));
+const FacilitiesPanel = lazy(() => import('./components/FacilitiesPanel'));
+const CargoPanel = lazy(() => import('./components/CargoPanel'));
+const VehiclesPanel = lazy(() => import('./components/VehiclesPanel'));
+const DronesPanel = lazy(() => import('./components/DronesPanel'));
+const StaffPanel = lazy(() => import('./components/StaffPanel'));
+const SummaryPanel = lazy(() => import('./components/SummaryPanel'));
+// Keep UI components eagerly loaded as they're small and always visible
 import MassSidebar from './components/MassSidebar';
 import FileMenu from './components/FileMenu';
 import RulesMenu from './components/RulesMenu';
@@ -323,10 +326,11 @@ function App() {
             engineers = Math.ceil(totalEnginesWeight / 100);
         }
         // Gunners: 1 per 10 instances of same weapon type (turrets/barbettes), +10 for spinal weapon
-        // Calculate gunners for each weapon type (excluding Hard Points)
+        // Calculate gunners for each weapon type (excluding Hard Points and bay weapons)
+        const bayWeaponNames = BAY_WEAPON_TYPES.map(b => b.name);
         let turretsAndBarbettesGunners = 0;
         shipDesign.weapons
-            .filter(weapon => weapon.weapon_name !== 'Hard Point')
+            .filter(weapon => weapon.weapon_name !== 'Hard Point' && !bayWeaponNames.includes(weapon.weapon_name))
             .forEach(weapon => {
             // 1 gunner per 10 weapons, rounded up
             turretsAndBarbettesGunners += Math.ceil(weapon.quantity / 10);
@@ -356,7 +360,10 @@ function App() {
             }
         });
         const spinalWeaponGunners = shipDesign.ship.spinal_weapon ? 10 : 0;
-        const gunners = turretsAndBarbettesGunners + defenseTurretGunners + screenGunners + spinalWeaponGunners;
+        // Bay weapons: 2 gunners per bay weapon
+        const bayWeapons = shipDesign.weapons.filter(w => bayWeaponNames.includes(w.weapon_name));
+        const bayWeaponGunners = bayWeapons.reduce((sum, weapon) => sum + (weapon.quantity * 2), 0);
+        const gunners = turretsAndBarbettesGunners + defenseTurretGunners + screenGunners + spinalWeaponGunners + bayWeaponGunners;
         // Service staff: for vehicle and drone maintenance
         const vehicleService = calculateVehicleServiceStaff(shipDesign.vehicles);
         const droneService = calculateDroneServiceStaff(shipDesign.drones);
@@ -528,6 +535,6 @@ function App() {
         }
     };
     return (_jsxs("div", { className: "app", children: [_jsxs("header", { className: "app-header", children: [_jsxs("div", { className: "header-top", children: [!showSelectShip && (_jsxs(_Fragment, { children: [_jsx(FileMenu, { shipDesign: shipDesign, mass: calculateMass(), cost: calculateCost(), staff: calculateStaffRequirements(), combinePilotNavigator: combinePilotNavigator, noStewards: noStewards, onPrint: handleFilePrint, onSave: handleFileSave, onSaveAs: handleFileSaveWithName }), _jsx(RulesMenu, { shipDesign: shipDesign, onRuleChange: handleRuleChange })] })), _jsxs("h1", { children: ["Traveller Capital Starship Designer", !showSelectShip && currentPanel > 0 && shipDesign.ship.name.trim() &&
-                                        `: ${shipDesign.ship.name}`] })] }), !showSelectShip && (_jsx("nav", { className: "panel-nav", children: panels.map((panel, index) => (_jsx("button", { className: `nav-button ${index === currentPanel ? 'active' : ''} ${index < currentPanel ? 'completed' : ''}`, onClick: () => setCurrentPanel(index), disabled: index > currentPanel + 1, children: panel }, panel))) }))] }), _jsxs("div", { className: "app-content", children: [_jsxs("main", { className: "main-panel", children: [_jsx("h2", { children: showSelectShip ? 'Select Ship' : panels[currentPanel] }), renderCurrentPanel(), !showSelectShip && (_jsxs(_Fragment, { children: [_jsxs("div", { className: "panel-controls", children: [_jsx("button", { onClick: prevPanel, disabled: currentPanel === 0, children: "Previous" }), _jsx("button", { onClick: nextPanel, disabled: currentPanel === panels.length - 1 || !canAdvance(), children: "Next" }), _jsx("button", { onClick: handleBackToShipSelect, className: "back-to-select", children: "Back to Ship Select" })] }), _jsx("div", { className: "panel-attribution", children: _jsx("p", { children: _jsx("a", { href: "https://www.traveller-srd.com/core-rules/spacecraft-design/", target: "_blank", rel: "noopener noreferrer", children: "Based on the Traveller SRD Spacecraft Design page, as best as I can." }) }) })] }))] }), !showSelectShip && currentPanel >= 1 && (_jsx(MassSidebar, { mass: calculateMass(), cost: calculateCost(), shipDesign: shipDesign, activeRules: activeRules }))] })] }));
+                                        `: ${shipDesign.ship.name}`] })] }), !showSelectShip && (_jsx("nav", { className: "panel-nav", children: panels.map((panel, index) => (_jsx("button", { className: `nav-button ${index === currentPanel ? 'active' : ''} ${index < currentPanel ? 'completed' : ''}`, onClick: () => setCurrentPanel(index), disabled: index > currentPanel + 1, children: panel }, panel))) }))] }), _jsxs("div", { className: "app-content", children: [_jsxs("main", { className: "main-panel", children: [_jsx("h2", { children: showSelectShip ? 'Select Ship' : panels[currentPanel] }), _jsx(Suspense, { fallback: _jsx("div", { className: "loading-panel", children: "Loading panel..." }), children: renderCurrentPanel() }), !showSelectShip && (_jsxs(_Fragment, { children: [_jsxs("div", { className: "panel-controls", children: [_jsx("button", { onClick: prevPanel, disabled: currentPanel === 0, children: "Previous" }), _jsx("button", { onClick: nextPanel, disabled: currentPanel === panels.length - 1 || !canAdvance(), children: "Next" }), _jsx("button", { onClick: handleBackToShipSelect, className: "back-to-select", children: "Back to Ship Select" })] }), _jsx("div", { className: "panel-attribution", children: _jsx("p", { children: _jsx("a", { href: "https://www.traveller-srd.com/core-rules/spacecraft-design/", target: "_blank", rel: "noopener noreferrer", children: "Based on the Traveller SRD Spacecraft Design page, as best as I can." }) }) })] }))] }), !showSelectShip && currentPanel >= 1 && (_jsx(MassSidebar, { mass: calculateMass(), cost: calculateCost(), shipDesign: shipDesign, activeRules: activeRules }))] })] }));
 }
 export default App;

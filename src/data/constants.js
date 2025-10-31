@@ -243,6 +243,32 @@ export const WEAPON_TYPES = [
     { name: 'Triple Missile Launcher Turret', mass: 1, cost: 3.3 },
     { name: 'Hard Point', mass: 1, cost: 1 }
 ];
+// Bay weapon types - 50 tons each, 2 gunners each
+// Available based on power plant performance and ship tonnage
+export const BAY_WEAPON_TYPES = [
+    { name: 'Missile Bank', mass: 50, cost: 12, minTechLevel: null },
+    { name: 'Particle Beam Bay', mass: 50, cost: 20, minTechLevel: null },
+    { name: 'Fusion Gun Bay', mass: 50, cost: 8, minTechLevel: 'C' }, // TL-C = 12
+    { name: 'Meson Gun Bay', mass: 50, cost: 50, minTechLevel: 'B' } // TL-B = 11
+];
+// Calculate max bay weapons based on power plant and tonnage
+// Formula: powerPlantPerformance × (shipTonnage / 1000)
+export function getMaxBayWeapons(powerPlantPerformance, shipTonnage) {
+    if (powerPlantPerformance < 1)
+        return 0;
+    const baysPerThousandTons = powerPlantPerformance; // P-1=1, P-2=2, etc.
+    return Math.floor((shipTonnage / 1000) * baysPerThousandTons);
+}
+// Get available bay weapons for current tech level
+export function getAvailableBayWeapons(techLevel) {
+    return BAY_WEAPON_TYPES.filter(bay => {
+        if (!bay.minTechLevel)
+            return true;
+        const bayTechLevelIndex = TECH_LEVELS.indexOf(bay.minTechLevel);
+        const shipTechLevelIndex = TECH_LEVELS.indexOf(techLevel);
+        return shipTechLevelIndex >= bayTechLevelIndex;
+    });
+}
 // Spinal weapon types - requires P-2+ power plant
 export const SPINAL_WEAPON_TYPES = [
     // Particle weapons

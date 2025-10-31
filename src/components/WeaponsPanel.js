@@ -1,9 +1,22 @@
 import { jsxs as _jsxs, jsx as _jsx, Fragment as _Fragment } from "react/jsx-runtime";
-import { WEAPON_TYPES, getWeaponMountLimit, getAvailableSpinalWeapons, getSpinalWeaponMountUsage } from '../data/constants';
+import { WEAPON_TYPES, BAY_WEAPON_TYPES, getWeaponMountLimit, getAvailableSpinalWeapons, getSpinalWeaponMountUsage, getMaxBayWeapons, getAvailableBayWeapons } from '../data/constants';
 const WeaponsPanel = ({ weapons, shipTonnage, shipTechLevel, engines, spinalWeapon, missileReloads, remainingMass, onUpdate, onSpinalWeaponUpdate, onMissileReloadsUpdate }) => {
     const mountLimit = getWeaponMountLimit(shipTonnage);
     const spinalMountUsage = getSpinalWeaponMountUsage(spinalWeapon, shipTechLevel);
-    const usedMounts = weapons.reduce((sum, weapon) => sum + weapon.quantity, 0) + spinalMountUsage;
+    // Separate bay weapons from turret/barbette weapons
+    const bayWeaponNames = BAY_WEAPON_TYPES.map(b => b.name);
+    const turretWeapons = weapons.filter(w => !bayWeaponNames.includes(w.weapon_name));
+    const bayWeapons = weapons.filter(w => bayWeaponNames.includes(w.weapon_name));
+    // Bay weapons also consume weapon mount slots (1 slot per bay weapon)
+    const usedBayWeapons = bayWeapons.reduce((sum, weapon) => sum + weapon.quantity, 0);
+    const usedMounts = turretWeapons.reduce((sum, weapon) => sum + weapon.quantity, 0) + usedBayWeapons + spinalMountUsage;
+    // Calculate bay weapon limits (power/tonnage AND weapon mount slots)
+    const powerPlant = engines.find(e => e.engine_type === 'power_plant');
+    const powerPlantPerformance = powerPlant?.performance || 0;
+    const maxBayWeaponsByPower = getMaxBayWeapons(powerPlantPerformance, shipTonnage);
+    const availableMountSlots = mountLimit - usedMounts;
+    // Bay weapons are limited by the LOWER of: power/tonnage limit OR available mount slots
+    const maxBayWeapons = Math.min(maxBayWeaponsByPower, availableMountSlots + usedBayWeapons);
     // Check if any missile launchers are installed
     const hasMissileLaunchers = weapons.some(weapon => weapon.weapon_name.toLowerCase().includes('missile launcher') && weapon.quantity > 0);
     // Calculate maximum missile reloads based on remaining mass
@@ -82,10 +95,28 @@ const WeaponsPanel = ({ weapons, shipTonnage, shipTechLevel, engines, spinalWeap
             }
         }
     };
+    const updateBayWeaponQuantity = (bayWeaponType, requestedQuantity) => {
+        const validQuantity = Math.max(0, Math.floor(requestedQuantity));
+        // Don't allow exceeding max bay weapons
+        const otherBayWeapons = bayWeapons.filter(w => w.weapon_name !== bayWeaponType.name);
+        const otherBayWeaponsCount = otherBayWeapons.reduce((sum, w) => sum + w.quantity, 0);
+        const maxAllowed = maxBayWeapons - otherBayWeaponsCount;
+        const clampedQuantity = Math.min(validQuantity, maxAllowed);
+        let newWeapons = weapons.filter(w => w.weapon_name !== bayWeaponType.name);
+        if (clampedQuantity > 0) {
+            newWeapons.push({
+                weapon_name: bayWeaponType.name,
+                mass: bayWeaponType.mass,
+                cost: bayWeaponType.cost,
+                quantity: clampedQuantity
+            });
+        }
+        onUpdate(newWeapons);
+    };
     const hardPointWeapon = weapons.find(w => w.weapon_name === 'Hard Point');
     const currentHardPoints = hardPointWeapon?.quantity || 0;
     const availableSlots = mountLimit - usedMounts;
-    return (_jsxs("div", { className: "panel-content", children: [_jsxs("p", { children: ["Available weapon mounts: ", mountLimit, " (Used: ", usedMounts, ", Remaining: ", availableSlots, ")", spinalMountUsage > 0 && _jsxs("span", { children: [" | Spinal weapon: ", spinalMountUsage, " mounts"] }), currentHardPoints > 0 && _jsxs("span", { children: [" | Hard Points: ", currentHardPoints] })] }), _jsx("div", { style: { marginBottom: '10px' }, children: _jsxs("button", { onClick: maxOutHardPoints, disabled: availableSlots === 0, style: { padding: '5px 10px' }, children: ["Max Hard Points (", availableSlots, " available)"] }) }), _jsxs("div", { className: "weapons-grouped-layout", children: [_jsx("div", { className: "weapon-group-row", children: WEAPON_TYPES.filter(w => w.name.includes('Pulse Laser')).map(weaponType => {
+    return (_jsxs("div", { className: "panel-content", children: [_jsxs("p", { children: ["Available weapon mounts: ", mountLimit, " (Used: ", usedMounts, ", Remaining: ", availableSlots, ")", spinalMountUsage > 0 && _jsxs("span", { children: [" | Spinal weapon: ", spinalMountUsage, " mounts"] }), usedBayWeapons > 0 && _jsxs("span", { children: [" | Bay weapons: ", usedBayWeapons, " mounts"] }), currentHardPoints > 0 && _jsxs("span", { children: [" | Hard Points: ", currentHardPoints] })] }), _jsx("div", { style: { marginBottom: '10px' }, children: _jsxs("button", { onClick: maxOutHardPoints, disabled: availableSlots === 0, style: { padding: '5px 10px' }, children: ["Max Hard Points (", availableSlots, " available)"] }) }), _jsxs("div", { className: "weapons-grouped-layout", children: [_jsx("div", { className: "weapon-group-row", children: WEAPON_TYPES.filter(w => w.name.includes('Pulse Laser')).map(weaponType => {
                             const currentWeapon = weapons.find(w => w.weapon_name === weaponType.name);
                             const quantity = currentWeapon?.quantity || 0;
                             return (_jsxs("div", { className: "component-item", children: [_jsx("div", { className: "component-info", children: _jsxs("h4", { children: [weaponType.name, ", ", weaponType.mass, " tons, ", weaponType.cost, " MCr"] }) }), _jsx("div", { className: "quantity-control", children: _jsxs("label", { children: ["Quantity:", _jsx("input", { type: "number", min: "0", value: quantity, onChange: (e) => updateWeaponQuantity(weaponType, parseInt(e.target.value) || 0), style: { width: '60px', marginLeft: '0.5rem' } })] }) })] }, weaponType.name));
@@ -109,7 +140,11 @@ const WeaponsPanel = ({ weapons, shipTonnage, shipTechLevel, engines, spinalWeap
                             const currentWeapon = weapons.find(w => w.weapon_name === weaponType.name);
                             const quantity = currentWeapon?.quantity || 0;
                             return (_jsxs("div", { className: "component-item", children: [_jsx("div", { className: "component-info", children: _jsxs("h4", { children: [weaponType.name, ", ", weaponType.mass, " tons, ", weaponType.cost, " MCr"] }) }), _jsx("div", { className: "quantity-control", children: _jsxs("label", { children: ["Quantity:", _jsx("input", { type: "number", min: "0", value: quantity, onChange: (e) => updateWeaponQuantity(weaponType, parseInt(e.target.value) || 0), style: { width: '60px', marginLeft: '0.5rem' } })] }) })] }, weaponType.name));
-                        }) })] }), _jsxs("div", { className: "spinal-weapon-section", children: [_jsx("h3", { children: "Spinal Weapon" }), (() => {
+                        }) })] }), _jsxs("div", { className: "bay-weapons-section", children: [_jsx("h3", { children: "Bay Weapons" }), powerPlantPerformance < 1 ? (_jsx("p", { className: "info-message", children: "Bay weapons require a Power Plant with P-1 or higher performance." })) : (_jsxs(_Fragment, { children: [_jsxs("p", { children: ["Available bay weapon slots: ", _jsx("strong", { children: maxBayWeapons }), " (Used: ", usedBayWeapons, ", Remaining: ", maxBayWeapons - usedBayWeapons, ")", _jsx("br", {}), _jsxs("small", { children: ["Power/Tonnage limit: ", maxBayWeaponsByPower, " (P-", powerPlantPerformance, " \u00D7 ", shipTonnage.toLocaleString(), " tons \u00F7 1,000)", availableMountSlots + usedBayWeapons < maxBayWeaponsByPower && (_jsxs("span", { children: [" \u2022 Weapon mount limit: ", availableMountSlots + usedBayWeapons, " ", _jsx("strong", { children: "(limiting factor)" })] }))] }), _jsx("br", {}), _jsx("small", { children: "Each bay weapon: 50 tons, 1 weapon mount, 2 gunners" })] }), _jsx("div", { className: "weapons-grouped-layout", children: _jsx("div", { className: "weapon-group-row", children: getAvailableBayWeapons(shipTechLevel).map(bayWeaponType => {
+                                        const currentBayWeapon = bayWeapons.find(w => w.weapon_name === bayWeaponType.name);
+                                        const quantity = currentBayWeapon?.quantity || 0;
+                                        return (_jsxs("div", { className: "component-item", children: [_jsxs("div", { className: "component-info", children: [_jsx("h4", { children: bayWeaponType.name }), _jsxs("p", { children: [bayWeaponType.mass, " tons, ", bayWeaponType.cost, " MCr", bayWeaponType.minTechLevel ? `, TL-${bayWeaponType.minTechLevel}+` : ''] }), quantity > 0 && (_jsxs("p", { children: [_jsx("strong", { children: "Total:" }), " ", (bayWeaponType.mass * quantity).toFixed(1), " tons, ", (bayWeaponType.cost * quantity).toFixed(1), " MCr, ", quantity * 2, " gunners"] }))] }), _jsx("div", { className: "quantity-control", children: _jsxs("label", { children: ["Quantity:", _jsx("input", { type: "number", min: "0", max: maxBayWeapons, value: quantity, onChange: (e) => updateBayWeaponQuantity(bayWeaponType, parseInt(e.target.value) || 0), style: { width: '60px', marginLeft: '0.5rem' } })] }) })] }, bayWeaponType.name));
+                                    }) }) })] }))] }), _jsxs("div", { className: "spinal-weapon-section", children: [_jsx("h3", { children: "Spinal Weapon" }), (() => {
                         const powerPlant = engines.find(e => e.engine_type === 'power_plant');
                         const powerPlantPerformance = powerPlant?.performance || 0;
                         const availableSpinalWeapons = getAvailableSpinalWeapons(shipTechLevel, powerPlantPerformance);
