@@ -1,7 +1,6 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { useState, useEffect } from 'react';
 import { databaseService } from '../services/database';
-import { initialDataService } from '../services/initialDataService';
 export default function SelectShipPanel({ onNewShip, onLoadShip }) {
     const [ships, setShips] = useState([]);
     const [selectedShipId, setSelectedShipId] = useState(null);
@@ -116,28 +115,17 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }) {
             await databaseService.initialize();
             let savedShips = await databaseService.getAllShips();
             console.log('SelectShipPanel loaded ships from database:', savedShips.length);
-            // If no ships exist, try to load initial data
+            // If no ships exist, use hardcoded defaults
             if (savedShips.length === 0) {
-                console.log('No ships in database, attempting to load initial ships...');
-                const loaded = await initialDataService.loadInitialDataIfNeeded();
-                console.log('Initial data loading result:', loaded);
-                if (loaded) {
-                    // Try to get ships again after loading
-                    savedShips = await databaseService.getAllShips();
-                    console.log('After loading initial data, ships count:', savedShips.length);
-                }
-                // Final fallback: if still no ships, use hardcoded defaults
-                if (savedShips.length === 0) {
-                    console.log('⚠️ All ship loading methods failed, using hardcoded default ships');
-                    savedShips = createDefaultShips();
-                }
+                console.log('No ships in database, using hardcoded default ships');
+                savedShips = createDefaultShips();
             }
             setShips(savedShips);
             console.log('Final ships array set:', savedShips.length, savedShips.map(s => s.ship.name));
         }
         catch (err) {
             console.error('SelectShipPanel error during ship loading:', err);
-            // Final emergency fallback
+            // Emergency fallback
             console.log('🚨 Emergency fallback: using hardcoded ships due to error');
             const defaultShips = createDefaultShips();
             setShips(defaultShips);
