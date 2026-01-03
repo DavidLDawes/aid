@@ -45,6 +45,7 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }) {
             ],
             vehicles: [{ vehicle_type: 'air_raft_truck', quantity: 1, mass: 5, cost: 0.55 }],
             drones: [],
+            custom_items: [],
             createdAt: new Date(),
             updatedAt: new Date()
         };
@@ -76,6 +77,7 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }) {
             cargo: [{ cargo_type: 'cargo_bay', tonnage: 3, cost: 0 }],
             vehicles: [],
             drones: [],
+            custom_items: [],
             createdAt: new Date(),
             updatedAt: new Date()
         };
@@ -101,6 +103,7 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }) {
             cargo: [],
             vehicles: [],
             drones: [],
+            custom_items: [],
             createdAt: new Date(),
             updatedAt: new Date()
         };

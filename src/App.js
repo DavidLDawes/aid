@@ -13,6 +13,7 @@ import FacilitiesPanel from './components/FacilitiesPanel';
 import CargoPanel from './components/CargoPanel';
 import VehiclesPanel from './components/VehiclesPanel';
 import DronesPanel from './components/DronesPanel';
+import CustomPanel from './components/CustomPanel';
 import StaffPanel from './components/StaffPanel';
 import SummaryPanel from './components/SummaryPanel';
 import MassSidebar from './components/MassSidebar';
@@ -42,12 +43,13 @@ function App() {
         facilities: [],
         cargo: [],
         vehicles: [],
-        drones: []
+        drones: [],
+        custom_items: []
     });
     const panels = [
         'Ship', 'Engines', 'Fittings', 'Weapons', 'Defenses',
-        'Rec/Health', 'Cargo', 'Vehicles', 'Drones', 'Berths',
-        'Staff', 'Ship Design'
+        'Rec/Health', 'Cargo', 'Vehicles', 'Drones', 'Custom',
+        'Berths', 'Staff', 'Ship Design'
     ];
     useEffect(() => {
         checkExistingShips();
@@ -214,6 +216,8 @@ function App() {
         used += shipDesign.vehicles.reduce((sum, vehicle) => sum + (vehicle.mass * vehicle.quantity), 0);
         // Add drone masses
         used += shipDesign.drones.reduce((sum, drone) => sum + (drone.mass * drone.quantity), 0);
+        // Add custom items masses
+        used += shipDesign.custom_items.reduce((sum, item) => sum + item.mass, 0);
         // Add fuel tank mass
         const jumpDrive = shipDesign.engines.find(e => e.engine_type === 'jump_drive');
         const maneuverDrive = shipDesign.engines.find(e => e.engine_type === 'maneuver_drive');
@@ -255,6 +259,8 @@ function App() {
         total += shipDesign.vehicles.reduce((sum, vehicle) => sum + (vehicle.cost * vehicle.quantity), 0);
         // Add drone costs
         total += shipDesign.drones.reduce((sum, drone) => sum + (drone.cost * drone.quantity), 0);
+        // Add custom items costs
+        total += shipDesign.custom_items.reduce((sum, item) => sum + item.cost, 0);
         // Add missile reload costs (1 MCr per ton)
         total += shipDesign.ship.missile_reloads;
         // Add sand reload costs (0.1 MCr per ton)
@@ -427,10 +433,12 @@ function App() {
             case 8:
                 return _jsx(DronesPanel, { drones: shipDesign.drones, onUpdate: (drones) => updateShipDesign({ drones }) });
             case 9:
-                return _jsx(BerthsPanel, { berths: shipDesign.berths, staffRequirements: staff, adjustedCrewCount: calculateAdjustedCrewCount(staff), onUpdate: (berths) => updateShipDesign({ berths }) });
+                return _jsx(CustomPanel, { custom_items: shipDesign.custom_items, onUpdate: (custom_items) => updateShipDesign({ custom_items }) });
             case 10:
-                return _jsx(StaffPanel, { staffRequirements: staff, berths: shipDesign.berths, shipTonnage: shipDesign.ship.tonnage, combinePilotNavigator: combinePilotNavigator, noStewards: noStewards, onCombinePilotNavigatorChange: setCombinePilotNavigator, onNoStewardsChange: setNoStewards });
+                return _jsx(BerthsPanel, { berths: shipDesign.berths, staffRequirements: staff, adjustedCrewCount: calculateAdjustedCrewCount(staff), onUpdate: (berths) => updateShipDesign({ berths }) });
             case 11:
+                return _jsx(StaffPanel, { staffRequirements: staff, berths: shipDesign.berths, shipTonnage: shipDesign.ship.tonnage, combinePilotNavigator: combinePilotNavigator, noStewards: noStewards, onCombinePilotNavigatorChange: setCombinePilotNavigator, onNoStewardsChange: setNoStewards });
+            case 12:
                 return _jsx(SummaryPanel, { shipDesign: shipDesign, mass: mass, cost: cost, staff: staff, combinePilotNavigator: combinePilotNavigator, noStewards: noStewards, onBackToShipSelect: handleBackToShipSelect });
             default:
                 return null;

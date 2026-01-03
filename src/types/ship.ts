@@ -83,6 +83,13 @@ export interface Drone {
   cost: number;
 }
 
+export interface CustomItem {
+  id?: number;
+  name: string;
+  mass: number;
+  cost: number;
+}
+
 export interface StaffRequirements {
   pilot: number;
   navigator: number;
@@ -107,6 +114,7 @@ export interface ShipDesign {
   cargo: Cargo[];
   vehicles: Vehicle[];
   drones: Drone[];
+  custom_items: CustomItem[];
 }
 
 export interface MassCalculation {

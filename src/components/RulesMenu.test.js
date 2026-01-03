@@ -23,7 +23,8 @@ const createMockShipDesign = (techLevel) => ({
     facilities: [],
     cargo: [],
     vehicles: [],
-    drones: []
+    drones: [],
+    custom_items: []
 });
 describe('RulesMenu Tech Level Restrictions', () => {
     const mockOnRuleChange = jest.fn();

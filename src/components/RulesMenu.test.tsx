@@ -24,7 +24,8 @@ const createMockShipDesign = (techLevel: string): ShipDesign => ({
   facilities: [],
   cargo: [],
   vehicles: [],
-  drones: []
+  drones: [],
+  custom_items: []
 });
 
 describe('RulesMenu Tech Level Restrictions', () => {

@@ -33,7 +33,8 @@ const ShipPanel = ({ ship, onUpdate, onLoadExistingShip }) => {
                         facilities: existingShip.facilities,
                         cargo: existingShip.cargo,
                         vehicles: existingShip.vehicles,
-                        drones: existingShip.drones
+                        drones: existingShip.drones,
+                        custom_items: existingShip.custom_items || []
                     }
                 });
             }

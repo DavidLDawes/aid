@@ -31,6 +31,7 @@ const MassSidebar: React.FC<MassSidebarProps> = ({ mass, cost, shipDesign, activ
   const cargoMass = shipDesign.cargo.reduce((sum, cargo) => sum + cargo.tonnage, 0);
   const vehiclesMass = shipDesign.vehicles.reduce((sum, vehicle) => sum + (vehicle.mass * vehicle.quantity), 0);
   const dronesMass = shipDesign.drones.reduce((sum, drone) => sum + (drone.mass * drone.quantity), 0);
+  const customItemsMass = shipDesign.custom_items.reduce((sum, item) => sum + item.mass, 0);
   const berthsMass = shipDesign.berths.reduce((sum, berth) => sum + (berth.mass * berth.quantity), 0);
 
   // Calculate fuel mass
@@ -117,6 +118,15 @@ const MassSidebar: React.FC<MassSidebarProps> = ({ mass, cost, shipDesign, activ
       items: shipDesign.drones.filter(d => d.quantity > 0).map(drone => ({
         name: `${drone.drone_type.replace('_', ' ')} (${drone.quantity})`,
         mass: drone.mass * drone.quantity
+      }))
+    },
+    {
+      name: 'Custom',
+      mass: customItemsMass,
+      alwaysVisible: false,
+      items: shipDesign.custom_items.map(item => ({
+        name: item.name,
+        mass: item.mass
       }))
     },
     {

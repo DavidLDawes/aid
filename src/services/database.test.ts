@@ -28,7 +28,8 @@ describe('Database Service', () => {
     facilities: [],
     cargo: [],
     vehicles: [],
-    drones: []
+    drones: [],
+    custom_items: []
   };
 
   beforeEach(async () => {

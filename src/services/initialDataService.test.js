@@ -31,7 +31,8 @@ describe('Initial Data Service', () => {
         facilities: [],
         cargo: [],
         vehicles: [],
-        drones: []
+        drones: [],
+        custom_items: []
     };
     const mockInitialData = {
         exportDate: '2025-08-05T16:00:00.000Z',

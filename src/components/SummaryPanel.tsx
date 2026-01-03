@@ -270,7 +270,7 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
       let droneName = droneType?.name || drone.drone_type;
       droneName = droneName.replace(/\b\d+(\.\d+)?\s+ton\s+/gi, '');
       const droneDisplay = drone.quantity === 1 ? droneName : `${droneName} (x${drone.quantity})`;
-      
+
       allRows.push({
         category: index === 0 ? 'Drones' : '',
         item: droneDisplay,
@@ -278,7 +278,18 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
         cost: drone.cost * drone.quantity
       });
     });
-    
+
+    // Custom Items
+    const customItems = shipDesign.custom_items;
+    customItems.forEach((item, index) => {
+      allRows.push({
+        category: index === 0 ? 'Custom' : '',
+        item: item.name,
+        mass: item.mass,
+        cost: item.cost
+      });
+    });
+
     // Add all rows to CSV
     allRows.forEach(row => {
       lines.push(`${row.category},${row.item},${row.mass.toFixed(1)},${row.cost.toFixed(2)}`);
@@ -544,12 +555,22 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
       let droneName = droneType?.name || drone.drone_type;
       droneName = droneName.replace(/\b\d+(\.\d+)?\s+ton\s+/gi, '');
       const droneDisplay = drone.quantity === 1 ? droneName : `${droneName} (x${drone.quantity})`;
-      
+
       addRow(
         index === 0 ? 'Drones' : '',
         droneDisplay,
         drone.mass * drone.quantity,
         drone.cost * drone.quantity
+      );
+    });
+
+    // Custom Items
+    shipDesign.custom_items.forEach((item, index) => {
+      addRow(
+        index === 0 ? 'Custom' : '',
+        item.name,
+        item.mass,
+        item.cost
       );
     });
 
@@ -901,7 +922,28 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
               
               return rows;
             })()}
-            
+
+            {/* Custom Items */}
+            {(() => {
+              const rows: React.ReactElement[] = [];
+              const customItems = shipDesign.custom_items;
+
+              if (customItems.length > 0) {
+                customItems.forEach((item, index) => {
+                  rows.push(
+                    <tr key={`custom_${index}`}>
+                      <td>{index === 0 ? 'Custom' : ''}</td>
+                      <td>{item.name}</td>
+                      <td>{item.mass.toFixed(1)} tons</td>
+                      <td>{item.cost.toFixed(2)} MCr</td>
+                    </tr>
+                  );
+                });
+              }
+
+              return rows;
+            })()}
+
             {/* Totals Row */}
             <tr>
               <td></td>

@@ -25,7 +25,8 @@ describe('Database Service', () => {
         facilities: [],
         cargo: [],
         vehicles: [],
-        drones: []
+        drones: [],
+        custom_items: []
     };
     beforeEach(async () => {
         // Initialize database before each test

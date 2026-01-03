@@ -86,7 +86,8 @@ describe('Antimatter Integration Tests', () => {
         facilities: [],
         cargo: [],
         vehicles: [],
-        drones: []
+        drones: [],
+        custom_items: []
     });
     describe('Complete Ship Mass Calculations', () => {
         it('should calculate correct total mass without antimatter', () => {

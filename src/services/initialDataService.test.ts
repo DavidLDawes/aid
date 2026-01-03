@@ -35,7 +35,8 @@ describe('Initial Data Service', () => {
     facilities: [],
     cargo: [],
     vehicles: [],
-    drones: []
+    drones: [],
+    custom_items: []
   };
 
   const mockInitialData = {

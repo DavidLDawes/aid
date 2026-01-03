@@ -17,7 +17,8 @@ describe('Database Flush and Auto-reload', () => {
         facilities: [],
         cargo: [],
         vehicles: [],
-        drones: []
+        drones: [],
+        custom_items: []
     };
     beforeEach(async () => {
         await databaseService.initialize();

@@ -240,6 +240,16 @@ const SummaryPanel = ({ shipDesign, mass, cost, staff, combinePilotNavigator, no
                 cost: drone.cost * drone.quantity
             });
         });
+        // Custom Items
+        const customItems = shipDesign.custom_items;
+        customItems.forEach((item, index) => {
+            allRows.push({
+                category: index === 0 ? 'Custom' : '',
+                item: item.name,
+                mass: item.mass,
+                cost: item.cost
+            });
+        });
         // Add all rows to CSV
         allRows.forEach(row => {
             lines.push(`${row.category},${row.item},${row.mass.toFixed(1)},${row.cost.toFixed(2)}`);
@@ -423,6 +433,10 @@ const SummaryPanel = ({ shipDesign, mass, cost, staff, combinePilotNavigator, no
             const droneDisplay = drone.quantity === 1 ? droneName : `${droneName} (x${drone.quantity})`;
             addRow(index === 0 ? 'Drones' : '', droneDisplay, drone.mass * drone.quantity, drone.cost * drone.quantity);
         });
+        // Custom Items
+        shipDesign.custom_items.forEach((item, index) => {
+            addRow(index === 0 ? 'Custom' : '', item.name, item.mass, item.cost);
+        });
         // Totals row
         rows.push(`
       <tr class="totals-row">
@@ -604,6 +618,15 @@ const SummaryPanel = ({ shipDesign, mass, cost, staff, combinePilotNavigator, no
                                             const droneDisplay = drone.quantity === 1 ? droneName : `${droneName} (x${drone.quantity})`;
                                             rows.push(_jsxs("tr", { children: [_jsx("td", { children: droneRowIndex === 0 ? 'Drones' : '' }), _jsx("td", { children: droneDisplay }), _jsxs("td", { children: [(drone.mass * drone.quantity).toFixed(1), " tons"] }), _jsxs("td", { children: [(drone.cost * drone.quantity).toFixed(2), " MCr"] })] }, `drone_${drone.drone_type}`));
                                             droneRowIndex++;
+                                        });
+                                    }
+                                    return rows;
+                                })(), (() => {
+                                    const rows = [];
+                                    const customItems = shipDesign.custom_items;
+                                    if (customItems.length > 0) {
+                                        customItems.forEach((item, index) => {
+                                            rows.push(_jsxs("tr", { children: [_jsx("td", { children: index === 0 ? 'Custom' : '' }), _jsx("td", { children: item.name }), _jsxs("td", { children: [item.mass.toFixed(1), " tons"] }), _jsxs("td", { children: [item.cost.toFixed(2), " MCr"] })] }, `custom_${index}`));
                                         });
                                     }
                                     return rows;
