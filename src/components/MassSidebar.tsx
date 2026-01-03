@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { MassCalculation, CostCalculation, ShipDesign } from '../types/ship';
-import { calculateTotalFuelMass } from '../data/constants';
+import { calculateTotalFuelMass, calculateArmorMass } from '../data/constants';
 import { sumMass, sumMassWithQuantity, sumCargoTonnage } from '../utils/calculations';
 
 interface MassSidebarProps {
@@ -47,6 +47,11 @@ const MassSidebar: React.FC<MassSidebarProps> = ({ mass, cost, shipDesign, activ
   const missileReloadMass = shipDesign.ship.missile_reloads;
   const sandReloadMass = shipDesign.ship.sand_reloads;
 
+  // Calculate armor mass
+  const armorMass = shipDesign.ship.armor_percentage
+    ? calculateArmorMass(shipDesign.ship.tonnage, shipDesign.ship.armor_percentage)
+    : 0;
+
   // Categories with their masses and visibility logic
   const categories = [
     {
@@ -84,6 +89,15 @@ const MassSidebar: React.FC<MassSidebarProps> = ({ mass, cost, shipDesign, activ
         name: `${defense.defense_type.replace('_', ' ')} (${defense.quantity})`,
         mass: defense.mass * defense.quantity
       }))
+    },
+    {
+      name: 'Armor',
+      mass: armorMass,
+      alwaysVisible: false,
+      items: armorMass > 0 ? [{
+        name: `${shipDesign.ship.armor_percentage}% Coverage`,
+        mass: armorMass
+      }] : []
     },
     {
       name: 'Rec/Health',

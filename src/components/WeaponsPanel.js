@@ -1,6 +1,6 @@
 import { jsxs as _jsxs, jsx as _jsx, Fragment as _Fragment } from "react/jsx-runtime";
 import { WEAPON_TYPES, BAY_WEAPON_TYPES, getWeaponMountLimit, getAvailableSpinalWeapons, getSpinalWeaponMountUsage, getMaxBayWeapons, getAvailableBayWeapons } from '../data/constants';
-const WeaponsPanel = ({ weapons, shipTonnage, shipTechLevel, engines, spinalWeapon, missileReloads, remainingMass, onUpdate, onSpinalWeaponUpdate, onMissileReloadsUpdate }) => {
+const WeaponsPanel = ({ weapons, shipTonnage, shipTechLevel, engines, spinalWeapon, missileReloads, remainingMass, defenseTurretsCount, onUpdate, onSpinalWeaponUpdate, onMissileReloadsUpdate }) => {
     const mountLimit = getWeaponMountLimit(shipTonnage);
     const spinalMountUsage = getSpinalWeaponMountUsage(spinalWeapon, shipTechLevel);
     // Separate bay weapons from turret/barbette weapons
@@ -9,7 +9,7 @@ const WeaponsPanel = ({ weapons, shipTonnage, shipTechLevel, engines, spinalWeap
     const bayWeapons = weapons.filter(w => bayWeaponNames.includes(w.weapon_name));
     // Bay weapons also consume weapon mount slots (1 slot per bay weapon)
     const usedBayWeapons = bayWeapons.reduce((sum, weapon) => sum + weapon.quantity, 0);
-    const usedMounts = turretWeapons.reduce((sum, weapon) => sum + weapon.quantity, 0) + usedBayWeapons + spinalMountUsage;
+    const usedMounts = turretWeapons.reduce((sum, weapon) => sum + weapon.quantity, 0) + usedBayWeapons + spinalMountUsage + defenseTurretsCount;
     // Calculate bay weapon limits (power/tonnage AND weapon mount slots)
     const powerPlant = engines.find(e => e.engine_type === 'power_plant');
     const powerPlantPerformance = powerPlant?.performance || 0;
@@ -116,7 +116,7 @@ const WeaponsPanel = ({ weapons, shipTonnage, shipTechLevel, engines, spinalWeap
     const hardPointWeapon = weapons.find(w => w.weapon_name === 'Hard Point');
     const currentHardPoints = hardPointWeapon?.quantity || 0;
     const availableSlots = mountLimit - usedMounts;
-    return (_jsxs("div", { className: "panel-content", children: [_jsxs("p", { children: ["Available weapon mounts: ", mountLimit, " (Used: ", usedMounts, ", Remaining: ", availableSlots, ")", spinalMountUsage > 0 && _jsxs("span", { children: [" | Spinal weapon: ", spinalMountUsage, " mounts"] }), usedBayWeapons > 0 && _jsxs("span", { children: [" | Bay weapons: ", usedBayWeapons, " mounts"] }), currentHardPoints > 0 && _jsxs("span", { children: [" | Hard Points: ", currentHardPoints] })] }), _jsx("div", { style: { marginBottom: '10px' }, children: _jsxs("button", { onClick: maxOutHardPoints, disabled: availableSlots === 0, style: { padding: '5px 10px' }, children: ["Max Hard Points (", availableSlots, " available)"] }) }), _jsxs("div", { className: "weapons-grouped-layout", children: [_jsx("div", { className: "weapon-group-row", children: WEAPON_TYPES.filter(w => w.name.includes('Pulse Laser')).map(weaponType => {
+    return (_jsxs("div", { className: "panel-content", children: [_jsxs("p", { children: ["Available weapon mounts: ", mountLimit, " (Used: ", usedMounts, ", Remaining: ", availableSlots, ")", spinalMountUsage > 0 && _jsxs("span", { children: [" | Spinal weapon: ", spinalMountUsage, " mounts"] }), usedBayWeapons > 0 && _jsxs("span", { children: [" | Bay weapons: ", usedBayWeapons, " mounts"] }), defenseTurretsCount > 0 && _jsxs("span", { children: [" | Defense turrets: ", defenseTurretsCount, " mounts"] }), currentHardPoints > 0 && _jsxs("span", { children: [" | Hard Points: ", currentHardPoints] })] }), _jsx("div", { style: { marginBottom: '10px' }, children: _jsxs("button", { onClick: maxOutHardPoints, disabled: availableSlots === 0, style: { padding: '5px 10px' }, children: ["Max Hard Points (", availableSlots, " available)"] }) }), _jsxs("div", { className: "weapons-grouped-layout", children: [_jsx("div", { className: "weapon-group-row", children: WEAPON_TYPES.filter(w => w.name.includes('Pulse Laser')).map(weaponType => {
                             const currentWeapon = weapons.find(w => w.weapon_name === weaponType.name);
                             const quantity = currentWeapon?.quantity || 0;
                             return (_jsxs("div", { className: "component-item", children: [_jsx("div", { className: "component-info", children: _jsxs("h4", { children: [weaponType.name, ", ", weaponType.mass, " tons, ", weaponType.cost, " MCr"] }) }), _jsx("div", { className: "quantity-control", children: _jsxs("label", { children: ["Quantity:", _jsx("input", { type: "number", min: "0", value: quantity, onChange: (e) => updateWeaponQuantity(weaponType, parseInt(e.target.value) || 0), style: { width: '60px', marginLeft: '0.5rem' } })] }) })] }, weaponType.name));

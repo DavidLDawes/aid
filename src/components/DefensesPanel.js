@@ -2,7 +2,10 @@ import { jsxs as _jsxs, jsx as _jsx } from "react/jsx-runtime";
 import { DEFENSE_TYPES, getWeaponMountLimit, getAvailableArmorOptions, calculateArmorMass, calculateArmorCost, getArmorFactorPerIncrement, getMaxScreens, getScreenSpecs } from '../data/constants';
 const DefensesPanel = ({ defenses, shipTonnage, shipTechLevel, weaponsCount, sandReloads, armorPercentage, remainingMass, onUpdate, onSandReloadsUpdate, onArmorUpdate }) => {
     const maxMountLimit = getWeaponMountLimit(shipTonnage);
-    const currentTurretCount = defenses.reduce((sum, defense) => sum + defense.quantity, 0);
+    // Only count turret defenses (sandcasters and point defense), not screens
+    const currentTurretCount = defenses
+        .filter(defense => !['nuclear_damper', 'meson_screen', 'black_globe'].includes(defense.defense_type))
+        .reduce((sum, defense) => sum + defense.quantity, 0);
     const availableSlots = maxMountLimit - weaponsCount - currentTurretCount;
     // Check if any sandcaster turrets are installed
     const hasSandcasters = defenses.some(defense => defense.defense_type.includes('sandcaster') && defense.quantity > 0);
@@ -41,14 +44,14 @@ const DefensesPanel = ({ defenses, shipTonnage, shipTechLevel, weaponsCount, san
         if (quantity > 0) {
             newDefenses.push({
                 defense_type: screenType,
-                mass: specs.mass * quantity,
-                cost: specs.cost * quantity,
+                mass: specs.mass,
+                cost: specs.cost,
                 quantity
             });
         }
         onUpdate(newDefenses);
     };
-    return (_jsxs("div", { className: "panel-content", children: [_jsxs("p", { children: ["Available defense turret mounts: ", maxMountLimit, " (Used: ", weaponsCount + currentTurretCount, ", Remaining: ", availableSlots, ")"] }), _jsxs("div", { className: "defenses-grouped-layout", children: [_jsx("div", { className: "defense-group-row", children: DEFENSE_TYPES.filter(d => d.name.includes('Sandcaster')).map(defenseType => {
+    return (_jsxs("div", { className: "panel-content", children: [_jsxs("p", { children: ["Available turret mounts (shared with Weapons): ", maxMountLimit, " (Weapons: ", weaponsCount, ", Defense turrets: ", currentTurretCount, ", Remaining: ", availableSlots, ")"] }), _jsxs("div", { className: "defenses-grouped-layout", children: [_jsx("div", { className: "defense-group-row", children: DEFENSE_TYPES.filter(d => d.name.includes('Sandcaster')).map(defenseType => {
                             const currentDefense = defenses.find(d => d.defense_type === defenseType.type);
                             const quantity = currentDefense?.quantity || 0;
                             return (_jsxs("div", { className: "component-item", children: [_jsx("div", { className: "component-info", children: _jsxs("h4", { children: [defenseType.name, ", ", defenseType.mass, " tons, ", defenseType.cost, " MCr"] }) }), _jsx("div", { className: "quantity-control", children: _jsxs("label", { children: ["Quantity:", _jsx("input", { type: "number", min: "0", value: quantity, onChange: (e) => updateDefenseQuantity(defenseType, parseInt(e.target.value) || 0), style: { width: '60px', marginLeft: '0.5rem' } })] }) })] }, defenseType.type));

@@ -614,6 +614,7 @@ function App() {
           spinalWeapon={shipDesign.ship.spinal_weapon}
           missileReloads={shipDesign.ship.missile_reloads}
           remainingMass={mass.remaining + shipDesign.ship.missile_reloads}
+          defenseTurretsCount={shipDesign.defenses.filter(d => !['nuclear_damper', 'meson_screen', 'black_globe'].includes(d.defense_type)).reduce((sum, d) => sum + d.quantity, 0)}
           onUpdate={(weapons) => updateShipDesign({ weapons })}
           onSpinalWeaponUpdate={(spinal_weapon) => updateShipDesign({ ship: { ...shipDesign.ship, spinal_weapon } })}
           onMissileReloadsUpdate={(missile_reloads) => updateShipDesign({ ship: { ...shipDesign.ship, missile_reloads } })}

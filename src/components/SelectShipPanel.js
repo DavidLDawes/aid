@@ -10,103 +10,165 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }) {
         loadShips();
     }, []);
     const createDefaultShips = () => {
-        // Fallback: create default ships in memory if all loading fails
-        const defaultFreeTrader = {
+        // Fallback: create default ship in memory if all loading fails
+        const largeLiner = {
             id: -1, // Temporary ID
             ship: {
-                name: 'Free Trader',
-                tech_level: 'C',
-                tonnage: 400,
-                configuration: 'standard',
-                fuel_weeks: 4,
-                missile_reloads: 0,
-                sand_reloads: 0,
-                description: 'Merchant vessel'
-            },
-            engines: [
-                { engine_type: 'power_plant', drive_code: 'D', performance: 2, mass: 13, cost: 32 },
-                { engine_type: 'jump_drive', drive_code: 'D', performance: 2, mass: 25, cost: 40 },
-                { engine_type: 'maneuver_drive', drive_code: 'D', performance: 2, mass: 7, cost: 16 }
-            ],
-            fittings: [
-                { fitting_type: 'bridge', mass: 10, cost: 2 },
-                { fitting_type: 'comms_sensors', comms_sensors_type: 'standard', mass: 0, cost: 0 }
-            ],
-            weapons: [{ weapon_name: 'Hard Point', mass: 1, cost: 1, quantity: 4 }],
-            defenses: [],
-            berths: [],
-            facilities: [{ facility_type: 'commissary', quantity: 1, mass: 2, cost: 0.2 }],
-            cargo: [
-                { cargo_type: 'cargo_bay', tonnage: 132, cost: 0 },
-                { cargo_type: 'spares', tonnage: 4, 'cost': 2 },
-                { cargo_type: 'cold_storage_bay', tonnage: 2, cost: 0.4 },
-                { cargo_type: 'secure_storage_bay', tonnage: 1, cost: 0.7 }
-            ],
-            vehicles: [{ vehicle_type: 'air_raft_truck', quantity: 1, mass: 5, cost: 0.55 }],
-            drones: [],
-            custom_items: [],
-            createdAt: new Date(),
-            updatedAt: new Date()
-        };
-        const defaultScout = {
-            id: -2, // Temporary ID
-            ship: {
-                name: 'Scout',
+                name: 'Large Liner',
                 tech_level: 'E',
-                tonnage: 100,
+                tonnage: 8000,
                 configuration: 'standard',
-                fuel_weeks: 4,
+                fuel_weeks: 2,
                 missile_reloads: 0,
                 sand_reloads: 0,
-                description: 'Fast long ranged ship, low crew overhead'
+                sections: 2,
+                description: 'Luxury passenger liner (hull code CE)'
             },
             engines: [
-                { engine_type: 'power_plant', drive_code: 'B', performance: 4, mass: 7, cost: 16 },
-                { engine_type: 'jump_drive', drive_code: 'B', performance: 4, mass: 15, cost: 20 },
-                { engine_type: 'maneuver_drive', drive_code: 'B', performance: 4, mass: 3, cost: 8 }
+                { engine_type: 'power_plant', drive_code: 'P', performance: 2, mass: 160, cost: 320 },
+                { engine_type: 'maneuver_drive', drive_code: 'M', performance: 2, mass: 100, cost: 200 },
+                { engine_type: 'jump_drive', drive_code: 'J', performance: 2, mass: 240, cost: 240 }
             ],
             fittings: [
-                { fitting_type: 'bridge', mass: 10, cost: 2 },
-                { fitting_type: 'comms_sensors', comms_sensors_type: 'standard', mass: 0, cost: 0 }
-            ],
-            weapons: [],
-            defenses: [],
-            berths: [],
-            facilities: [],
-            cargo: [{ cargo_type: 'cargo_bay', tonnage: 3, cost: 0 }],
-            vehicles: [],
-            drones: [],
-            custom_items: [],
-            createdAt: new Date(),
-            updatedAt: new Date()
-        };
-        const defaultFatTrader = {
-            id: -3, // Temporary ID
-            ship: { name: 'Fat Trader', tech_level: 'C', tonnage: 600, configuration: 'standard', fuel_weeks: 4,
-                missile_reloads: 0, sand_reloads: 0, description: 'A larger merchant vessel' },
-            engines: [
-                { engine_type: 'power_plant', drive_code: 'D', performance: 2, mass: 13, cost: 32 },
-                { engine_type: 'jump_drive', drive_code: 'D', performance: 2, mass: 25, cost: 40 },
-                { engine_type: 'maneuver_drive', drive_code: 'D', performance: 2, mass: 7, cost: 16 }
-            ],
-            fittings: [
-                { fitting_type: 'bridge', mass: 10, cost: 2 },
-                { fitting_type: 'comms_sensors', comms_sensors_type: 'standard', mass: 0, cost: 0 }
+                { fitting_type: 'half_bridge', mass: 60, cost: 90 },
+                { fitting_type: 'comms_sensors', comms_sensors_type: 'basic_civilian', mass: 1, cost: 0.05 }
             ],
             weapons: [
-                { weapon_name: 'Hard Point', mass: 1, cost: 1, quantity: 6 }
+                { weapon_name: 'Hard Point', mass: 1, cost: 1, quantity: 80 }
             ],
             defenses: [],
-            berths: [],
-            facilities: [],
-            cargo: [],
-            vehicles: [],
-            drones: [],
-            custom_items: [],
+            berths: [
+                { berth_type: 'luxury_staterooms', quantity: 20, mass: 5, cost: 0.6 },
+                { berth_type: 'low_berths', quantity: 200, mass: 0.5, cost: 0.05 },
+                { berth_type: 'emergency_low_berths', quantity: 2, mass: 1, cost: 1 },
+                { berth_type: 'staterooms', quantity: 1162, mass: 4, cost: 0.5 }
+            ],
+            facilities: [
+                { facility_type: 'commissary', quantity: 4, mass: 2, cost: 0.2 },
+                { facility_type: 'gym', quantity: 4, mass: 3, cost: 0.1 },
+                { facility_type: 'spa', quantity: 6, mass: 1.5, cost: 0.2 },
+                { facility_type: 'garden', quantity: 2, mass: 4, cost: 0.05 },
+                { facility_type: 'officers_mess_bar', quantity: 1, mass: 4, cost: 0.3 },
+                { facility_type: 'kitchens', quantity: 2, mass: 3, cost: 0.4 },
+                { facility_type: 'first_aid_station', quantity: 4, mass: 0.5, cost: 0.1 },
+                { facility_type: 'autodoc', quantity: 2, mass: 1.5, cost: 0.05 },
+                { facility_type: 'med_bay', quantity: 1, mass: 4, cost: 2 },
+                { facility_type: 'medical_garden', quantity: 1, mass: 4, cost: 1 },
+                { facility_type: 'library', quantity: 2, mass: 1, cost: 0.1 },
+                { facility_type: 'range', quantity: 1, mass: 2, cost: 2 },
+                { facility_type: 'park', quantity: 2, mass: 6, cost: 1 },
+                { facility_type: 'shrine', quantity: 4, mass: 1, cost: 1 },
+                { facility_type: 'club', quantity: 4, mass: 3, cost: 0.1 }
+            ],
+            cargo: [
+                { cargo_type: 'cargo_bay', tonnage: 320, cost: 0 },
+                { cargo_type: 'spares', tonnage: 240, cost: 120 },
+                { cargo_type: 'cold_storage_bay', tonnage: 10, cost: 2 },
+                { cargo_type: 'data_storage_bay', tonnage: 2, cost: 0.6 },
+                { cargo_type: 'secure_storage_bay', tonnage: 4, cost: 2.8 },
+                { cargo_type: 'vacuum_bay', tonnage: 8, cost: 1.6 }
+            ],
+            vehicles: [
+                { vehicle_type: 'air_raft_truck', quantity: 2, mass: 5, cost: 0.55 },
+                { vehicle_type: 'pug_armored_car', quantity: 1, mass: 4, cost: 0.03 }
+            ],
+            drones: [
+                { drone_type: 'comms', quantity: 10, mass: 0.1, cost: 0.2 },
+                { drone_type: 'sensor', quantity: 4, mass: 1, cost: 1 },
+                { drone_type: 'repair', quantity: 4, mass: 10, cost: 1 },
+                { drone_type: 'rescue', quantity: 1, mass: 10, cost: 0.5 }
+            ],
+            custom_items: [
+                { name: 'ATLAS Combat Droid', mass: 1, cost: 0.025 },
+                { name: 'ATLAS Combat Droid', mass: 1, cost: 0.025 },
+                { name: 'ATLAS Combat Droid', mass: 1, cost: 0.025 },
+                { name: 'ATLAS Combat Droid', mass: 1, cost: 0.025 }
+            ],
             createdAt: new Date(),
             updatedAt: new Date()
         };
-        return [defaultScout, defaultFreeTrader, defaultFatTrader];
+        const destroyer = {
+            id: -2, // Temporary ID
+            ship: {
+                name: 'Destroyer',
+                tech_level: 'E',
+                tonnage: 28000,
+                configuration: 'standard',
+                fuel_weeks: 2,
+                missile_reloads: 0,
+                sand_reloads: 0,
+                sections: 3,
+                description: 'Military warship (hull code CJ)'
+            },
+            engines: [
+                { engine_type: 'power_plant', drive_code: 'P', performance: 6, mass: 1400, cost: 2800 },
+                { engine_type: 'maneuver_drive', drive_code: 'M', performance: 6, mass: 910, cost: 1820 },
+                { engine_type: 'jump_drive', drive_code: 'J', performance: 5, mass: 1680, cost: 1680 }
+            ],
+            fittings: [
+                { fitting_type: 'bridge', mass: 180, cost: 90 },
+                { fitting_type: 'comms_sensors', comms_sensors_type: 'very_advanced', mass: 5, cost: 4 }
+            ],
+            weapons: [
+                { weapon_name: 'Dual Fusion Gun Barbette', mass: 10, cost: 16, quantity: 20 },
+                { weapon_name: 'Triple Beam Laser Turret', mass: 2, cost: 4, quantity: 240 }
+            ],
+            defenses: [
+                { defense_type: 'dual_point_defense_laser_turret', quantity: 80, mass: 1, cost: 1.5 },
+                { defense_type: 'nuclear_damper', quantity: 4, mass: 120, cost: 160 },
+                { defense_type: 'meson_screen', quantity: 4, mass: 240, cost: 320 }
+            ],
+            berths: [
+                { berth_type: 'low_berths', quantity: 100, mass: 0.5, cost: 0.05 },
+                { berth_type: 'emergency_low_berths', quantity: 8, mass: 1, cost: 1 },
+                { berth_type: 'staterooms', quantity: 128, mass: 4, cost: 0.5 },
+                { berth_type: 'luxury_staterooms', quantity: 8, mass: 5, cost: 0.6 }
+            ],
+            facilities: [
+                { facility_type: 'commissary', quantity: 4, mass: 2, cost: 0.2 },
+                { facility_type: 'gym', quantity: 4, mass: 3, cost: 0.1 },
+                { facility_type: 'spa', quantity: 4, mass: 1.5, cost: 0.2 },
+                { facility_type: 'garden', quantity: 4, mass: 4, cost: 0.05 },
+                { facility_type: 'officers_mess_bar', quantity: 1, mass: 4, cost: 0.3 },
+                { facility_type: 'kitchens', quantity: 2, mass: 3, cost: 0.4 },
+                { facility_type: 'first_aid_station', quantity: 4, mass: 0.5, cost: 0.1 },
+                { facility_type: 'autodoc', quantity: 2, mass: 1.5, cost: 0.05 },
+                { facility_type: 'med_bay', quantity: 1, mass: 4, cost: 2 },
+                { facility_type: 'medical_garden', quantity: 2, mass: 4, cost: 1 },
+                { facility_type: 'library', quantity: 4, mass: 1, cost: 0.1 },
+                { facility_type: 'range', quantity: 3, mass: 2, cost: 2 },
+                { facility_type: 'shrine', quantity: 2, mass: 1, cost: 1 },
+                { facility_type: 'surgical_bay', quantity: 1, mass: 5, cost: 8 }
+            ],
+            cargo: [
+                { cargo_type: 'cargo_bay', tonnage: 240, cost: 0 },
+                { cargo_type: 'spares', tonnage: 560, cost: 280 },
+                { cargo_type: 'cold_storage_bay', tonnage: 24, cost: 4.8 },
+                { cargo_type: 'data_storage_bay', tonnage: 4, cost: 1.2 },
+                { cargo_type: 'secure_storage_bay', tonnage: 8, cost: 5.6 }
+            ],
+            vehicles: [
+                { vehicle_type: 'air_raft_truck', quantity: 2, mass: 5, cost: 0.55 },
+                { vehicle_type: 'pug_armored_car', quantity: 2, mass: 4, cost: 0.025 },
+                { vehicle_type: 'aat_infantry_support', quantity: 1, mass: 22, cost: 2 },
+                { vehicle_type: 'fury_helicopter_gunship', quantity: 4, mass: 8, cost: 1.2 }
+            ],
+            drones: [
+                { drone_type: 'comms', quantity: 80, mass: 0.1, cost: 0.2 },
+                { drone_type: 'sensor', quantity: 20, mass: 1, cost: 1 },
+                { drone_type: 'repair', quantity: 8, mass: 10, cost: 1 },
+                { drone_type: 'rescue', quantity: 1, mass: 10, cost: 0.5 },
+                { drone_type: 'war', quantity: 56, mass: 10, cost: 2 }
+            ],
+            custom_items: Array(20).fill(null).map(() => ({
+                name: 'ATLAS Combat Droid',
+                mass: 1,
+                cost: 0.024
+            })),
+            createdAt: new Date(),
+            updatedAt: new Date()
+        };
+        return [largeLiner, destroyer];
     };
     const loadShips = async () => {
         try {

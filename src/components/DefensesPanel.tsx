@@ -28,7 +28,10 @@ const DefensesPanel: React.FC<DefensesPanelProps> = ({
   onArmorUpdate
 }) => {
   const maxMountLimit = getWeaponMountLimit(shipTonnage);
-  const currentTurretCount = defenses.reduce((sum, defense) => sum + defense.quantity, 0);
+  // Only count turret defenses (sandcasters and point defense), not screens
+  const currentTurretCount = defenses
+    .filter(defense => !['nuclear_damper', 'meson_screen', 'black_globe'].includes(defense.defense_type))
+    .reduce((sum, defense) => sum + defense.quantity, 0);
   const availableSlots = maxMountLimit - weaponsCount - currentTurretCount;
 
   // Check if any sandcaster turrets are installed
@@ -75,8 +78,8 @@ const DefensesPanel: React.FC<DefensesPanelProps> = ({
     if (quantity > 0) {
       newDefenses.push({
         defense_type: screenType,
-        mass: specs.mass * quantity,
-        cost: specs.cost * quantity,
+        mass: specs.mass,
+        cost: specs.cost,
         quantity
       });
     }
@@ -86,7 +89,7 @@ const DefensesPanel: React.FC<DefensesPanelProps> = ({
 
   return (
     <div className="panel-content">
-      <p>Available defense turret mounts: {maxMountLimit} (Used: {weaponsCount + currentTurretCount}, Remaining: {availableSlots})</p>
+      <p>Available turret mounts (shared with Weapons): {maxMountLimit} (Weapons: {weaponsCount}, Defense turrets: {currentTurretCount}, Remaining: {availableSlots})</p>
       
       <div className="defenses-grouped-layout">
         {/* Sandcaster Turret Group */}

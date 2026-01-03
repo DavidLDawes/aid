@@ -10,6 +10,7 @@ interface WeaponsPanelProps {
   spinalWeapon: string | undefined;
   missileReloads: number;
   remainingMass: number;
+  defenseTurretsCount: number;
   onUpdate: (weapons: Weapon[]) => void;
   onSpinalWeaponUpdate: (spinalWeapon: string | undefined) => void;
   onMissileReloadsUpdate: (reloads: number) => void;
@@ -23,6 +24,7 @@ const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
   spinalWeapon,
   missileReloads,
   remainingMass,
+  defenseTurretsCount,
   onUpdate,
   onSpinalWeaponUpdate,
   onMissileReloadsUpdate
@@ -37,7 +39,7 @@ const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
 
   // Bay weapons also consume weapon mount slots (1 slot per bay weapon)
   const usedBayWeapons = bayWeapons.reduce((sum, weapon) => sum + weapon.quantity, 0);
-  const usedMounts = turretWeapons.reduce((sum, weapon) => sum + weapon.quantity, 0) + usedBayWeapons + spinalMountUsage;
+  const usedMounts = turretWeapons.reduce((sum, weapon) => sum + weapon.quantity, 0) + usedBayWeapons + spinalMountUsage + defenseTurretsCount;
 
   // Calculate bay weapon limits (power/tonnage AND weapon mount slots)
   const powerPlant = engines.find(e => e.engine_type === 'power_plant');
@@ -176,6 +178,7 @@ const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
         Available weapon mounts: {mountLimit} (Used: {usedMounts}, Remaining: {availableSlots})
         {spinalMountUsage > 0 && <span> | Spinal weapon: {spinalMountUsage} mounts</span>}
         {usedBayWeapons > 0 && <span> | Bay weapons: {usedBayWeapons} mounts</span>}
+        {defenseTurretsCount > 0 && <span> | Defense turrets: {defenseTurretsCount} mounts</span>}
         {currentHardPoints > 0 && <span> | Hard Points: {currentHardPoints}</span>}
       </p>
       <div style={{ marginBottom: '10px' }}>
