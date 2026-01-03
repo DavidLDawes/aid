@@ -16,8 +16,6 @@ docker run -p 8080:8080 starship-designer
 ## Traveller SRD Ships
 Got it roughly working, output is a table in a web page, or a CSV, or print the table.
 
-Next up: figure out how to deploy it in GCP
-
 **TODO List**
 * Defenses: Add Nucelar Shields & Meson Shields
 * Defenses: Add Armor
@@ -120,10 +118,13 @@ The frontend application will be available at `http://localhost:5173`
 10. **Drones Panel**: Automated systems
     - Combat, repair, and sensor drones
 
-11. **Staff Panel**: Crew requirements
+11. **Custom Panel**: User Defined
+    - Name, tons and cost per item entered by user
+
+12. **Staff Panel**: Crew requirements
     - Auto-calculated based on ship systems
 
-12. **Ship Design Panel**: Final summary
+13. **Ship Design Panel**: Final summary
     - Complete design overview
     - Save/Load functionality
 
