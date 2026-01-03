@@ -7,6 +7,9 @@ export interface Ship {
   fuel_weeks: number;
   missile_reloads: number;
   sand_reloads: number;
+  armor_percentage?: number;
+  spinal_weapon?: string; // Name of the spinal weapon (e.g., "Particle Spinal Mount A")
+  sections?: number; // Number of sections for capital ships (2-6 based on hull code)
   description?: string;
 }
 
@@ -21,11 +24,12 @@ export interface Engine {
 
 export interface Fitting {
   id?: number;
-  fitting_type: 'bridge' | 'half_bridge' | 'launch_tube' | 'comms_sensors';
+  fitting_type: 'bridge' | 'half_bridge' | 'launch_tube' | 'comms_sensors' | 'computer';
   mass: number;
   cost: number;
   launch_vehicle_mass?: number;
   comms_sensors_type?: 'standard' | 'basic_civilian' | 'basic_military' | 'advanced' | 'very_advanced';
+  computer_model?: 'core_3' | 'core_4' | 'core_5' | 'core_6' | 'core_7' | 'core_8' | 'core_9';
 }
 
 export interface Weapon {
@@ -38,7 +42,7 @@ export interface Weapon {
 
 export interface Defense {
   id?: number;
-  defense_type: 'sandcaster_turret' | 'dual_sandcaster_turret' | 'triple_sandcaster_turret' | 'point_defense_laser_turret' | 'dual_point_defense_laser_turret';
+  defense_type: 'sandcaster_turret' | 'dual_sandcaster_turret' | 'triple_sandcaster_turret' | 'point_defense_laser_turret' | 'dual_point_defense_laser_turret' | 'nuclear_damper' | 'meson_screen' | 'black_globe';
   mass: number;
   cost: number;
   quantity: number;

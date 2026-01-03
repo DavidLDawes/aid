@@ -12,32 +12,27 @@ const VehiclesPanel: React.FC<VehiclesPanelProps> = ({ vehicles, shipTechLevel, 
   const availableVehicles = getAvailableVehicles(shipTechLevel);
   const totalServiceStaff = calculateVehicleServiceStaff(vehicles);
 
-  const addVehicle = (vehicleType: typeof availableVehicles[0]) => {
+  const updateVehicleQuantity = (vehicleType: typeof availableVehicles[0], quantity: number) => {
+    const validQuantity = Math.max(0, Math.floor(quantity));
     const existingVehicle = vehicles.find(v => v.vehicle_type === vehicleType.type);
-    if (existingVehicle) {
+
+    if (validQuantity === 0) {
+      onUpdate(vehicles.filter(v => v.vehicle_type !== vehicleType.type));
+    } else if (existingVehicle) {
       const newVehicles = vehicles.map(v =>
         v.vehicle_type === vehicleType.type
-          ? { ...v, quantity: v.quantity + 1 }
+          ? { ...v, quantity: validQuantity }
           : v
       );
       onUpdate(newVehicles);
     } else {
       onUpdate([...vehicles, {
         vehicle_type: vehicleType.type as Vehicle['vehicle_type'],
-        quantity: 1,
+        quantity: validQuantity,
         mass: vehicleType.mass,
         cost: vehicleType.cost
       }]);
     }
-  };
-
-  const removeVehicle = (vehicleType: string) => {
-    const newVehicles = vehicles.map(v =>
-      v.vehicle_type === vehicleType
-        ? { ...v, quantity: Math.max(0, v.quantity - 1) }
-        : v
-    ).filter(v => v.quantity > 0);
-    onUpdate(newVehicles);
   };
 
   const groupedVehicles = [];
@@ -67,18 +62,16 @@ const VehiclesPanel: React.FC<VehiclesPanelProps> = ({ vehicles, shipTechLevel, 
                     )}
                   </div>
                   <div className="quantity-control">
-                    <button 
-                      onClick={() => removeVehicle(vehicleType.type)}
-                      disabled={quantity === 0}
-                    >
-                      -
-                    </button>
-                    <span>{quantity}</span>
-                    <button 
-                      onClick={() => addVehicle(vehicleType)}
-                    >
-                      +
-                    </button>
+                    <label>
+                      Quantity:
+                      <input
+                        type="number"
+                        min="0"
+                        value={quantity}
+                        onChange={(e) => updateVehicleQuantity(vehicleType, parseInt(e.target.value) || 0)}
+                        style={{ width: '60px', marginLeft: '0.5rem' }}
+                      />
+                    </label>
                   </div>
                 </div>
               );

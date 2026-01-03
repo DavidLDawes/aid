@@ -48,8 +48,7 @@ The above Defensive options are all appropriate for military ships, not commerci
 ## 📋 System Requirements
 
 - **Node.js** (v16 or higher)
-- **MySQL** (v8.0 or higher)
-- **npm** or **yarn** package manager
+- **npm** package manager
 
 ## 🛠️ Installation & Setup
 Requires node, 
@@ -63,7 +62,7 @@ cd aid
 ### 2. Database Setup
 
 1. **DB is auto-initialized the first time it is run**
-Chjeck out the npm run commands for DB manipulation scripts to flush, load and unload the DB.
+Check out the npm run commands for DB manipulation scripts to flush, load and unload the DB.
 ### 3. Frontend Setup
 
 ```bash

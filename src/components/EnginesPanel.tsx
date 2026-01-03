@@ -5,35 +5,21 @@ import { getAvailableEngines, calculateJumpFuel, calculateManeuverFuel } from '.
 interface EnginesPanelProps {
   engines: Engine[];
   shipTonnage: number;
+  shipTechLevel: string;
   fuelWeeks: number;
   activeRules: Set<string>;
   onUpdate: (engines: Engine[]) => void;
   onFuelWeeksUpdate: (weeks: number) => void;
 }
 
-const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, fuelWeeks, activeRules, onUpdate, onFuelWeeksUpdate }) => {
+const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, shipTechLevel, fuelWeeks, activeRules, onUpdate, onFuelWeeksUpdate }) => {
 
   const getEngine = (type: Engine['engine_type']): Engine => {
     const defaultEngine = engines.find(e => e.engine_type === type);
     if (defaultEngine) {
-      // Validate that the stored engine data is consistent with current ENGINE_DRIVES data
-      if (defaultEngine.drive_code && defaultEngine.drive_code !== '' && defaultEngine.drive_code !== 'M-0') {
-        const availableEngines = getAvailableEngines(shipTonnage, type, undefined);
-        const expectedEngine = availableEngines.find(eng => eng.code === defaultEngine.drive_code);
-        
-        if (expectedEngine && expectedEngine.performance !== defaultEngine.performance) {
-          // Fix inconsistent data by returning corrected engine data
-          return {
-            ...defaultEngine,
-            performance: expectedEngine.performance,
-            mass: expectedEngine.mass,
-            cost: expectedEngine.cost
-          };
-        }
-      }
       return defaultEngine;
     }
-    
+
     // For maneuver drive, if not configured, return M-0 performance
     if (type === 'maneuver_drive') {
       return {
@@ -44,7 +30,7 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, fuelW
         cost: 0
       };
     }
-    
+
     return {
       engine_type: type,
       drive_code: '',
@@ -78,7 +64,7 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, fuelW
     const powerPlant = getEngine('power_plant');
     // Only apply power plant performance filtering if a specific power plant drive is selected
     const powerPlantPerformance = (powerPlant.drive_code && powerPlant.performance > 0) ? powerPlant.performance : undefined;
-    const availableEngines = getAvailableEngines(shipTonnage, type, powerPlantPerformance);
+    const availableEngines = getAvailableEngines(shipTonnage, type, powerPlantPerformance, shipTechLevel);
 
     return (
       <div key={type} className="engine-group">
@@ -120,10 +106,13 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, fuelW
                 </option>
               ))}
             </select>
-            {(type === 'jump_drive' || type === 'maneuver_drive') && powerPlantPerformance && (
+            {type === 'jump_drive' && (
+              <small>Limited by Tech Level {shipTechLevel} (max J-{availableEngines.length > 0 ? availableEngines[availableEngines.length - 1].performance : 1}){powerPlantPerformance ? ` and Power Plant P-${powerPlantPerformance}` : ''}</small>
+            )}
+            {type === 'maneuver_drive' && powerPlantPerformance && (
               <small>Limited by Power Plant P-{powerPlantPerformance}</small>
             )}
-            {(type === 'jump_drive' || type === 'maneuver_drive') && !powerPlantPerformance && (
+            {type === 'maneuver_drive' && !powerPlantPerformance && (
               <small className="info">Select Power Plant first to see power-limited options</small>
             )}
           </div>

@@ -8,32 +8,30 @@ interface DronesPanelProps {
 }
 
 const DronesPanel: React.FC<DronesPanelProps> = ({ drones, onUpdate }) => {
-  const addDrone = (droneType: typeof DRONE_TYPES[0]) => {
+  const updateDroneQuantity = (droneType: typeof DRONE_TYPES[0], quantity: number) => {
+    const validQuantity = Math.max(0, quantity);
     const existingDrone = drones.find(d => d.drone_type === droneType.type);
-    if (existingDrone) {
+
+    if (validQuantity === 0) {
+      // Remove the drone if quantity is 0
+      onUpdate(drones.filter(d => d.drone_type !== droneType.type));
+    } else if (existingDrone) {
+      // Update existing drone
       const newDrones = drones.map(d =>
         d.drone_type === droneType.type
-          ? { ...d, quantity: d.quantity + 1 }
+          ? { ...d, quantity: validQuantity }
           : d
       );
       onUpdate(newDrones);
     } else {
+      // Add new drone
       onUpdate([...drones, {
         drone_type: droneType.type as Drone['drone_type'],
-        quantity: 1,
+        quantity: validQuantity,
         mass: droneType.mass,
         cost: droneType.cost
       }]);
     }
-  };
-
-  const removeDrone = (droneType: string) => {
-    const newDrones = drones.map(d =>
-      d.drone_type === droneType
-        ? { ...d, quantity: Math.max(0, d.quantity - 1) }
-        : d
-    ).filter(d => d.quantity > 0);
-    onUpdate(newDrones);
   };
 
   const groupedDrones = [];
@@ -62,18 +60,16 @@ const DronesPanel: React.FC<DronesPanelProps> = ({ drones, onUpdate }) => {
                     )}
                   </div>
                   <div className="quantity-control">
-                    <button 
-                      onClick={() => removeDrone(droneType.type)}
-                      disabled={quantity === 0}
-                    >
-                      -
-                    </button>
-                    <span>{quantity}</span>
-                    <button 
-                      onClick={() => addDrone(droneType)}
-                    >
-                      +
-                    </button>
+                    <label>
+                      Quantity:
+                      <input
+                        type="number"
+                        min="0"
+                        value={quantity}
+                        onChange={(e) => updateDroneQuantity(droneType, parseInt(e.target.value) || 0)}
+                        style={{ width: '60px', marginLeft: '0.5rem' }}
+                      />
+                    </label>
                   </div>
                 </div>
               );

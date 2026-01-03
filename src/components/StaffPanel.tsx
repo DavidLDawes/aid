@@ -91,8 +91,6 @@ const StaffPanel: React.FC<StaffPanelProps> = ({
         <p>Techs: {staffRequirements.techs}</p>
         <p><strong>Total Staff: {actualCrewCount}</strong></p>
       </div>
-      
-      <p>Staff accommodation validation coming soon...</p>
 
     </div>
   );

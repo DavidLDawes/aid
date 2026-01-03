@@ -1,23 +1,9 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { getAvailableEngines, calculateJumpFuel, calculateManeuverFuel } from '../data/constants';
-const EnginesPanel = ({ engines, shipTonnage, fuelWeeks, activeRules, onUpdate, onFuelWeeksUpdate }) => {
+const EnginesPanel = ({ engines, shipTonnage, shipTechLevel, fuelWeeks, activeRules, onUpdate, onFuelWeeksUpdate }) => {
     const getEngine = (type) => {
         const defaultEngine = engines.find(e => e.engine_type === type);
         if (defaultEngine) {
-            // Validate that the stored engine data is consistent with current ENGINE_DRIVES data
-            if (defaultEngine.drive_code && defaultEngine.drive_code !== '' && defaultEngine.drive_code !== 'M-0') {
-                const availableEngines = getAvailableEngines(shipTonnage, type, undefined);
-                const expectedEngine = availableEngines.find(eng => eng.code === defaultEngine.drive_code);
-                if (expectedEngine && expectedEngine.performance !== defaultEngine.performance) {
-                    // Fix inconsistent data by returning corrected engine data
-                    return {
-                        ...defaultEngine,
-                        performance: expectedEngine.performance,
-                        mass: expectedEngine.mass,
-                        cost: expectedEngine.cost
-                    };
-                }
-            }
             return defaultEngine;
         }
         // For maneuver drive, if not configured, return M-0 performance
@@ -59,7 +45,7 @@ const EnginesPanel = ({ engines, shipTonnage, fuelWeeks, activeRules, onUpdate, 
         const powerPlant = getEngine('power_plant');
         // Only apply power plant performance filtering if a specific power plant drive is selected
         const powerPlantPerformance = (powerPlant.drive_code && powerPlant.performance > 0) ? powerPlant.performance : undefined;
-        const availableEngines = getAvailableEngines(shipTonnage, type, powerPlantPerformance);
+        const availableEngines = getAvailableEngines(shipTonnage, type, powerPlantPerformance, shipTechLevel);
         return (_jsxs("div", { className: "engine-group", children: [_jsx("h3", { children: label }), _jsx("div", { className: "form-row", children: _jsxs("div", { className: "form-group", children: [_jsxs("label", { children: ["Drive Selection ", type === 'maneuver_drive' ? '' : '*'] }), _jsxs("select", { value: engine.drive_code, onChange: (e) => {
                                     if (e.target.value === 'M-0' && type === 'maneuver_drive') {
                                         updateEngine(type, {
@@ -80,7 +66,7 @@ const EnginesPanel = ({ engines, shipTonnage, fuelWeeks, activeRules, onUpdate, 
                                             });
                                         }
                                     }
-                                }, children: [_jsx("option", { value: "", children: "Select a drive..." }), type === 'maneuver_drive' && (_jsx("option", { value: "M-0", children: "None (M-0 performance, 0 tons, 0 MCr)" })), availableEngines.map(availEngine => (_jsx("option", { value: availEngine.code, children: availEngine.label }, availEngine.code)))] }), (type === 'jump_drive' || type === 'maneuver_drive') && powerPlantPerformance && (_jsxs("small", { children: ["Limited by Power Plant P-", powerPlantPerformance] })), (type === 'jump_drive' || type === 'maneuver_drive') && !powerPlantPerformance && (_jsx("small", { className: "info", children: "Select Power Plant first to see power-limited options" }))] }) }), engine.drive_code && (_jsx("div", { className: "engine-info", children: _jsxs("small", { children: ["Performance: ", engine.performance, " (", type === 'jump_drive' ? 'J' : type === 'maneuver_drive' ? 'M' : 'P', "-", engine.performance, ")"] }) }))] }, type));
+                                }, children: [_jsx("option", { value: "", children: "Select a drive..." }), type === 'maneuver_drive' && (_jsx("option", { value: "M-0", children: "None (M-0 performance, 0 tons, 0 MCr)" })), availableEngines.map(availEngine => (_jsx("option", { value: availEngine.code, children: availEngine.label }, availEngine.code)))] }), type === 'jump_drive' && (_jsxs("small", { children: ["Limited by Tech Level ", shipTechLevel, " (max J-", availableEngines.length > 0 ? availableEngines[availableEngines.length - 1].performance : 1, ")", powerPlantPerformance ? ` and Power Plant P-${powerPlantPerformance}` : ''] })), type === 'maneuver_drive' && powerPlantPerformance && (_jsxs("small", { children: ["Limited by Power Plant P-", powerPlantPerformance] })), type === 'maneuver_drive' && !powerPlantPerformance && (_jsx("small", { className: "info", children: "Select Power Plant first to see power-limited options" }))] }) }), engine.drive_code && (_jsx("div", { className: "engine-info", children: _jsxs("small", { children: ["Performance: ", engine.performance, " (", type === 'jump_drive' ? 'J' : type === 'maneuver_drive' ? 'M' : 'P', "-", engine.performance, ")"] }) }))] }, type));
     };
     const powerPlant = getEngine('power_plant');
     const jumpDrive = getEngine('jump_drive');

@@ -37,6 +37,34 @@ module.exports = (env, argv) => {
         template: './index.html',
       }),
     ],
+    optimization: {
+      splitChunks: {
+        chunks: 'all',
+        cacheGroups: {
+          // Split React and ReactDOM into a vendor bundle
+          vendor: {
+            test: /[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/,
+            name: 'vendor',
+            priority: 20,
+            reuseExistingChunk: true,
+          },
+          // Split other node_modules into a separate bundle
+          nodeModules: {
+            test: /[\\/]node_modules[\\/]/,
+            name: 'node-modules',
+            priority: 10,
+            reuseExistingChunk: true,
+          },
+        },
+      },
+      runtimeChunk: 'single', // Extract webpack runtime into separate chunk
+    },
+    performance: {
+      // Adjust performance budgets for a React application with code splitting
+      maxEntrypointSize: 350000, // 350 KiB - allows for React vendor bundle
+      maxAssetSize: 250000, // 250 KiB - individual asset limit
+      hints: isProduction ? 'warning' : false, // Only show warnings in production
+    },
     devServer: {
       static: {
         directory: path.join(__dirname, 'dist'),
