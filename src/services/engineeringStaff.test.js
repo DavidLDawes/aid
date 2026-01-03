@@ -1,4 +1,5 @@
 import { describe, it, expect } from '@jest/globals';
+import { sumMass } from '../utils/calculations';
 // Engineering staff calculation function (extracted from App.tsx logic)
 function calculateEngineers(engines, shipTonnage) {
     let engineers = 0;
@@ -21,7 +22,7 @@ function calculateEngineers(engines, shipTonnage) {
     }
     else {
         // For other ship sizes, use original logic as fallback
-        const totalEnginesWeight = engines.reduce((sum, engine) => sum + engine.mass, 0);
+        const totalEnginesWeight = sumMass(engines);
         engineers = Math.ceil(totalEnginesWeight / 100);
     }
     return engineers;

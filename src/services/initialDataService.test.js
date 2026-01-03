@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
 import { initialDataService } from './initialDataService';
 import { databaseService } from './database';
+import { createEmptyShipDesign, createDefaultShip } from '../utils/shipDefaults';
 // Mock the database service
 jest.mock('./database', () => ({
     databaseService: {
@@ -12,28 +13,10 @@ jest.mock('./database', () => ({
 // Mock fetch
 globalThis.fetch = jest.fn();
 describe('Initial Data Service', () => {
-    const mockShipDesign = {
-        ship: {
-            name: 'Test Initial Ship',
-            tech_level: 'A',
-            tonnage: 200,
-            configuration: 'standard',
-            fuel_weeks: 2,
-            missile_reloads: 0,
-            sand_reloads: 0,
-            description: 'Test ship for initial data'
-        },
-        engines: [],
-        fittings: [],
-        weapons: [],
-        defenses: [],
-        berths: [],
-        facilities: [],
-        cargo: [],
-        vehicles: [],
-        drones: [],
-        custom_items: []
-    };
+    const mockShipDesign = createEmptyShipDesign({
+        ...createDefaultShip('Test Initial Ship', 'A', 200, 'standard'),
+        description: 'Test ship for initial data'
+    });
     const mockInitialData = {
         exportDate: '2025-08-05T16:00:00.000Z',
         version: '1.0',

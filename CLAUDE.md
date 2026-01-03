@@ -37,6 +37,56 @@ npm run setInitialDB    # Reset DB to initial state
 npm run apply-feature   # Apply feature branches to ships
 ```
 
+## Project Directory Structure
+
+```
+aid/
+├── public/                      # Static assets
+│   ├── index.html              # HTML template
+│   └── initial-ships.json      # Default ships loaded on first run
+├── src/                        # Source code
+│   ├── components/             # React UI components
+│   │   ├── SelectShipPanel.tsx # Ship selection screen
+│   │   ├── ShipPanel.tsx       # Basic ship info (panel 0)
+│   │   ├── EnginesPanel.tsx    # Engines configuration (panel 1)
+│   │   ├── FittingsPanel.tsx   # Fittings configuration (panel 2)
+│   │   ├── WeaponsPanel.tsx    # Weapons configuration (panel 3)
+│   │   ├── DefensesPanel.tsx   # Defenses configuration (panel 4)
+│   │   ├── FacilitiesPanel.tsx # Rec/Health facilities (panel 5)
+│   │   ├── CargoPanel.tsx      # Cargo bays (panel 6)
+│   │   ├── VehiclesPanel.tsx   # Vehicles (panel 7)
+│   │   ├── DronesPanel.tsx     # Drones (panel 8)
+│   │   ├── CustomPanel.tsx     # Custom items (panel 9)
+│   │   ├── BerthsPanel.tsx     # Berths (panel 10)
+│   │   ├── StaffPanel.tsx      # Crew requirements (panel 11)
+│   │   ├── SummaryPanel.tsx    # Ship summary (panel 12)
+│   │   ├── MassSidebar.tsx     # Real-time mass/cost tracker
+│   │   ├── FileMenu.tsx        # Save/Load/Print menu
+│   │   └── RulesMenu.tsx       # Rules variants menu
+│   ├── data/                   # Game data and constants
+│   │   └── constants.ts        # Tech levels, engines, weapons, etc.
+│   ├── services/               # Business logic
+│   │   ├── database.ts         # IndexedDB wrapper
+│   │   └── initialDataService.ts # Initial data loader
+│   ├── types/                  # TypeScript definitions
+│   │   └── ship.ts             # Ship interfaces
+│   ├── utils/                  # Utility functions
+│   ├── test/                   # Test utilities
+│   ├── App.tsx                 # Main app component
+│   ├── App.css                 # Global styles
+│   └── main.tsx                # React entry point
+├── dist/                       # Production build output (generated)
+├── package.json                # Dependencies and scripts
+├── webpack.config.cjs          # Webpack configuration
+├── tsconfig.json              # TypeScript configuration
+├── jest.config.cjs            # Jest configuration
+├── Dockerfile                 # Docker container definition
+├── CLAUDE.md                  # This file - Claude Code guidance
+└── README.md                  # Project README
+
+Test files are co-located with source files using .test.ts/.test.tsx extension
+```
+
 ## Build System & Technology Stack
 
 - **Build Tool**: Webpack 5 with webpack-dev-server
@@ -58,13 +108,15 @@ npm run apply-feature   # Apply feature branches to ships
 - Manages file operations (save/load/print)
 - Implements "Rules Menu" system for optional rule sets (e.g., antimatter drives)
 
-**Panel Flow**: Ship → Engines → Fittings → Weapons → Defenses → Rec/Health → Cargo → Vehicles → Drones → Berths → Staff → Ship Design
+**Panel Flow**: Ship → Engines → Fittings → Weapons → Defenses → Rec/Health → Cargo → Vehicles → Drones → Custom → Berths → Staff → Ship Design
+
+**Note**: The Custom panel (index 9) was added to allow users to define custom items not in predefined lists.
 
 ### Key Design Patterns
 
 1. **Wizard UI Pattern**: User progresses through panels sequentially. Each panel validates before allowing advancement.
 
-2. **Centralized State**: `App.js` maintains the complete `shipDesign` object containing all ship components (ship, engines, fittings, weapons, defenses, berths, facilities, cargo, vehicles, drones).
+2. **Centralized State**: `App.js` maintains the complete `shipDesign` object containing all ship components (ship, engines, fittings, weapons, defenses, berths, facilities, cargo, vehicles, drones, custom_items).
 
 3. **Mass & Cost Tracking**: Real-time calculations in `App.js` methods:
    - `calculateMass()`: Sums masses from all components + fuel + armor + reloads
@@ -91,7 +143,8 @@ npm run apply-feature   # Apply feature branches to ships
 
 **`src/types/ship.ts`**: TypeScript interfaces for all ship components
 - `ShipDesign`: Root interface containing all component arrays
-- Component interfaces: `Engine`, `Fitting`, `Weapon`, `Defense`, `Berth`, `Facility`, `Cargo`, `Vehicle`, `Drone`
+- Component interfaces: `Engine`, `Fitting`, `Weapon`, `Defense`, `Berth`, `Facility`, `Cargo`, `Vehicle`, `Drone`, `CustomItem`
+- `CustomItem`: User-defined items with name, mass, and cost (no predefined types)
 - `StaffRequirements`: Crew calculation results
 
 ### Component Architecture
@@ -103,6 +156,53 @@ Components follow a consistent pattern:
 - **Validation**: Display warnings but allow invalid states (validation enforced at panel navigation level)
 
 Example: `WeaponsPanel` manages weapon selection UI but calls `onUpdate(weapons)` to update App state.
+
+### Architecture Best Practices
+
+#### ✅ Core Guidelines
+
+**Immutable State Updates:**
+```typescript
+// GOOD: Spread operator for immutability
+const newItems = [...items, newItem];
+onUpdate(newItems);
+
+// AVOID: Direct mutation
+items.push(newItem);
+onUpdate(items);
+```
+
+**Calculate, Don't Store:**
+```typescript
+// GOOD: Calculate derived values on render
+const totalMass = calculateMass();
+const totalCost = calculateCost();
+
+// AVOID: Store calculated values in state
+const [totalMass, setTotalMass] = useState(0);
+```
+
+**Type Safety:**
+```typescript
+// GOOD: Use TypeScript interfaces
+interface CustomItem {
+  name: string;
+  mass: number;
+  cost: number;
+}
+
+// AVOID: Using 'any' type
+const items: any[] = [];
+```
+
+**Clear Naming:**
+```typescript
+// GOOD: Descriptive function names
+const calculateTotalFuelMass = (tonnage, jumpPerf, weeks) => { ... };
+
+// AVOID: Cryptic abbreviations
+const calcFM = (t, j, w) => { ... };
+```
 
 ### Database Persistence
 
@@ -118,12 +218,27 @@ Example: `WeaponsPanel` manages weapon selection UI but calls `onUpdate(weapons)
 
 **Data Cleanup**: `constants.ts` includes `cleanInvalidCargo()` to remove deprecated cargo types when loading ships
 
+### Utility Functions
+
+**`src/utils/shipDefaults.ts`**: Ship initialization helpers
+- `createEmptyShipDesign(shipInfo)`: Creates a ShipDesign with empty component arrays and default comms/sensors
+- `createDefaultShip(name, techLevel, tonnage, configuration)`: Creates a Ship object with sensible defaults
+- Used to eliminate ~120 lines of repeated initialization code across 12+ files
+
+**`src/utils/calculations.ts`**: Component aggregation helpers
+- `sumMass(items)`: Sum mass for components without quantity (engines, fittings, custom_items, defenses)
+- `sumMassWithQuantity(items)`: Sum mass for components with quantity (weapons, vehicles, drones, berths, facilities)
+- `sumCost(items)`: Sum cost for components without quantity
+- `sumCostWithQuantity(items)`: Sum cost for components with quantity
+- `sumCargoTonnage(cargo)`: Sum cargo tonnage (special case, uses `tonnage` property)
+- Used to eliminate ~30+ lines of repeated reduce operations across App.tsx, MassSidebar.tsx, and test files
+
 ## Important Implementation Details
 
 ### Mass Calculation Complexity
 
 The `calculateMass()` function in App.js handles:
-- Component masses (some are per-item, some are pre-multiplied by quantity)
+- Component masses using utility functions (sumMass, sumMassWithQuantity, sumCargoTonnage)
 - Fuel mass calculation using `calculateTotalFuelMass()` with optional antimatter rule
 - Missile/sand reload storage (direct tonnage)
 - Armor mass (percentage of hull tonnage)
@@ -225,6 +340,17 @@ The Docker image runs the production build served via http-server.
 4. Add case to `renderCurrentPanel()` in App.js
 5. Update `calculateMass()` and `calculateCost()`
 6. Add to initial ship design state in App.js
+7. Update `MassSidebar.tsx` to include new category
+8. Update `SummaryPanel.tsx` CSV/print/display to include new items
+9. Update all test mock data to include empty array for new field
+
+**Example: Custom Items Panel**:
+The Custom panel (`src/components/CustomPanel.tsx`) is a recent addition that demonstrates this pattern:
+- **Purpose**: Allow users to add arbitrary items not in predefined lists
+- **Data Model**: `CustomItem { name: string, mass: number, cost: number }`
+- **UI Pattern**: Form with text/number inputs + table with remove buttons
+- **Different from other panels**: No predefined types or constants - fully user-defined
+- **Integration**: Same as other panels - appears in mass/cost calculations, CSV export, summary
 
 **Adding a new rule**:
 1. Add rule definition to RulesMenu component
@@ -243,3 +369,124 @@ The Docker image runs the production build served via http-server.
 - Port 8080 is hardcoded in webpack config and Docker setup
 - `public/initial-ships.json` is loaded once on first DB initialization - subsequent changes require DB flush
 - Testing.md incorrectly mentions Vitest, but project uses Jest
+
+## Case Study: Implementing the Custom Items Feature
+
+This section documents the implementation of the Custom panel as a reference for adding similar features.
+
+### Requirements
+- Allow users to define custom ship components not in predefined lists
+- Each item has: name (string), mass (tons), cost (MCr)
+- Multiple items can be added independently
+- Items integrate into mass/cost calculations, CSV export, and summary display
+
+### Implementation Steps Taken
+
+1. **Data Model** (`src/types/ship.ts`):
+   ```typescript
+   export interface CustomItem {
+     id?: number;
+     name: string;
+     mass: number;
+     cost: number;
+   }
+
+   // Added to ShipDesign interface:
+   custom_items: CustomItem[];
+   ```
+
+2. **UI Component** (`src/components/CustomPanel.tsx`):
+   - Form section: text input (name) + number inputs (mass, cost) + Add button
+   - List section: table showing all items with Remove buttons
+   - Totals display: sum of mass and cost
+   - Form validation: name required, mass > 0
+   - Form resets after adding item
+
+3. **App Integration** (`src/App.tsx`):
+   - Imported CustomPanel component
+   - Added 'Custom' to panels array at index 9 (after Drones, before Berths)
+   - Initialized `custom_items: []` in shipDesign state
+   - Added case 9 in renderCurrentPanel() switch
+   - Renumbered subsequent cases: Berths 9→10, Staff 10→11, Summary 11→12
+   - Updated calculateMass(): `used += shipDesign.custom_items.reduce(...)`
+   - Updated calculateCost(): `total += shipDesign.custom_items.reduce(...)`
+
+4. **Mass Sidebar** (`src/components/MassSidebar.tsx`):
+   - Calculated customItemsMass
+   - Added Custom category to categories array
+   - Positioned after Drones, before Berths
+
+5. **Summary Panel** (`src/components/SummaryPanel.tsx`):
+   - Updated generateCsvData(): added custom items section
+   - Updated generateTableRows(): added custom items to print HTML
+   - Updated display JSX: added custom items table rows
+
+6. **Test Updates** (all test files):
+   - Added `custom_items: []` to every mock ShipDesign object
+   - Files updated: RulesMenu.test.tsx, SelectShipPanel.tsx, ShipPanel.tsx,
+     database.test.ts, flushDB.test.ts, initialDataService.test.ts,
+     antimatterIntegration.test.ts
+
+### Key Design Decisions
+
+**Why No Constants?**
+- Unlike weapons/drones with WEAPON_TYPES/DRONE_TYPES arrays, Custom items have no predefined types
+- Users enter names directly, providing maximum flexibility
+- Trade-off: No validation against typos, but meets requirement for arbitrary items
+
+**Why Not Quantity-Based?**
+- Each custom item is independent (not grouped by type)
+- User might want "Lab Module A" and "Lab Module B" as separate line items
+- Simpler data structure: just an array of items
+
+**Database Persistence:**
+- No schema changes needed - IndexedDB automatically serializes custom_items array
+- Backward compatible: old ships without custom_items work fine (field defaults to empty array)
+
+### Lessons Learned
+
+1. **Follow the Pattern**: Custom panel followed the same structure as other panels, making integration straightforward
+2. **Update All Integration Points**: Mass calculation, cost calculation, sidebar, summary, CSV - all must be updated
+3. **Don't Forget Tests**: All mock data needs the new field to avoid TypeScript errors
+4. **Panel Indices Matter**: Adding a panel mid-sequence requires renumbering subsequent cases
+5. **Validation Philosophy**: App allows invalid intermediate states but prevents navigation past blocking issues
+
+### Testing Checklist Used
+
+- [x] Panel appears in navigation
+- [x] Can add items with name, mass, cost
+- [x] Can remove individual items
+- [x] Form validates correctly
+- [x] Form resets after add
+- [x] Items show in Mass Sidebar
+- [x] Mass calculation includes custom items
+- [x] Cost calculation includes custom items
+- [x] Summary table displays custom items
+- [x] CSV export includes custom items
+- [x] Print view includes custom items
+- [x] Items persist when saving ship
+- [x] Items load when loading ship
+- [x] All tests pass (270 tests)
+- [x] Build succeeds with no errors
+
+### Files Modified
+
+**Created:**
+- `src/components/CustomPanel.tsx` (140 lines)
+
+**Modified:**
+- `src/types/ship.ts` - Added CustomItem interface
+- `src/App.tsx` - Integration (import, state, navigation, calculations)
+- `src/components/MassSidebar.tsx` - Added Custom category
+- `src/components/SummaryPanel.tsx` - CSV/print/display updates
+- `src/components/RulesMenu.test.tsx` - Test data
+- `src/components/SelectShipPanel.tsx` - Default ships data
+- `src/components/ShipPanel.tsx` - Existing ship loading
+- `src/services/database.test.ts` - Test data
+- `src/services/flushDB.test.ts` - Test data
+- `src/services/initialDataService.test.ts` - Test data
+- `src/services/antimatterIntegration.test.ts` - Test data
+
+**Total Changes:** ~500 lines across 12 files
+
+This implementation serves as a template for adding similar features in the future.

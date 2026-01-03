@@ -1,38 +1,40 @@
 import { describe, it, expect } from '@jest/globals';
 import { calculateTotalFuelMass } from '../data/constants';
 import type { ShipDesign } from '../types/ship';
+import { createEmptyShipDesign, createDefaultShip } from '../utils/shipDefaults';
+import { sumMass, sumMassWithQuantity, sumCargoTonnage } from '../utils/calculations';
 
 describe('Antimatter Integration Tests', () => {
   // Helper function to simulate mass calculation as done in App.tsx
   const simulateAppMassCalculation = (shipDesign: ShipDesign, activeRules: Set<string>): number => {
     let used = 0;
-    
+
     // Add engine masses
-    used += shipDesign.engines.reduce((sum, engine) => sum + engine.mass, 0);
-    
+    used += sumMass(shipDesign.engines);
+
     // Add fitting masses
-    used += shipDesign.fittings.reduce((sum, fitting) => sum + fitting.mass, 0);
-    
+    used += sumMass(shipDesign.fittings);
+
     // Add weapon masses
-    used += shipDesign.weapons.reduce((sum, weapon) => sum + (weapon.mass * weapon.quantity), 0);
-    
+    used += sumMassWithQuantity(shipDesign.weapons);
+
     // Add defense masses
-    used += shipDesign.defenses.reduce((sum, defense) => sum + (defense.mass * defense.quantity), 0);
-    
+    used += sumMassWithQuantity(shipDesign.defenses);
+
     // Add berth masses
-    used += shipDesign.berths.reduce((sum, berth) => sum + (berth.mass * berth.quantity), 0);
-    
+    used += sumMassWithQuantity(shipDesign.berths);
+
     // Add facility masses
-    used += shipDesign.facilities.reduce((sum, facility) => sum + (facility.mass * facility.quantity), 0);
-    
+    used += sumMassWithQuantity(shipDesign.facilities);
+
     // Add cargo masses
-    used += shipDesign.cargo.reduce((sum, cargo) => sum + cargo.tonnage, 0);
-    
+    used += sumCargoTonnage(shipDesign.cargo);
+
     // Add vehicle masses
-    used += shipDesign.vehicles.reduce((sum, vehicle) => sum + (vehicle.mass * vehicle.quantity), 0);
-    
+    used += sumMassWithQuantity(shipDesign.vehicles);
+
     // Add drone masses
-    used += shipDesign.drones.reduce((sum, drone) => sum + (drone.mass * drone.quantity), 0);
+    used += sumMassWithQuantity(shipDesign.drones);
 
     // Add fuel tank mass with antimatter consideration
     const jumpDrive = shipDesign.engines.find(e => e.engine_type === 'jump_drive');
@@ -52,18 +54,13 @@ describe('Antimatter Integration Tests', () => {
     return used;
   };
 
-  const createTestShip = (tonnage: number, techLevel: string, jumpPerf: number, maneuverPerf: number, weeks: number): ShipDesign => ({
-    ship: {
-      name: 'Test Ship',
-      tech_level: techLevel,
-      tonnage,
-      configuration: 'standard',
-      fuel_weeks: weeks,
-      missile_reloads: 0,
-      sand_reloads: 0,
-      description: 'Test ship for antimatter testing'
-    },
-    engines: [
+  const createTestShip = (tonnage: number, techLevel: string, jumpPerf: number, maneuverPerf: number, weeks: number): ShipDesign => {
+    const ship = createDefaultShip('Test Ship', techLevel, tonnage, 'standard');
+    ship.fuel_weeks = weeks;
+    ship.description = 'Test ship for antimatter testing';
+
+    const design = createEmptyShipDesign(ship);
+    design.engines = [
       {
         engine_type: 'jump_drive',
         drive_code: 'A',
@@ -72,7 +69,7 @@ describe('Antimatter Integration Tests', () => {
         cost: 10
       },
       {
-        engine_type: 'maneuver_drive', 
+        engine_type: 'maneuver_drive',
         drive_code: 'A',
         performance: maneuverPerf,
         mass: 5,
@@ -80,31 +77,26 @@ describe('Antimatter Integration Tests', () => {
       },
       {
         engine_type: 'power_plant',
-        drive_code: 'A', 
+        drive_code: 'A',
         performance: Math.max(jumpPerf, maneuverPerf),
         mass: 8,
         cost: 8
       }
-    ],
-    fittings: [{
+    ];
+    design.fittings = [{
       fitting_type: 'bridge',
       mass: 10,
       cost: 2
-    }],
-    weapons: [],
-    defenses: [],
-    berths: [{
+    }];
+    design.berths = [{
       berth_type: 'staterooms',
       quantity: 2,
       mass: 8,
       cost: 1
-    }],
-    facilities: [],
-    cargo: [],
-    vehicles: [],
-    drones: [],
-    custom_items: []
-  });
+    }];
+
+    return design;
+  };
 
   describe('Complete Ship Mass Calculations', () => {
     it('should calculate correct total mass without antimatter', () => {

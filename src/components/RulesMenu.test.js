@@ -3,28 +3,11 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 import '@testing-library/jest-dom';
 import RulesMenu from './RulesMenu';
+import { createEmptyShipDesign, createDefaultShip } from '../utils/shipDefaults';
 // Mock ship design factory
-const createMockShipDesign = (techLevel) => ({
-    ship: {
-        name: 'Test Ship',
-        tech_level: techLevel,
-        tonnage: 200,
-        configuration: 'standard',
-        fuel_weeks: 2,
-        missile_reloads: 0,
-        sand_reloads: 0,
-        description: 'Test ship'
-    },
-    engines: [],
-    fittings: [],
-    weapons: [],
-    defenses: [],
-    berths: [],
-    facilities: [],
-    cargo: [],
-    vehicles: [],
-    drones: [],
-    custom_items: []
+const createMockShipDesign = (techLevel) => createEmptyShipDesign({
+    ...createDefaultShip('Test Ship', techLevel, 200, 'standard'),
+    description: 'Test ship'
 });
 describe('RulesMenu Tech Level Restrictions', () => {
     const mockOnRuleChange = jest.fn();

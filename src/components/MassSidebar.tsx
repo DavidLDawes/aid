@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { MassCalculation, CostCalculation, ShipDesign } from '../types/ship';
 import { calculateTotalFuelMass } from '../data/constants';
+import { sumMass, sumMassWithQuantity, sumCargoTonnage } from '../utils/calculations';
 
 interface MassSidebarProps {
   mass: MassCalculation;
@@ -23,16 +24,16 @@ const MassSidebar: React.FC<MassSidebarProps> = ({ mass, cost, shipDesign, activ
   };
 
   // Calculate masses for each category
-  const enginesMass = shipDesign.engines.reduce((sum, engine) => sum + engine.mass, 0);
-  const fittingsMass = shipDesign.fittings.reduce((sum, fitting) => sum + fitting.mass, 0);
-  const weaponsMass = shipDesign.weapons.reduce((sum, weapon) => sum + (weapon.mass * weapon.quantity), 0);
-  const defensesMass = shipDesign.defenses.reduce((sum, defense) => sum + (defense.mass * defense.quantity), 0);
-  const facilitiesMass = shipDesign.facilities.reduce((sum, facility) => sum + (facility.mass * facility.quantity), 0);
-  const cargoMass = shipDesign.cargo.reduce((sum, cargo) => sum + cargo.tonnage, 0);
-  const vehiclesMass = shipDesign.vehicles.reduce((sum, vehicle) => sum + (vehicle.mass * vehicle.quantity), 0);
-  const dronesMass = shipDesign.drones.reduce((sum, drone) => sum + (drone.mass * drone.quantity), 0);
-  const customItemsMass = shipDesign.custom_items.reduce((sum, item) => sum + item.mass, 0);
-  const berthsMass = shipDesign.berths.reduce((sum, berth) => sum + (berth.mass * berth.quantity), 0);
+  const enginesMass = sumMass(shipDesign.engines);
+  const fittingsMass = sumMass(shipDesign.fittings);
+  const weaponsMass = sumMassWithQuantity(shipDesign.weapons);
+  const defensesMass = sumMassWithQuantity(shipDesign.defenses);
+  const facilitiesMass = sumMassWithQuantity(shipDesign.facilities);
+  const cargoMass = sumCargoTonnage(shipDesign.cargo);
+  const vehiclesMass = sumMassWithQuantity(shipDesign.vehicles);
+  const dronesMass = sumMassWithQuantity(shipDesign.drones);
+  const customItemsMass = sumMass(shipDesign.custom_items);
+  const berthsMass = sumMassWithQuantity(shipDesign.berths);
 
   // Calculate fuel mass
   const jumpDrive = shipDesign.engines.find(e => e.engine_type === 'jump_drive');

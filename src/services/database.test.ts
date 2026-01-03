@@ -7,30 +7,13 @@ if (typeof structuredClone === 'undefined') {
 import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 import { databaseService } from './database';
 import type { ShipDesign } from '../types/ship';
+import { createEmptyShipDesign, createDefaultShip } from '../utils/shipDefaults';
 
 describe('Database Service', () => {
-  const mockShipDesign: ShipDesign = {
-    ship: {
-      name: 'Test Ship',
-      tech_level: 'A',
-      tonnage: 400,
-      configuration: 'standard',
-      fuel_weeks: 2,
-      missile_reloads: 0,
-      sand_reloads: 0,
-      description: 'Test ship description'
-    },
-    engines: [],
-    fittings: [],
-    weapons: [],
-    defenses: [],
-    berths: [],
-    facilities: [],
-    cargo: [],
-    vehicles: [],
-    drones: [],
-    custom_items: []
-  };
+  const mockShipDesign: ShipDesign = createEmptyShipDesign({
+    ...createDefaultShip('Test Ship', 'A', 400, 'standard'),
+    description: 'Test ship description'
+  });
 
   beforeEach(async () => {
     // Initialize database before each test

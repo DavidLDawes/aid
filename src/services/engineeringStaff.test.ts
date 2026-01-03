@@ -1,4 +1,5 @@
 import { describe, it, expect } from '@jest/globals';
+import { sumMass } from '../utils/calculations';
 
 // Mock ship design structure
 interface Engine {
@@ -31,7 +32,7 @@ function calculateEngineers(engines: Engine[], shipTonnage: number): number {
     }
   } else {
     // For other ship sizes, use original logic as fallback
-    const totalEnginesWeight = engines.reduce((sum, engine) => sum + engine.mass, 0);
+    const totalEnginesWeight = sumMass(engines);
     engineers = Math.ceil(totalEnginesWeight / 100);
   }
   

@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import type { ShipDesign, MassCalculation, CostCalculation, StaffRequirements } from './types/ship';
 import { calculateTotalFuelMass, calculateVehicleServiceStaff, calculateDroneServiceStaff, calculateMedicalStaff, WEAPON_TYPES, BAY_WEAPON_TYPES, getTonnageCode, getAvailableSpinalWeapons, getNumberOfSections, getMinimumComputer, COMPUTER_TYPES } from './data/constants';
 import { databaseService } from './services/database';
+import { createEmptyShipDesign, createDefaultShip } from './utils/shipDefaults';
+import { sumMass, sumMassWithQuantity, sumCost, sumCostWithQuantity, sumCargoTonnage } from './utils/calculations';
 // Eagerly load only the ship selection panel (first screen)
 import SelectShipPanel from './components/SelectShipPanel';
 // Lazy load all design panels to reduce initial bundle size
@@ -15,6 +17,7 @@ const FacilitiesPanel = lazy(() => import('./components/FacilitiesPanel'));
 const CargoPanel = lazy(() => import('./components/CargoPanel'));
 const VehiclesPanel = lazy(() => import('./components/VehiclesPanel'));
 const DronesPanel = lazy(() => import('./components/DronesPanel'));
+const CustomPanel = lazy(() => import('./components/CustomPanel'));
 const StaffPanel = lazy(() => import('./components/StaffPanel'));
 const SummaryPanel = lazy(() => import('./components/SummaryPanel'));
 // Keep UI components eagerly loaded as they're small and always visible
@@ -29,26 +32,9 @@ function App() {
   const [combinePilotNavigator, setCombinePilotNavigator] = useState(false);
   const [noStewards, setNoStewards] = useState(false);
   const [activeRules, setActiveRules] = useState<Set<string>>(new Set(['spacecraft_design_srd']));
-  const [shipDesign, setShipDesign] = useState<ShipDesign>({
-    ship: { name: '', tech_level: 'A', tonnage: 5000, configuration: 'standard', fuel_weeks: 2, missile_reloads: 0, sand_reloads: 0, sections: 2, description: '' },
-    engines: [],
-    fittings: [
-      {
-        fitting_type: 'comms_sensors',
-        comms_sensors_type: 'standard',
-        mass: 0,
-        cost: 0
-      }
-    ],
-    weapons: [],
-    defenses: [],
-    berths: [],
-    facilities: [],
-    cargo: [],
-    vehicles: [],
-    drones: [],
-    custom_items: []
-  });
+  const [shipDesign, setShipDesign] = useState<ShipDesign>(
+    createEmptyShipDesign(createDefaultShip('', 'A', 5000, 'standard'))
+  );
 
   const panels = [
     'Ship', 'Engines', 'Fittings', 'Weapons', 'Defenses',
@@ -218,34 +204,34 @@ function App() {
     let used = 0;
     
     // Add engine masses
-    used += shipDesign.engines.reduce((sum, engine) => sum + engine.mass, 0);
-    
+    used += sumMass(shipDesign.engines);
+
     // Add fitting masses
-    used += shipDesign.fittings.reduce((sum, fitting) => sum + fitting.mass, 0);
-    
+    used += sumMass(shipDesign.fittings);
+
     // Add weapon masses
-    used += shipDesign.weapons.reduce((sum, weapon) => sum + (weapon.mass * weapon.quantity), 0);
-    
+    used += sumMassWithQuantity(shipDesign.weapons);
+
     // Add defense masses (mass is already multiplied by quantity in the defense object)
-    used += shipDesign.defenses.reduce((sum, defense) => sum + defense.mass, 0);
-    
+    used += sumMass(shipDesign.defenses);
+
     // Add berth masses
-    used += shipDesign.berths.reduce((sum, berth) => sum + (berth.mass * berth.quantity), 0);
-    
+    used += sumMassWithQuantity(shipDesign.berths);
+
     // Add facility masses
-    used += shipDesign.facilities.reduce((sum, facility) => sum + (facility.mass * facility.quantity), 0);
-    
+    used += sumMassWithQuantity(shipDesign.facilities);
+
     // Add cargo masses
-    used += shipDesign.cargo.reduce((sum, cargo) => sum + cargo.tonnage, 0);
-    
+    used += sumCargoTonnage(shipDesign.cargo);
+
     // Add vehicle masses
-    used += shipDesign.vehicles.reduce((sum, vehicle) => sum + (vehicle.mass * vehicle.quantity), 0);
-    
+    used += sumMassWithQuantity(shipDesign.vehicles);
+
     // Add drone masses
-    used += shipDesign.drones.reduce((sum, drone) => sum + (drone.mass * drone.quantity), 0);
+    used += sumMassWithQuantity(shipDesign.drones);
 
     // Add custom items masses
-    used += shipDesign.custom_items.reduce((sum, item) => sum + item.mass, 0);
+    used += sumMass(shipDesign.custom_items);
 
     // Add fuel tank mass
     const jumpDrive = shipDesign.engines.find(e => e.engine_type === 'jump_drive');
@@ -292,36 +278,36 @@ function App() {
 
   const calculateCost = (): CostCalculation => {
     let total = 0;
-    
+
     // Add engine costs
-    total += shipDesign.engines.reduce((sum, engine) => sum + engine.cost, 0);
-    
+    total += sumCost(shipDesign.engines);
+
     // Add fitting costs
-    total += shipDesign.fittings.reduce((sum, fitting) => sum + fitting.cost, 0);
-    
+    total += sumCost(shipDesign.fittings);
+
     // Add weapon costs
-    total += shipDesign.weapons.reduce((sum, weapon) => sum + (weapon.cost * weapon.quantity), 0);
-    
+    total += sumCostWithQuantity(shipDesign.weapons);
+
     // Add defense costs (cost is already multiplied by quantity in the defense object)
-    total += shipDesign.defenses.reduce((sum, defense) => sum + defense.cost, 0);
-    
+    total += sumCost(shipDesign.defenses);
+
     // Add berth costs
-    total += shipDesign.berths.reduce((sum, berth) => sum + (berth.cost * berth.quantity), 0);
-    
+    total += sumCostWithQuantity(shipDesign.berths);
+
     // Add facility costs
-    total += shipDesign.facilities.reduce((sum, facility) => sum + (facility.cost * facility.quantity), 0);
-    
+    total += sumCostWithQuantity(shipDesign.facilities);
+
     // Add cargo costs
-    total += shipDesign.cargo.reduce((sum, cargo) => sum + cargo.cost, 0);
-    
+    total += sumCost(shipDesign.cargo);
+
     // Add vehicle costs
-    total += shipDesign.vehicles.reduce((sum, vehicle) => sum + (vehicle.cost * vehicle.quantity), 0);
-    
+    total += sumCostWithQuantity(shipDesign.vehicles);
+
     // Add drone costs
-    total += shipDesign.drones.reduce((sum, drone) => sum + (drone.cost * drone.quantity), 0);
+    total += sumCostWithQuantity(shipDesign.drones);
 
     // Add custom items costs
-    total += shipDesign.custom_items.reduce((sum, item) => sum + item.cost, 0);
+    total += sumCost(shipDesign.custom_items);
 
     // Add missile reload costs (1 MCr per ton)
     total += shipDesign.ship.missile_reloads;
