@@ -327,7 +327,7 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
   const handleLaunchArchitect = () => {
     const csvContent = generateCsvData();
     const encodedCsv = encodeURIComponent(csvContent);
-    const url = `../StarshipArchitect/index.html?${encodedCsv}`;
+    const url = `../StarshipArchitect/index.html?csv=${encodedCsv}`;
     window.open(url, '_blank');
   };
 
