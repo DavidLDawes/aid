@@ -6,6 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a **Traveller Capital Starship Designer** - a React-based web application for designing capital starships based on the Traveller SRD (System Reference Document) spacecraft design rules. The application uses IndexedDB for local persistence and features a multi-panel wizard interface for configuring all aspects of a capital ship.
 
+## General Rules
+When you spend time searching for commands to typecheck, lint, build, or test, you should ask the user if it's okay to add those commands to CLAUDE.md. Similarly, when learning about code style preferences or important codebase information, ask if it's okay to add that to CLAUDE.md so you can remember it for next time.
+
 ## Common Development Commands
 
 ```bash

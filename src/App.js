@@ -520,7 +520,7 @@ function App() {
             case 11:
                 return _jsx(StaffPanel, { staffRequirements: staff, berths: shipDesign.berths, shipTonnage: shipDesign.ship.tonnage, combinePilotNavigator: combinePilotNavigator, noStewards: noStewards, onCombinePilotNavigatorChange: setCombinePilotNavigator, onNoStewardsChange: setNoStewards });
             case 12:
-                return _jsx(SummaryPanel, { shipDesign: shipDesign, mass: mass, cost: cost, staff: staff, combinePilotNavigator: combinePilotNavigator, noStewards: noStewards, onBackToShipSelect: handleBackToShipSelect });
+                return _jsx(SummaryPanel, { shipDesign: shipDesign, mass: mass, cost: cost, staff: staff, combinePilotNavigator: combinePilotNavigator, noStewards: noStewards, activeRules: activeRules, onBackToShipSelect: handleBackToShipSelect });
             default:
                 return null;
         }

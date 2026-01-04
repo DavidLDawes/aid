@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { ShipDesign, MassCalculation, CostCalculation, StaffRequirements } from '../types/ship';
-import { COMMS_SENSORS_TYPES, DEFENSE_TYPES, FACILITY_TYPES, CARGO_TYPES, VEHICLE_TYPES, DRONE_TYPES, BERTH_TYPES, getTonnageCode, getNumberOfSections } from '../data/constants';
+import { COMMS_SENSORS_TYPES, DEFENSE_TYPES, FACILITY_TYPES, CARGO_TYPES, VEHICLE_TYPES, DRONE_TYPES, BERTH_TYPES, getTonnageCode, getNumberOfSections, calculateTotalFuelMass } from '../data/constants';
 import { databaseService } from '../services/database';
 
 interface SummaryPanelProps {
@@ -10,10 +10,11 @@ interface SummaryPanelProps {
   staff: StaffRequirements;
   combinePilotNavigator: boolean;
   noStewards: boolean;
+  activeRules: Set<string>;
   onBackToShipSelect?: () => void;
 }
 
-const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, staff, combinePilotNavigator, noStewards, onBackToShipSelect }) => {
+const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, staff, combinePilotNavigator, noStewards, activeRules, onBackToShipSelect }) => {
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [showCsvModal, setShowCsvModal] = useState(false);
@@ -96,7 +97,7 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
     const allRows: { category: string; item: string; mass: number; cost: number }[] = [];
     
     // Engines
-    const validEngines = shipDesign.engines.filter(engine => 
+    const validEngines = shipDesign.engines.filter(engine =>
       !(engine.engine_type === 'maneuver_drive' && engine.performance === 0)
     );
     validEngines.forEach((engine, index) => {
@@ -106,7 +107,7 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
       const performanceCode = engine.engine_type === 'power_plant' ? 'P' :
                             engine.engine_type === 'jump_drive' ? 'J' :
                             'M';
-      
+
       allRows.push({
         category: index === 0 ? 'Engines' : '',
         item: `${engineName} ${performanceCode}-${engine.performance}`,
@@ -114,7 +115,20 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
         cost: engine.cost
       });
     });
-    
+
+    // Fuel
+    const jumpPerf = shipDesign.engines.find(e => e.engine_type === 'jump_drive')?.performance || 0;
+    const maneuverPerf = shipDesign.engines.find(e => e.engine_type === 'maneuver_drive')?.performance || 0;
+    const useAntimatter = activeRules.has('antimatter');
+    const fuelMass = calculateTotalFuelMass(shipDesign.ship.tonnage, jumpPerf, maneuverPerf, shipDesign.ship.fuel_weeks, useAntimatter);
+
+    allRows.push({
+      category: '',
+      item: 'Fuel',
+      mass: fuelMass,
+      cost: 0
+    });
+
     // Fittings
     let fittingRowIndex = 0;
     const hasBridge = shipDesign.fittings.some(f => f.fitting_type === 'bridge');
@@ -384,7 +398,7 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
     };
 
     // Engines
-    const validEngines = shipDesign.engines.filter(engine => 
+    const validEngines = shipDesign.engines.filter(engine =>
       !(engine.engine_type === 'maneuver_drive' && engine.performance === 0)
     );
     validEngines.forEach((engine, index) => {
@@ -394,7 +408,7 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
       const performanceCode = engine.engine_type === 'power_plant' ? 'P' :
                             engine.engine_type === 'jump_drive' ? 'J' :
                             'M';
-      
+
       addRow(
         index === 0 ? 'Engines' : '',
         `${engineName} ${performanceCode}-${engine.performance}`,
@@ -402,6 +416,14 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
         engine.cost
       );
     });
+
+    // Fuel
+    const jumpPerf = shipDesign.engines.find(e => e.engine_type === 'jump_drive')?.performance || 0;
+    const maneuverPerf = shipDesign.engines.find(e => e.engine_type === 'maneuver_drive')?.performance || 0;
+    const useAntimatter = activeRules.has('antimatter');
+    const fuelMass = calculateTotalFuelMass(shipDesign.ship.tonnage, jumpPerf, maneuverPerf, shipDesign.ship.fuel_weeks, useAntimatter);
+
+    addRow('', 'Fuel', fuelMass, 0);
 
     // Fittings
     let fittingRowIndex = 0;
@@ -634,10 +656,10 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
             {/* Engines */}
             {(() => {
               // Filter out M-0 maneuver drives and create engine rows
-              const validEngines = shipDesign.engines.filter(engine => 
+              const validEngines = shipDesign.engines.filter(engine =>
                 !(engine.engine_type === 'maneuver_drive' && engine.performance === 0)
               );
-              
+
               return validEngines.map((engine, index) => {
                 const engineName = engine.engine_type === 'power_plant' ? 'Power Plant' :
                                  engine.engine_type === 'jump_drive' ? 'Jump Drive' :
@@ -645,7 +667,7 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
                 const performanceCode = engine.engine_type === 'power_plant' ? 'P' :
                                       engine.engine_type === 'jump_drive' ? 'J' :
                                       'M';
-                
+
                 return (
                   <tr key={engine.engine_type}>
                     <td>{index === 0 ? 'Engines' : ''}</td>
@@ -656,7 +678,24 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
                 );
               });
             })()}
-            
+
+            {/* Fuel */}
+            {(() => {
+              const jumpPerf = shipDesign.engines.find(e => e.engine_type === 'jump_drive')?.performance || 0;
+              const maneuverPerf = shipDesign.engines.find(e => e.engine_type === 'maneuver_drive')?.performance || 0;
+              const useAntimatter = activeRules.has('antimatter');
+              const fuelMass = calculateTotalFuelMass(shipDesign.ship.tonnage, jumpPerf, maneuverPerf, shipDesign.ship.fuel_weeks, useAntimatter);
+
+              return (
+                <tr key="fuel">
+                  <td></td>
+                  <td>Fuel</td>
+                  <td>{fuelMass.toFixed(1)} tons</td>
+                  <td></td>
+                </tr>
+              );
+            })()}
+
             {/* Fittings */}
             {(() => {
               const rows: React.ReactElement[] = [];

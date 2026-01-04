@@ -667,6 +667,7 @@ function App() {
           staff={staff}
           combinePilotNavigator={combinePilotNavigator}
           noStewards={noStewards}
+          activeRules={activeRules}
           onBackToShipSelect={handleBackToShipSelect}
         />;
       default:

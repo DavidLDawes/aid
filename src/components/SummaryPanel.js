@@ -1,8 +1,8 @@
 import { jsxs as _jsxs, jsx as _jsx, Fragment as _Fragment } from "react/jsx-runtime";
 import { useState, useEffect } from 'react';
-import { COMMS_SENSORS_TYPES, DEFENSE_TYPES, FACILITY_TYPES, CARGO_TYPES, VEHICLE_TYPES, DRONE_TYPES, BERTH_TYPES, getTonnageCode, getNumberOfSections } from '../data/constants';
+import { COMMS_SENSORS_TYPES, DEFENSE_TYPES, FACILITY_TYPES, CARGO_TYPES, VEHICLE_TYPES, DRONE_TYPES, BERTH_TYPES, getTonnageCode, getNumberOfSections, calculateTotalFuelMass } from '../data/constants';
 import { databaseService } from '../services/database';
-const SummaryPanel = ({ shipDesign, mass, cost, staff, combinePilotNavigator, noStewards, onBackToShipSelect }) => {
+const SummaryPanel = ({ shipDesign, mass, cost, staff, combinePilotNavigator, noStewards, activeRules, onBackToShipSelect }) => {
     const [saving, setSaving] = useState(false);
     const [saveMessage, setSaveMessage] = useState(null);
     const [showCsvModal, setShowCsvModal] = useState(false);
@@ -93,6 +93,17 @@ const SummaryPanel = ({ shipDesign, mass, cost, staff, combinePilotNavigator, no
                 mass: engine.mass,
                 cost: engine.cost
             });
+        });
+        // Fuel
+        const jumpPerf = shipDesign.engines.find(e => e.engine_type === 'jump_drive')?.performance || 0;
+        const maneuverPerf = shipDesign.engines.find(e => e.engine_type === 'maneuver_drive')?.performance || 0;
+        const useAntimatter = activeRules.has('antimatter');
+        const fuelMass = calculateTotalFuelMass(shipDesign.ship.tonnage, jumpPerf, maneuverPerf, shipDesign.ship.fuel_weeks, useAntimatter);
+        allRows.push({
+            category: '',
+            item: 'Fuel',
+            mass: fuelMass,
+            cost: 0
         });
         // Fittings
         let fittingRowIndex = 0;
@@ -345,6 +356,12 @@ const SummaryPanel = ({ shipDesign, mass, cost, staff, combinePilotNavigator, no
                     'M';
             addRow(index === 0 ? 'Engines' : '', `${engineName} ${performanceCode}-${engine.performance}`, engine.mass, engine.cost);
         });
+        // Fuel
+        const jumpPerf = shipDesign.engines.find(e => e.engine_type === 'jump_drive')?.performance || 0;
+        const maneuverPerf = shipDesign.engines.find(e => e.engine_type === 'maneuver_drive')?.performance || 0;
+        const useAntimatter = activeRules.has('antimatter');
+        const fuelMass = calculateTotalFuelMass(shipDesign.ship.tonnage, jumpPerf, maneuverPerf, shipDesign.ship.fuel_weeks, useAntimatter);
+        addRow('', 'Fuel', fuelMass, 0);
         // Fittings
         let fittingRowIndex = 0;
         const hasBridge = shipDesign.fittings.some(f => f.fitting_type === 'bridge');
@@ -484,6 +501,12 @@ const SummaryPanel = ({ shipDesign, mass, cost, staff, combinePilotNavigator, no
                                                 'M';
                                         return (_jsxs("tr", { children: [_jsx("td", { children: index === 0 ? 'Engines' : '' }), _jsxs("td", { children: [engineName, " ", performanceCode, "-", engine.performance] }), _jsxs("td", { children: [engine.mass.toFixed(1), " tons"] }), _jsxs("td", { children: [engine.cost.toFixed(2), " MCr"] })] }, engine.engine_type));
                                     });
+                                })(), (() => {
+                                    const jumpPerf = shipDesign.engines.find(e => e.engine_type === 'jump_drive')?.performance || 0;
+                                    const maneuverPerf = shipDesign.engines.find(e => e.engine_type === 'maneuver_drive')?.performance || 0;
+                                    const useAntimatter = activeRules.has('antimatter');
+                                    const fuelMass = calculateTotalFuelMass(shipDesign.ship.tonnage, jumpPerf, maneuverPerf, shipDesign.ship.fuel_weeks, useAntimatter);
+                                    return (_jsxs("tr", { children: [_jsx("td", {}), _jsx("td", { children: "Fuel" }), _jsxs("td", { children: [fuelMass.toFixed(1), " tons"] }), _jsx("td", {})] }, "fuel"));
                                 })(), (() => {
                                     const rows = [];
                                     let fittingRowIndex = 0;
