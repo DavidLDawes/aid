@@ -324,6 +324,13 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
     setShowCsvModal(true);
   };
 
+  const handleLaunchArchitect = () => {
+    const csvContent = generateCsvData();
+    const encodedCsv = encodeURIComponent(csvContent);
+    const url = `https://srd-tools.com/ShipArchitect/index.html?${encodedCsv}`;
+    window.open(url, '_blank');
+  };
+
   const handlePrint = () => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
@@ -1041,12 +1048,15 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
       )}
 
       <div className="summary-actions">
-        <button 
-          className="save-btn" 
-          onClick={handleSaveDesign} 
+        <button
+          className="save-btn"
+          onClick={handleSaveDesign}
           disabled={saving}
         >
           {saving ? 'Saving...' : 'Save Design'}
+        </button>
+        <button className="load-btn" onClick={handleLaunchArchitect}>
+          Launch Starship Architect
         </button>
         <button className="load-btn" onClick={handleCsvExport}>
           CSV

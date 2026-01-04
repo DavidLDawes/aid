@@ -277,6 +277,12 @@ const SummaryPanel = ({ shipDesign, mass, cost, staff, combinePilotNavigator, no
         setCsvData(csvContent);
         setShowCsvModal(true);
     };
+    const handleLaunchArchitect = () => {
+        const csvContent = generateCsvData();
+        const encodedCsv = encodeURIComponent(csvContent);
+        const url = `https://srd-tools.com/ShipArchitect/index.html?${encodedCsv}`;
+        window.open(url, '_blank');
+    };
     const handlePrint = () => {
         const printWindow = window.open('', '_blank');
         if (!printWindow)
@@ -670,7 +676,7 @@ const SummaryPanel = ({ shipDesign, mass, cost, staff, combinePilotNavigator, no
                                     ? staff.total - 1
                                     : noStewards
                                         ? staff.total - staff.stewards
-                                        : staff.total] })] }), saveMessage && (_jsx("div", { className: `save-message ${saveMessage.includes('successfully') ? 'success' : 'error'}`, children: saveMessage })), _jsxs("div", { className: "summary-actions", children: [_jsx("button", { className: "save-btn", onClick: handleSaveDesign, disabled: saving, children: saving ? 'Saving...' : 'Save Design' }), _jsx("button", { className: "load-btn", onClick: handleCsvExport, children: "CSV" }), onBackToShipSelect && (_jsx("button", { className: "load-btn", onClick: onBackToShipSelect, children: "Load Different Ship" }))] }), showCsvModal && (_jsx("div", { className: "ship-name-conflict-dialog", children: _jsxs("div", { className: "conflict-dialog-content", children: [_jsx("h3", { children: "CSV Export" }), _jsx("textarea", { value: csvData, readOnly: true, style: {
+                                        : staff.total] })] }), saveMessage && (_jsx("div", { className: `save-message ${saveMessage.includes('successfully') ? 'success' : 'error'}`, children: saveMessage })), _jsxs("div", { className: "summary-actions", children: [_jsx("button", { className: "save-btn", onClick: handleSaveDesign, disabled: saving, children: saving ? 'Saving...' : 'Save Design' }), _jsx("button", { className: "load-btn", onClick: handleLaunchArchitect, children: "Launch Starship Architect" }), _jsx("button", { className: "load-btn", onClick: handleCsvExport, children: "CSV" }), onBackToShipSelect && (_jsx("button", { className: "load-btn", onClick: onBackToShipSelect, children: "Load Different Ship" }))] }), showCsvModal && (_jsx("div", { className: "ship-name-conflict-dialog", children: _jsxs("div", { className: "conflict-dialog-content", children: [_jsx("h3", { children: "CSV Export" }), _jsx("textarea", { value: csvData, readOnly: true, style: {
                                 width: '100%',
                                 height: '400px',
                                 fontFamily: 'monospace',
