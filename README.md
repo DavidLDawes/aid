@@ -6,6 +6,7 @@ New attempt at a Starship Designer, built with Claude. Using a Wizard UI and Ind
 
 ```bash
 npm install
+
 npm run dev
 ```
 
@@ -147,7 +148,6 @@ aid/
 └── README.md
 ```
 
-## Development Commands
 
 ```bash
 npm install          # Install dependencies

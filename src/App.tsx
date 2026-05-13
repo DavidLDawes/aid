@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import type { ShipDesign, MassCalculation, CostCalculation, StaffRequirements } from './types/ship';
 import { calculateTotalFuelMass, calculateVehicleServiceStaff, calculateDroneServiceStaff, calculateMedicalStaff, WEAPON_TYPES } from './data/constants';
 import { databaseService } from './services/database';
+import { generateShipPrintContent } from './utils/printContent';
 import SelectShipPanel from './components/SelectShipPanel';
 import ShipPanel from './components/ShipPanel';
 import EnginesPanel from './components/EnginesPanel';
@@ -19,6 +20,12 @@ import MassSidebar from './components/MassSidebar';
 import FileMenu from './components/FileMenu';
 import RulesMenu from './components/RulesMenu';
 import './App.css';
+
+const PANELS = [
+  'Ship', 'Engines', 'Fittings', 'Weapons', 'Defenses',
+  'Rec/Health', 'Cargo', 'Vehicles', 'Drones', 'Berths',
+  'Staff', 'Ship Design'
+];
 
 function App() {
   const [showSelectShip, setShowSelectShip] = useState(true);
@@ -46,12 +53,6 @@ function App() {
     drones: []
   });
 
-  const panels = [
-    'Ship', 'Engines', 'Fittings', 'Weapons', 'Defenses', 
-    'Rec/Health', 'Cargo', 'Vehicles', 'Drones', 'Berths',
-    'Staff', 'Ship Design'
-  ];
-
   useEffect(() => {
     checkExistingShips();
   }, []);
@@ -59,15 +60,8 @@ function App() {
   const checkExistingShips = async () => {
     try {
       await databaseService.initialize();
-      const hasShips = await databaseService.hasAnyShips();
-      console.log('App.tsx initial database check - has ships:', hasShips);
-      
-      // Always show SelectShipPanel - it will handle loading initial data if needed
-      setShowSelectShip(true);
     } catch (error) {
-      console.error('Error checking existing ships:', error);
-      // If there's an error, still show SelectShipPanel and let it handle the loading
-      setShowSelectShip(true);
+      console.error('Error initializing database:', error);
     }
   };
 
@@ -78,9 +72,7 @@ function App() {
     }
 
     try {
-      await databaseService.initialize();
       await databaseService.saveShip(shipDesign);
-      // Could add a toast notification here
     } catch (error) {
       console.error('Error saving ship:', error);
       alert(error instanceof Error ? error.message : 'Failed to save ship design. Please try again.');
@@ -93,10 +85,8 @@ function App() {
         ...shipDesign,
         ship: { ...shipDesign.ship, name: newName }
       };
-      await databaseService.initialize();
       await databaseService.saveShip(modifiedShipDesign);
       setShipDesign(modifiedShipDesign);
-      // Could add a toast notification here
     } catch (error) {
       console.error('Error saving ship:', error);
       alert(error instanceof Error ? error.message : 'Failed to save ship design. Please try again.');
@@ -117,51 +107,14 @@ function App() {
     const mass = calculateMass();
     const cost = calculateCost();
     const staff = calculateStaffRequirements();
-    const shipTitle = `${shipDesign.ship.name}, ${shipDesign.ship.configuration} configuration, ${shipDesign.ship.tonnage} tons, Tech Level ${shipDesign.ship.tech_level}`;
-    
-    // Generate print content using similar logic to SummaryPanel
-    const printContent = generatePrintContent(shipTitle, mass, cost, staff);
-    
-    printWindow.document.write(printContent);
+    const html = generateShipPrintContent(shipDesign, mass, cost, staff, combinePilotNavigator, noStewards);
+
+    printWindow.document.write(html);
     printWindow.document.close();
     printWindow.focus();
     printWindow.print();
     printWindow.close();
-  }, [shipDesign]);
-
-  const generatePrintContent = (shipTitle: string, mass: MassCalculation, cost: CostCalculation, staff: StaffRequirements): string => {
-    // Simplified print content generation - would need full implementation
-    return `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Ship Design - ${shipDesign.ship.name}</title>
-          <style>
-            body { font-family: Arial, sans-serif; margin: 20px; }
-            .ship-title { font-size: 18px; font-weight: bold; margin-bottom: 20px; }
-            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-            th, td { padding: 8px 12px; border: 1px solid #ccc; text-align: left; }
-            th { background-color: #f0f0f0; font-weight: bold; }
-            .category-cell { font-weight: bold; }
-            .totals-row { border-top: 2px solid #000; font-weight: bold; }
-            .totals-row td { background-color: #f8f8f8; }
-            @media print {
-              body { margin: 0; }
-              .ship-title { page-break-after: avoid; }
-              table { page-break-inside: avoid; }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="ship-title">${shipTitle}</div>
-          <p>Print functionality available from File menu on all screens.</p>
-          <p>Mass: ${mass.used.toFixed(1)} / ${mass.total} tons</p>
-          <p>Cost: ${cost.total.toFixed(2)} MCr</p>
-          <p>Total Crew: ${staff.total}</p>
-        </body>
-      </html>
-    `;
-  };
+  }, [shipDesign, combinePilotNavigator, noStewards]);
 
   // Global keyboard shortcuts for file operations
   useEffect(() => {
@@ -197,15 +150,9 @@ function App() {
       } else {
         newRules.delete(ruleId);
       }
-      console.log('Active rules:', Array.from(newRules));
       return newRules;
     });
   }, []);
-
-  // For development - log active rules when they change
-  useEffect(() => {
-    console.log('Current active rules:', Array.from(activeRules));
-  }, [activeRules]);
 
   const calculateMass = (): MassCalculation => {
     let used = 0;
@@ -396,17 +343,14 @@ function App() {
     }
   };
 
-  const canAdvance = (): boolean => {
+  const canAdvance = (mass: MassCalculation): boolean => {
     if (!isCurrentPanelValid()) return false;
-    if (currentPanel >= 1) { // After ship panel, check mass
-      const mass = calculateMass();
-      if (mass.isOverweight) return false;
-    }
+    if (currentPanel >= 1 && mass.isOverweight) return false;
     return true;
   };
 
-  const nextPanel = () => {
-    if (canAdvance() && currentPanel < panels.length - 1) {
+  const nextPanel = (mass: MassCalculation) => {
+    if (canAdvance(mass) && currentPanel < PANELS.length - 1) {
       setCurrentPanel(currentPanel + 1);
     }
   };
@@ -441,17 +385,13 @@ function App() {
     let cleanedShipDesign = loadedShipDesign;
     
     if (removedWeapons.length > 0) {
-      // Create cleaned ship design
       cleanedShipDesign = {
         ...loadedShipDesign,
         weapons: standardWeapons
       };
-      
-      // Save the cleaned ship back to the database
+
       try {
-        await databaseService.initialize();
         await databaseService.saveOrUpdateShipByName(cleanedShipDesign);
-        console.log(`Removed ${removedWeapons.length} non-standard weapons from ship "${cleanedShipDesign.ship.name}" and saved to database:`, removedWeapons.map(w => w.weapon_name));
       } catch (error) {
         console.error('Error saving cleaned ship design:', error);
       }
@@ -467,50 +407,46 @@ function App() {
     setCurrentPanel(0);
   };
 
-  const renderCurrentPanel = () => {
+  const renderCurrentPanel = (mass: MassCalculation, cost: CostCalculation, staff: StaffRequirements) => {
     if (showSelectShip) {
       return <SelectShipPanel onNewShip={handleNewShip} onLoadShip={handleLoadShip} />;
     }
 
-    const mass = calculateMass();
-    const cost = calculateCost();
-    const staff = calculateStaffRequirements();
-
     switch (currentPanel) {
       case 0:
-        return <ShipPanel 
-          ship={shipDesign.ship} 
-          onUpdate={(ship) => updateShipDesign({ ship })} 
+        return <ShipPanel
+          ship={shipDesign.ship}
+          onUpdate={(ship) => updateShipDesign({ ship })}
           onLoadExistingShip={(loadedShipDesign) => setShipDesign(loadedShipDesign)}
         />;
       case 1:
-        return <EnginesPanel 
-          engines={shipDesign.engines} 
-          shipTonnage={shipDesign.ship.tonnage} 
+        return <EnginesPanel
+          engines={shipDesign.engines}
+          shipTonnage={shipDesign.ship.tonnage}
           fuelWeeks={shipDesign.ship.fuel_weeks}
           activeRules={activeRules}
-          onUpdate={(engines) => updateShipDesign({ engines })} 
+          onUpdate={(engines) => updateShipDesign({ engines })}
           onFuelWeeksUpdate={(fuel_weeks) => updateShipDesign({ ship: { ...shipDesign.ship, fuel_weeks } })}
         />;
       case 2:
         return <FittingsPanel fittings={shipDesign.fittings} shipTonnage={shipDesign.ship.tonnage} onUpdate={(fittings) => updateShipDesign({ fittings })} />;
       case 3:
-        return <WeaponsPanel 
-          weapons={shipDesign.weapons} 
-          shipTonnage={shipDesign.ship.tonnage} 
+        return <WeaponsPanel
+          weapons={shipDesign.weapons}
+          shipTonnage={shipDesign.ship.tonnage}
           missileReloads={shipDesign.ship.missile_reloads}
           remainingMass={mass.remaining + shipDesign.ship.missile_reloads}
-          onUpdate={(weapons) => updateShipDesign({ weapons })} 
+          onUpdate={(weapons) => updateShipDesign({ weapons })}
           onMissileReloadsUpdate={(missile_reloads) => updateShipDesign({ ship: { ...shipDesign.ship, missile_reloads } })}
         />;
       case 4:
-        return <DefensesPanel 
-          defenses={shipDesign.defenses} 
-          shipTonnage={shipDesign.ship.tonnage} 
+        return <DefensesPanel
+          defenses={shipDesign.defenses}
+          shipTonnage={shipDesign.ship.tonnage}
           weaponsCount={shipDesign.weapons.reduce((sum, weapon) => sum + weapon.quantity, 0)}
           sandReloads={shipDesign.ship.sand_reloads}
           remainingMass={mass.remaining + shipDesign.ship.sand_reloads}
-          onUpdate={(defenses) => updateShipDesign({ defenses })} 
+          onUpdate={(defenses) => updateShipDesign({ defenses })}
           onSandReloadsUpdate={(sand_reloads) => updateShipDesign({ ship: { ...shipDesign.ship, sand_reloads } })}
         />;
       case 5:
@@ -522,15 +458,15 @@ function App() {
       case 8:
         return <DronesPanel drones={shipDesign.drones} onUpdate={(drones) => updateShipDesign({ drones })} />;
       case 9:
-        return <BerthsPanel 
-          berths={shipDesign.berths} 
-          staffRequirements={staff} 
+        return <BerthsPanel
+          berths={shipDesign.berths}
+          staffRequirements={staff}
           adjustedCrewCount={calculateAdjustedCrewCount(staff)}
-          onUpdate={(berths) => updateShipDesign({ berths })} 
+          onUpdate={(berths) => updateShipDesign({ berths })}
         />;
       case 10:
-        return <StaffPanel 
-          staffRequirements={staff} 
+        return <StaffPanel
+          staffRequirements={staff}
           berths={shipDesign.berths}
           shipTonnage={shipDesign.ship.tonnage}
           combinePilotNavigator={combinePilotNavigator}
@@ -539,19 +475,24 @@ function App() {
           onNoStewardsChange={setNoStewards}
         />;
       case 11:
-        return <SummaryPanel 
-          shipDesign={shipDesign} 
-          mass={mass} 
-          cost={cost} 
-          staff={staff} 
+        return <SummaryPanel
+          shipDesign={shipDesign}
+          mass={mass}
+          cost={cost}
+          staff={staff}
           combinePilotNavigator={combinePilotNavigator}
           noStewards={noStewards}
-          onBackToShipSelect={handleBackToShipSelect} 
+          onBackToShipSelect={handleBackToShipSelect}
         />;
       default:
         return null;
     }
   };
+
+  // Compute derived values once per render
+  const mass = calculateMass();
+  const cost = calculateCost();
+  const staff = calculateStaffRequirements();
 
   return (
     <div className="app">
@@ -561,9 +502,9 @@ function App() {
             <>
               <FileMenu
                 shipDesign={shipDesign}
-                mass={calculateMass()}
-                cost={calculateCost()}
-                staff={calculateStaffRequirements()}
+                mass={mass}
+                cost={cost}
+                staff={staff}
                 combinePilotNavigator={combinePilotNavigator}
                 noStewards={noStewards}
                 onPrint={handleFilePrint}
@@ -575,19 +516,19 @@ function App() {
           )}
           <h1>
             Starship Designer
-            {!showSelectShip && currentPanel > 0 && shipDesign.ship.name.trim() && 
+            {!showSelectShip && currentPanel > 0 && shipDesign.ship.name.trim() &&
               `: ${shipDesign.ship.name}`
             }
           </h1>
         </div>
         {!showSelectShip && (
           <nav className="panel-nav">
-            {panels.map((panel, index) => (
+            {PANELS.map((panel, index) => (
               <button
                 key={panel}
                 className={`nav-button ${index === currentPanel ? 'active' : ''} ${index < currentPanel ? 'completed' : ''}`}
                 onClick={() => setCurrentPanel(index)}
-                disabled={index > currentPanel + 1}
+                disabled={index > currentPanel + 1 || (index === currentPanel + 1 && !canAdvance(mass))}
               >
                 {panel}
               </button>
@@ -598,28 +539,28 @@ function App() {
 
       <div className="app-content">
         <main className="main-panel">
-          <h2>{showSelectShip ? 'Select Ship' : panels[currentPanel]}</h2>
-          {renderCurrentPanel()}
-          
+          <h2>{showSelectShip ? 'Select Ship' : PANELS[currentPanel]}</h2>
+          {renderCurrentPanel(mass, cost, staff)}
+
           {!showSelectShip && (
             <>
               <div className="panel-controls">
                 <button onClick={prevPanel} disabled={currentPanel === 0}>
                   Previous
                 </button>
-                <button onClick={nextPanel} disabled={currentPanel === panels.length - 1 || !canAdvance()}>
+                <button onClick={() => nextPanel(mass)} disabled={currentPanel === PANELS.length - 1 || !canAdvance(mass)}>
                   Next
                 </button>
                 <button onClick={handleBackToShipSelect} className="back-to-select">
                   Back to Ship Select
                 </button>
               </div>
-              
+
               <div className="panel-attribution">
                 <p>
-                  <a 
-                    href="https://www.traveller-srd.com/core-rules/spacecraft-design/" 
-                    target="_blank" 
+                  <a
+                    href="https://www.traveller-srd.com/core-rules/spacecraft-design/"
+                    target="_blank"
                     rel="noopener noreferrer"
                   >
                     Based on the Traveller SRD Spacecraft Design page, as best as I can.
@@ -631,7 +572,7 @@ function App() {
         </main>
 
         {!showSelectShip && currentPanel >= 1 && (
-          <MassSidebar mass={calculateMass()} cost={calculateCost()} shipDesign={shipDesign} activeRules={activeRules} />
+          <MassSidebar mass={mass} cost={cost} shipDesign={shipDesign} activeRules={activeRules} />
         )}
       </div>
     </div>
