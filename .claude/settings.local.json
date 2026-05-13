@@ -29,7 +29,8 @@
       "Bash(docker build:*)",
       "Bash(cd:*)",
       "Read(//c/Users/**)",
-      "Bash(node_modules\\\\.bin\\\\jest.cmd --no-coverage)"
+      "Bash(node_modules\\\\.bin\\\\jest.cmd --no-coverage)",
+      "Bash(node_modules\\\\.bin\\\\webpack.cmd --mode development)"
     ],
     "deny": []
   }
