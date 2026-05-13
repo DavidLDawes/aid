@@ -73,7 +73,7 @@ export interface Cargo {
 
 export interface Vehicle {
   id?: number;
-  vehicle_type: 'honey_badger_off_roader' | 'atv_tracked' | 'atv_wheeled' | 'air_raft_truck' | 'open_top_air_raft' | 'fire_scorpion_walker' | 'socrates_field_car' | 'ufo_floating_home' | 'sealed_air_raft_4t' | 'iderati_afv' | 'aat_infantry_support' | 'sealed_air_raft_3t' | 'pug_armored_car' | 'exploration_gbike' | 'awesome_walker' | 'socrates_field_car_variant' | 'armored_fighting_vehicle' | 'centurion_security_robot' | 'robodog_assault_bot' | 'fury_helicopter_gunship' | 'atlas_combat_droid';
+  vehicle_type: 'honey_badger_off_roader' | 'atv_tracked' | 'atv_wheeled' | 'air_raft_truck' | 'open_top_air_raft' | 'fire_scorpion_walker' | 'socrates_field_car' | 'ufo_floating_home' | 'sealed_air_raft_4t' | 'iderati_afv' | 'aat_infantry_support' | 'sealed_air_raft_3t' | 'pug_armored_car' | 'exploration_gbike' | 'awesome_walker' | 'socrates_field_car_variant' | 'armored_fighting_vehicle' | 'fury_helicopter_gunship';
   quantity: number;
   mass: number;
   cost: number;

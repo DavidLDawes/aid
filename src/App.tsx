@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import type { ShipDesign, MassCalculation, CostCalculation, StaffRequirements } from './types/ship';
-import { calculateTotalFuelMass, calculateVehicleServiceStaff, calculateDroneServiceStaff, calculateMedicalStaff, WEAPON_TYPES, BAY_WEAPON_TYPES, getTonnageCode, getAvailableSpinalWeapons, getNumberOfSections, getMinimumComputer, COMPUTER_TYPES } from './data/constants';
+import { calculateTotalFuelMass, calculateVehicleServiceStaff, calculateDroneServiceStaff, calculateMedicalStaff, WEAPON_TYPES, BAY_WEAPON_TYPES, getAvailableSpinalWeapons, getNumberOfSections, getMinimumComputer, COMPUTER_TYPES } from './data/constants';
 import { databaseService } from './services/database';
 import { createEmptyShipDesign, createDefaultShip } from './utils/shipDefaults';
 import { sumMass, sumMassWithQuantity, sumCost, sumCostWithQuantity, sumCargoTonnage } from './utils/calculations';
+import { generateShipPrintContent } from './utils/printContent';
 // Eagerly load only the ship selection panel (first screen)
 import SelectShipPanel from './components/SelectShipPanel';
 // Lazy load all design panels to reduce initial bundle size
@@ -26,6 +27,12 @@ import FileMenu from './components/FileMenu';
 import RulesMenu from './components/RulesMenu';
 import './App.css';
 
+const panels = [
+  'Ship', 'Engines', 'Fittings', 'Weapons', 'Defenses',
+  'Rec/Health', 'Cargo', 'Vehicles', 'Drones', 'Custom',
+  'Berths', 'Staff', 'Ship Design'
+];
+
 function App() {
   const [showSelectShip, setShowSelectShip] = useState(true);
   const [currentPanel, setCurrentPanel] = useState(0);
@@ -36,30 +43,9 @@ function App() {
     createEmptyShipDesign(createDefaultShip('', 'A', 5000, 'standard'))
   );
 
-  const panels = [
-    'Ship', 'Engines', 'Fittings', 'Weapons', 'Defenses',
-    'Rec/Health', 'Cargo', 'Vehicles', 'Drones', 'Custom',
-    'Berths', 'Staff', 'Ship Design'
-  ];
-
   useEffect(() => {
-    checkExistingShips();
+    databaseService.initialize().catch(err => console.error('Error initializing database:', err));
   }, []);
-
-  const checkExistingShips = async () => {
-    try {
-      await databaseService.initialize();
-      const hasShips = await databaseService.hasAnyShips();
-      console.log('App.tsx initial database check - has ships:', hasShips);
-      
-      // Always show SelectShipPanel - it will handle loading initial data if needed
-      setShowSelectShip(true);
-    } catch (error) {
-      console.error('Error checking existing ships:', error);
-      // If there's an error, still show SelectShipPanel and let it handle the loading
-      setShowSelectShip(true);
-    }
-  };
 
   const handleFileSave = useCallback(async () => {
     if (!shipDesign.ship.name.trim()) {
@@ -68,9 +54,7 @@ function App() {
     }
 
     try {
-      await databaseService.initialize();
       await databaseService.saveShip(shipDesign);
-      // Could add a toast notification here
     } catch (error) {
       console.error('Error saving ship:', error);
       alert(error instanceof Error ? error.message : 'Failed to save ship design. Please try again.');
@@ -83,10 +67,8 @@ function App() {
         ...shipDesign,
         ship: { ...shipDesign.ship, name: newName }
       };
-      await databaseService.initialize();
       await databaseService.saveShip(modifiedShipDesign);
       setShipDesign(modifiedShipDesign);
-      // Could add a toast notification here
     } catch (error) {
       console.error('Error saving ship:', error);
       alert(error instanceof Error ? error.message : 'Failed to save ship design. Please try again.');
@@ -107,54 +89,14 @@ function App() {
     const mass = calculateMass();
     const cost = calculateCost();
     const staff = calculateStaffRequirements();
-    const tonnageCode = getTonnageCode(shipDesign.ship.tonnage);
-    const sections = getNumberOfSections(shipDesign.ship.tonnage);
-    const hullInfo = tonnageCode && sections ? ` (hull code ${tonnageCode}, ${sections} sections)` : tonnageCode ? ` (${tonnageCode})` : '';
-    const shipTitle = `${shipDesign.ship.name}, ${shipDesign.ship.configuration} configuration, ${shipDesign.ship.tonnage.toLocaleString()} tons${hullInfo}, Tech Level ${shipDesign.ship.tech_level}`;
-    
-    // Generate print content using similar logic to SummaryPanel
-    const printContent = generatePrintContent(shipTitle, mass, cost, staff);
-    
+    const printContent = generateShipPrintContent(shipDesign, mass, cost, staff, combinePilotNavigator, noStewards, activeRules);
+
     printWindow.document.write(printContent);
     printWindow.document.close();
     printWindow.focus();
     printWindow.print();
     printWindow.close();
-  }, [shipDesign]);
-
-  const generatePrintContent = (shipTitle: string, mass: MassCalculation, cost: CostCalculation, staff: StaffRequirements): string => {
-    // Simplified print content generation - would need full implementation
-    return `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Ship Design - ${shipDesign.ship.name}</title>
-          <style>
-            body { font-family: Arial, sans-serif; margin: 20px; }
-            .ship-title { font-size: 18px; font-weight: bold; margin-bottom: 20px; }
-            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-            th, td { padding: 8px 12px; border: 1px solid #ccc; text-align: left; }
-            th { background-color: #f0f0f0; font-weight: bold; }
-            .category-cell { font-weight: bold; }
-            .totals-row { border-top: 2px solid #000; font-weight: bold; }
-            .totals-row td { background-color: #f8f8f8; }
-            @media print {
-              body { margin: 0; }
-              .ship-title { page-break-after: avoid; }
-              table { page-break-inside: avoid; }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="ship-title">${shipTitle}</div>
-          <p>Print functionality available from File menu on all screens.</p>
-          <p>Mass: ${mass.used.toFixed(1)} / ${mass.total} tons</p>
-          <p>Cost: ${cost.total.toFixed(2)} MCr</p>
-          <p>Total Crew: ${staff.total}</p>
-        </body>
-      </html>
-    `;
-  };
+  }, [shipDesign, combinePilotNavigator, noStewards, activeRules]);
 
   // Global keyboard shortcuts for file operations
   useEffect(() => {
@@ -190,75 +132,42 @@ function App() {
       } else {
         newRules.delete(ruleId);
       }
-      console.log('Active rules:', Array.from(newRules));
       return newRules;
     });
   }, []);
 
-  // For development - log active rules when they change
-  useEffect(() => {
-    console.log('Current active rules:', Array.from(activeRules));
-  }, [activeRules]);
-
   const calculateMass = (): MassCalculation => {
     let used = 0;
-    
-    // Add engine masses
+
     used += sumMass(shipDesign.engines);
-
-    // Add fitting masses
     used += sumMass(shipDesign.fittings);
-
-    // Add weapon masses
     used += sumMassWithQuantity(shipDesign.weapons);
-
-    // Add defense masses (mass is already multiplied by quantity in the defense object)
-    used += sumMass(shipDesign.defenses);
-
-    // Add berth masses
+    // Defense mass is stored per-unit; multiply by quantity for total
+    used += sumMassWithQuantity(shipDesign.defenses);
     used += sumMassWithQuantity(shipDesign.berths);
-
-    // Add facility masses
     used += sumMassWithQuantity(shipDesign.facilities);
-
-    // Add cargo masses
     used += sumCargoTonnage(shipDesign.cargo);
-
-    // Add vehicle masses
     used += sumMassWithQuantity(shipDesign.vehicles);
-
-    // Add drone masses
     used += sumMassWithQuantity(shipDesign.drones);
-
-    // Add custom items masses
     used += sumMass(shipDesign.custom_items);
 
-    // Add fuel tank mass
     const jumpDrive = shipDesign.engines.find(e => e.engine_type === 'jump_drive');
     const maneuverDrive = shipDesign.engines.find(e => e.engine_type === 'maneuver_drive');
     const jumpPerformance = jumpDrive?.performance || 0;
     const maneuverPerformance = maneuverDrive?.performance || 0;
     const useAntimatter = activeRules.has('antimatter');
-    const fuelMass = calculateTotalFuelMass(shipDesign.ship.tonnage, jumpPerformance, maneuverPerformance, shipDesign.ship.fuel_weeks, useAntimatter);
-    used += fuelMass;
+    used += calculateTotalFuelMass(shipDesign.ship.tonnage, jumpPerformance, maneuverPerformance, shipDesign.ship.fuel_weeks, useAntimatter);
 
-    // Add missile reload mass
     used += shipDesign.ship.missile_reloads;
-
-    // Add sand reload mass
     used += shipDesign.ship.sand_reloads;
 
-    // Add armor mass
     if (shipDesign.ship.armor_percentage) {
-      const armorMass = (shipDesign.ship.tonnage * shipDesign.ship.armor_percentage) / 100;
-      used += armorMass;
+      used += (shipDesign.ship.tonnage * shipDesign.ship.armor_percentage) / 100;
     }
 
-    // Add spinal weapon mass (with TL adjustments)
     if (shipDesign.ship.spinal_weapon) {
       const powerPlant = shipDesign.engines.find(e => e.engine_type === 'power_plant');
-      const powerPlantPerformance = powerPlant?.performance || 0;
-      const availableSpinalWeapons = getAvailableSpinalWeapons(shipDesign.ship.tech_level, powerPlantPerformance);
+      const availableSpinalWeapons = getAvailableSpinalWeapons(shipDesign.ship.tech_level, powerPlant?.performance || 0);
       const spinalWeaponData = availableSpinalWeapons.find(w => w.name === shipDesign.ship.spinal_weapon);
       if (spinalWeaponData) {
         used += spinalWeaponData.mass;
@@ -266,66 +175,35 @@ function App() {
     }
 
     const total = shipDesign.ship.tonnage;
-    const remaining = total - used;
-    
-    return {
-      total,
-      used,
-      remaining,
-      isOverweight: remaining < 0
-    };
+    return { total, used, remaining: total - used, isOverweight: used > total };
   };
 
   const calculateCost = (): CostCalculation => {
     let total = 0;
 
-    // Add engine costs
     total += sumCost(shipDesign.engines);
-
-    // Add fitting costs
     total += sumCost(shipDesign.fittings);
-
-    // Add weapon costs
     total += sumCostWithQuantity(shipDesign.weapons);
-
-    // Add defense costs (cost is already multiplied by quantity in the defense object)
-    total += sumCost(shipDesign.defenses);
-
-    // Add berth costs
+    // Defense cost is stored per-unit; multiply by quantity for total
+    total += sumCostWithQuantity(shipDesign.defenses);
     total += sumCostWithQuantity(shipDesign.berths);
-
-    // Add facility costs
     total += sumCostWithQuantity(shipDesign.facilities);
-
-    // Add cargo costs
     total += sumCost(shipDesign.cargo);
-
-    // Add vehicle costs
     total += sumCostWithQuantity(shipDesign.vehicles);
-
-    // Add drone costs
     total += sumCostWithQuantity(shipDesign.drones);
-
-    // Add custom items costs
     total += sumCost(shipDesign.custom_items);
 
-    // Add missile reload costs (1 MCr per ton)
     total += shipDesign.ship.missile_reloads;
-
-    // Add sand reload costs (0.1 MCr per ton)
     total += shipDesign.ship.sand_reloads * 0.1;
 
-    // Add armor costs (0.1 MCr per ton)
     if (shipDesign.ship.armor_percentage) {
       const armorMass = (shipDesign.ship.tonnage * shipDesign.ship.armor_percentage) / 100;
       total += armorMass * 0.1;
     }
 
-    // Add spinal weapon cost (with TL adjustments)
     if (shipDesign.ship.spinal_weapon) {
       const powerPlant = shipDesign.engines.find(e => e.engine_type === 'power_plant');
-      const powerPlantPerformance = powerPlant?.performance || 0;
-      const availableSpinalWeapons = getAvailableSpinalWeapons(shipDesign.ship.tech_level, powerPlantPerformance);
+      const availableSpinalWeapons = getAvailableSpinalWeapons(shipDesign.ship.tech_level, powerPlant?.performance || 0);
       const spinalWeaponData = availableSpinalWeapons.find(w => w.name === shipDesign.ship.spinal_weapon);
       if (spinalWeaponData) {
         total += spinalWeaponData.cost;
@@ -338,107 +216,86 @@ function App() {
   const calculateStaffRequirements = (): StaffRequirements => {
     const pilot = 1;
     const navigator = 1;
-    
-    // Engineers: Based on ship tonnage and engine mass
+
     let engineers = 0;
     const shipTonnage = shipDesign.ship.tonnage;
-    
+
     if (shipTonnage === 100) {
       engineers = 1;
     } else if (shipTonnage === 200 || shipTonnage === 300) {
       engineers = 2;
     } else if (shipTonnage >= 400) {
-      // At least one engineer per engine
       const engineCount = shipDesign.engines.length;
       engineers = Math.max(engineCount, 1);
-      
-      // Additional engineers for engines larger than 100 tons
+
       for (const engine of shipDesign.engines) {
         if (engine.mass > 100) {
-          engineers += Math.ceil(engine.mass / 100) - 1; // -1 because we already counted 1 engineer per engine
+          engineers += Math.ceil(engine.mass / 100) - 1;
         }
       }
     } else {
-      // For other ship sizes, use original logic as fallback
       const totalEnginesWeight = shipDesign.engines.reduce((sum, engine) => sum + engine.mass, 0);
       engineers = Math.ceil(totalEnginesWeight / 100);
     }
-    
-    // Gunners: 1 per 10 instances of same weapon type (turrets/barbettes), +10 for spinal weapon
-    // Calculate gunners for each weapon type (excluding Hard Points and bay weapons)
+
     const bayWeaponNames = BAY_WEAPON_TYPES.map(b => b.name);
     let turretsAndBarbettesGunners = 0;
     shipDesign.weapons
       .filter(weapon => weapon.weapon_name !== 'Hard Point' && !bayWeaponNames.includes(weapon.weapon_name))
       .forEach(weapon => {
-        // 1 gunner per 10 weapons, rounded up
         turretsAndBarbettesGunners += Math.ceil(weapon.quantity / 10);
       });
 
-    // Calculate gunners for defense turrets (sandcasters and point defense)
     let defenseTurretGunners = 0;
     shipDesign.defenses
       .filter(defense => !['nuclear_damper', 'meson_screen', 'black_globe'].includes(defense.defense_type))
       .forEach(defense => {
-        // 1 gunner per 10 defense turrets, rounded up
         defenseTurretGunners += Math.ceil(defense.quantity / 10);
       });
 
-    // Calculate gunners for defensive screens
-    // Each screen type: minimum 4 gunners if installed, or tons/100 rounded up if > 400 tons
     let screenGunners = 0;
     const screenTypes = ['nuclear_damper', 'meson_screen', 'black_globe'] as const;
     screenTypes.forEach(screenType => {
       const screen = shipDesign.defenses.find(d => d.defense_type === screenType);
       if (screen && screen.quantity > 0) {
-        const totalTons = screen.mass; // mass is already multiplied by quantity in the defense object
-        if (totalTons > 400) {
-          screenGunners += Math.ceil(totalTons / 100);
-        } else {
-          screenGunners += 4; // minimum 4 gunners per screen type
-        }
+        const totalTons = screen.mass * screen.quantity;
+        screenGunners += totalTons > 400 ? Math.ceil(totalTons / 100) : 4;
       }
     });
 
     const spinalWeaponGunners = shipDesign.ship.spinal_weapon ? 10 : 0;
 
-    // Bay weapons: 2 gunners per bay weapon
     const bayWeapons = shipDesign.weapons.filter(w => bayWeaponNames.includes(w.weapon_name));
     const bayWeaponGunners = bayWeapons.reduce((sum, weapon) => sum + (weapon.quantity * 2), 0);
 
     const gunners = turretsAndBarbettesGunners + defenseTurretGunners + screenGunners + spinalWeaponGunners + bayWeaponGunners;
-    
-    // Service staff: for vehicle and drone maintenance
+
     const vehicleService = calculateVehicleServiceStaff(shipDesign.vehicles);
     const droneService = calculateDroneServiceStaff(shipDesign.drones);
     const service = vehicleService + droneService;
-    
-    // Stewards: 1 per 8 staterooms (staterooms + luxury staterooms), rounded up
+
     const totalStaterooms = shipDesign.berths
       .filter(berth => berth.berth_type === 'staterooms' || berth.berth_type === 'luxury_staterooms')
       .reduce((sum, berth) => sum + berth.quantity, 0);
     const stewards = Math.ceil(totalStaterooms / 8);
-    
-    // Medical staff: based on medical facilities
+
     const medicalStaff = calculateMedicalStaff(shipDesign.facilities);
-    const nurses = medicalStaff.nurses;
-    const surgeons = medicalStaff.surgeons;
-    const techs = medicalStaff.techs;
-    
+    const { nurses, surgeons, techs } = medicalStaff;
+
     const total = pilot + navigator + engineers + gunners + service + stewards + nurses + surgeons + techs;
-    
+
     return { pilot, navigator, engineers, gunners, service, stewards, nurses, surgeons, techs, total };
   };
 
   const calculateAdjustedCrewCount = (staffRequirements: StaffRequirements): number => {
     const isSmallShip = shipDesign.ship.tonnage === 100 || shipDesign.ship.tonnage === 200;
     if (!isSmallShip) return staffRequirements.total;
-    
+
     return combinePilotNavigator && noStewards
       ? staffRequirements.total - 1 - staffRequirements.stewards
-      : combinePilotNavigator 
-        ? staffRequirements.total - 1 
-        : noStewards 
+      : combinePilotNavigator
+        ? staffRequirements.total - 1
+        : noStewards
           ? staffRequirements.total - staffRequirements.stewards
           : staffRequirements.total;
   };
@@ -446,21 +303,18 @@ function App() {
   const isCurrentPanelValid = (): boolean => {
     switch (currentPanel) {
       case 0: // Ship
-        return shipDesign.ship.name.trim() !== '' && 
-               shipDesign.ship.tech_level !== '' && 
+        return shipDesign.ship.name.trim() !== '' &&
+               shipDesign.ship.tech_level !== '' &&
                shipDesign.ship.tonnage >= 100;
-      
+
       case 1: // Engines
         return shipDesign.engines.some(e => e.engine_type === 'power_plant' && e.drive_code && e.performance >= 1) &&
                shipDesign.engines.some(e => e.engine_type === 'jump_drive' && e.drive_code && e.performance >= 1);
-        // Maneuver drive is optional (defaults to M-0)
-      
-      case 2: // Fittings
-        // Check for bridge
+
+      case 2: { // Fittings
         const hasBridge = shipDesign.fittings.some(f => f.fitting_type === 'bridge' || f.fitting_type === 'half_bridge');
         if (!hasBridge) return false;
 
-        // Check for minimum computer requirement
         const jumpDrive = shipDesign.engines.find(e => e.engine_type === 'jump_drive');
         const jumpPerformance = jumpDrive?.performance || 0;
         const minimumComputer = getMinimumComputer(shipDesign.ship.tonnage, jumpPerformance);
@@ -469,7 +323,6 @@ function App() {
           const computer = shipDesign.fittings.find(f => f.fitting_type === 'computer');
           if (!computer) return false;
 
-          // Check if installed computer meets minimum requirement
           const installedComputerIndex = COMPUTER_TYPES.findIndex(c => c.model === computer.computer_model);
           const minimumComputerIndex = COMPUTER_TYPES.findIndex(c => c.name === minimumComputer.name);
 
@@ -477,20 +330,21 @@ function App() {
         }
 
         return true;
-      
+      }
+
       case 5: // Rec/Health
         return shipDesign.facilities.some(f => f.facility_type === 'commissary');
-      
+
       default:
         return true;
     }
   };
 
-  const canAdvance = (): boolean => {
+  const canAdvance = (precomputedMass?: MassCalculation): boolean => {
     if (!isCurrentPanelValid()) return false;
-    if (currentPanel >= 1) { // After ship panel, check mass
-      const mass = calculateMass();
-      if (mass.isOverweight) return false;
+    if (currentPanel >= 1) {
+      const m = precomputedMass ?? calculateMass();
+      if (m.isOverweight) return false;
     }
     return true;
   };
@@ -511,7 +365,6 @@ function App() {
     setShipDesign(prev => {
       const newDesign = { ...prev, ...updates };
 
-      // Automatically update sections when tonnage changes
       if (updates.ship?.tonnage !== undefined) {
         const sections = getNumberOfSections(updates.ship.tonnage);
         newDesign.ship = {
@@ -530,36 +383,29 @@ function App() {
   };
 
   const handleLoadShip = async (loadedShipDesign: ShipDesign) => {
-    // Clean up non-standard weapons
-    const knownWeaponNames = WEAPON_TYPES.map(wt => wt.name);
+    const knownWeaponNames = new Set([
+      ...WEAPON_TYPES.map(wt => wt.name),
+      ...BAY_WEAPON_TYPES.map(bw => bw.name)
+    ]);
     const standardWeapons = loadedShipDesign.weapons.filter(weapon =>
-      knownWeaponNames.includes(weapon.weapon_name)
+      knownWeaponNames.has(weapon.weapon_name)
     );
-    
-    // Check if any weapons were removed
     const removedWeapons = loadedShipDesign.weapons.filter(weapon =>
-      !knownWeaponNames.includes(weapon.weapon_name)
+      !knownWeaponNames.has(weapon.weapon_name)
     );
-    
+
     let cleanedShipDesign = loadedShipDesign;
-    
+
     if (removedWeapons.length > 0) {
-      // Create cleaned ship design
-      cleanedShipDesign = {
-        ...loadedShipDesign,
-        weapons: standardWeapons
-      };
-      
-      // Save the cleaned ship back to the database
+      cleanedShipDesign = { ...loadedShipDesign, weapons: standardWeapons };
+
       try {
-        await databaseService.initialize();
         await databaseService.saveOrUpdateShipByName(cleanedShipDesign);
-        console.log(`Removed ${removedWeapons.length} non-standard weapons from ship "${cleanedShipDesign.ship.name}" and saved to database:`, removedWeapons.map(w => w.weapon_name));
       } catch (error) {
         console.error('Error saving cleaned ship design:', error);
       }
     }
-    
+
     setShipDesign(cleanedShipDesign);
     setShowSelectShip(false);
     setCurrentPanel(0);
@@ -570,20 +416,16 @@ function App() {
     setCurrentPanel(0);
   };
 
-  const renderCurrentPanel = () => {
+  const renderCurrentPanel = (mass: MassCalculation, cost: CostCalculation, staff: StaffRequirements) => {
     if (showSelectShip) {
       return <SelectShipPanel onNewShip={handleNewShip} onLoadShip={handleLoadShip} />;
     }
 
-    const mass = calculateMass();
-    const cost = calculateCost();
-    const staff = calculateStaffRequirements();
-
     switch (currentPanel) {
       case 0:
-        return <ShipPanel 
-          ship={shipDesign.ship} 
-          onUpdate={(ship) => updateShipDesign({ ship })} 
+        return <ShipPanel
+          ship={shipDesign.ship}
+          onUpdate={(ship) => updateShipDesign({ ship })}
           onLoadExistingShip={(loadedShipDesign) => setShipDesign(loadedShipDesign)}
         />;
       case 1:
@@ -675,6 +517,10 @@ function App() {
     }
   };
 
+  const mass = calculateMass();
+  const cost = calculateCost();
+  const staff = calculateStaffRequirements();
+
   return (
     <div className="app">
       <header className="app-header">
@@ -683,9 +529,9 @@ function App() {
             <>
               <FileMenu
                 shipDesign={shipDesign}
-                mass={calculateMass()}
-                cost={calculateCost()}
-                staff={calculateStaffRequirements()}
+                mass={mass}
+                cost={cost}
+                staff={staff}
                 combinePilotNavigator={combinePilotNavigator}
                 noStewards={noStewards}
                 onPrint={handleFilePrint}
@@ -697,7 +543,7 @@ function App() {
           )}
           <h1>
             Traveller Capital Starship Designer
-            {!showSelectShip && currentPanel > 0 && shipDesign.ship.name.trim() && 
+            {!showSelectShip && currentPanel > 0 && shipDesign.ship.name.trim() &&
               `: ${shipDesign.ship.name}`
             }
           </h1>
@@ -708,7 +554,11 @@ function App() {
               <button
                 key={panel}
                 className={`nav-button ${index === currentPanel ? 'active' : ''} ${index < currentPanel ? 'completed' : ''}`}
-                onClick={() => setCurrentPanel(index)}
+                onClick={() => {
+                  if (index <= currentPanel || (index === currentPanel + 1 && canAdvance(mass))) {
+                    setCurrentPanel(index);
+                  }
+                }}
                 disabled={index > currentPanel + 1}
               >
                 {panel}
@@ -722,28 +572,28 @@ function App() {
         <main className="main-panel">
           <h2>{showSelectShip ? 'Select Ship' : panels[currentPanel]}</h2>
           <Suspense fallback={<div className="loading-panel">Loading panel...</div>}>
-            {renderCurrentPanel()}
+            {renderCurrentPanel(mass, cost, staff)}
           </Suspense>
-          
+
           {!showSelectShip && (
             <>
               <div className="panel-controls">
                 <button onClick={prevPanel} disabled={currentPanel === 0}>
                   Previous
                 </button>
-                <button onClick={nextPanel} disabled={currentPanel === panels.length - 1 || !canAdvance()}>
+                <button onClick={nextPanel} disabled={currentPanel === panels.length - 1 || !canAdvance(mass)}>
                   Next
                 </button>
                 <button onClick={handleBackToShipSelect} className="back-to-select">
                   Back to Ship Select
                 </button>
               </div>
-              
+
               <div className="panel-attribution">
                 <p>
-                  <a 
-                    href="https://www.traveller-srd.com/core-rules/spacecraft-design/" 
-                    target="_blank" 
+                  <a
+                    href="https://www.traveller-srd.com/core-rules/spacecraft-design/"
+                    target="_blank"
                     rel="noopener noreferrer"
                   >
                     Based on the Traveller SRD Spacecraft Design page, as best as I can.
@@ -755,7 +605,7 @@ function App() {
         </main>
 
         {!showSelectShip && currentPanel >= 1 && (
-          <MassSidebar mass={calculateMass()} cost={calculateCost()} shipDesign={shipDesign} activeRules={activeRules} />
+          <MassSidebar mass={mass} cost={cost} shipDesign={shipDesign} activeRules={activeRules} />
         )}
       </div>
     </div>

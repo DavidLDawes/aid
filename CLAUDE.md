@@ -74,6 +74,9 @@ aid/
 │   ├── types/                  # TypeScript definitions
 │   │   └── ship.ts             # Ship interfaces
 │   ├── utils/                  # Utility functions
+│   │   ├── calculations.ts     # Mass/cost aggregation helpers
+│   │   ├── printContent.ts     # Shared print HTML generator
+│   │   └── shipDefaults.ts     # Ship initialization helpers
 │   ├── test/                   # Test utilities
 │   ├── App.tsx                 # Main app component
 │   ├── App.css                 # Global styles
@@ -104,9 +107,9 @@ Test files are co-located with source files using .test.ts/.test.tsx extension
 
 ### Core Application Structure
 
-**Main Entry Point**: `src/App.js` (compiled from App.tsx)
+**Main Entry Point**: `src/App.tsx`
 - Central state management for entire ship design
-- Orchestrates 12 specialized panels in a wizard flow
+- Orchestrates 13 specialized panels in a wizard flow
 - Handles mass/cost calculations and validation
 - Manages file operations (save/load/print)
 - Implements "Rules Menu" system for optional rule sets (e.g., antimatter drives)
@@ -119,9 +122,9 @@ Test files are co-located with source files using .test.ts/.test.tsx extension
 
 1. **Wizard UI Pattern**: User progresses through panels sequentially. Each panel validates before allowing advancement.
 
-2. **Centralized State**: `App.js` maintains the complete `shipDesign` object containing all ship components (ship, engines, fittings, weapons, defenses, berths, facilities, cargo, vehicles, drones, custom_items).
+2. **Centralized State**: `App.tsx` maintains the complete `shipDesign` object containing all ship components (ship, engines, fittings, weapons, defenses, berths, facilities, cargo, vehicles, drones, custom_items).
 
-3. **Mass & Cost Tracking**: Real-time calculations in `App.js` methods:
+3. **Mass & Cost Tracking**: Real-time calculations in `App.tsx` methods:
    - `calculateMass()`: Sums masses from all components + fuel + armor + reloads
    - `calculateCost()`: Sums costs from all components
    - `calculateStaffRequirements()`: Determines crew needs based on ship systems
@@ -131,6 +134,7 @@ Test files are co-located with source files using .test.ts/.test.tsx extension
    - Ships are stored with unique names (enforced by unique index)
    - Auto-initialization loads `public/initial-ships.json` on first run
    - Handles version migrations (currently at version 2)
+   - `databaseService.initialize()` is called exactly once at App startup via a `useEffect([], [])` — do not call it again in save/load handlers or component renders
 
 ### Critical Data Files
 
@@ -229,29 +233,34 @@ const calcFM = (t, j, w) => { ... };
 - Used to eliminate ~120 lines of repeated initialization code across 12+ files
 
 **`src/utils/calculations.ts`**: Component aggregation helpers
-- `sumMass(items)`: Sum mass for components without quantity (engines, fittings, custom_items, defenses)
-- `sumMassWithQuantity(items)`: Sum mass for components with quantity (weapons, vehicles, drones, berths, facilities)
+- `sumMass(items)`: Sum mass for components without quantity (engines, fittings, custom_items)
+- `sumMassWithQuantity(items)`: Sum mass for components with quantity (weapons, defenses, vehicles, drones, berths, facilities)
 - `sumCost(items)`: Sum cost for components without quantity
 - `sumCostWithQuantity(items)`: Sum cost for components with quantity
 - `sumCargoTonnage(cargo)`: Sum cargo tonnage (special case, uses `tonnage` property)
 - Used to eliminate ~30+ lines of repeated reduce operations across App.tsx, MassSidebar.tsx, and test files
 
+**`src/utils/printContent.ts`**: Shared print HTML generator
+- `generateShipPrintContent(shipDesign, mass, cost, staff, combinePilotNavigator, noStewards, activeRules)`: Generates a complete standalone HTML document for printing
+- Includes `escapeHtml()` for XSS prevention
+- Used by `handleFilePrint()` in App.tsx; replaces the former App.tsx stub and SummaryPanel's `generateTableRows()` function
+
 ## Important Implementation Details
 
 ### Mass Calculation Complexity
 
-The `calculateMass()` function in App.js handles:
+The `calculateMass()` function in App.tsx handles:
 - Component masses using utility functions (sumMass, sumMassWithQuantity, sumCargoTonnage)
 - Fuel mass calculation using `calculateTotalFuelMass()` with optional antimatter rule
 - Missile/sand reload storage (direct tonnage)
 - Armor mass (percentage of hull tonnage)
 - Spinal weapon mass (for capital ships, tech-level dependent)
 
-**Watch out**: Defense masses are already multiplied by quantity in the defense object, but other components multiply `mass * quantity` when summing.
+**Watch out**: Defense mass is stored **per-unit** (not pre-multiplied). Use `sumMassWithQuantity(defenses)` — not `sumMass` — to get the correct total. The same applies to defense cost.
 
 ### Staff Requirements Logic
 
-Complex crew calculation in `calculateStaffRequirements()`:
+Complex crew calculation in `calculateStaffRequirements()` (hoisted before JSX return in App.tsx, called once per render):
 - **Engineers**: Based on ship tonnage tiers (100/200-300/400+) and engine mass (1 per 100 tons)
 - **Gunners**:
   - 1 per 10 turrets/barbettes (rounded up)
@@ -293,7 +302,7 @@ Rules affect calculations (e.g., fuel mass with antimatter) - check `activeRules
 
 ### Print Functionality
 
-`handleFilePrint()` generates printable HTML view with ship stats. Uses `generatePrintContent()` to create standalone HTML document with embedded styles. Simplified compared to SummaryPanel's detailed view.
+`handleFilePrint()` in App.tsx generates a printable HTML view. It calls `generateShipPrintContent()` from `src/utils/printContent.ts`, which produces a complete standalone HTML document with embedded styles and XSS prevention via `escapeHtml()`. This shared utility is the single source of truth for print output — SummaryPanel does not have its own print implementation.
 
 ## Testing Approach
 
@@ -330,7 +339,7 @@ The Docker image runs the production build served via http-server.
 
 1. **Database Issues**: Check browser DevTools → Application → IndexedDB → StarshipDesignerDB
 2. **Mass Calculation Problems**: Add console.log in `calculateMass()` to trace component contributions
-3. **Panel Validation**: Check `isCurrentPanelValid()` and `canAdvance()` in App.js
+3. **Panel Validation**: Check `isCurrentPanelValid()` and `canAdvance()` in App.tsx
 4. **Initial Data Loading**: Check `SelectShipPanel.tsx` and `initialDataService.ts` for DB initialization logic
 5. **Weapon/Defense Cleanup**: Non-standard weapons are automatically removed on ship load (see `handleLoadShip()`)
 
@@ -340,9 +349,9 @@ The Docker image runs the production build served via http-server.
 1. Add interface to `src/types/ship.ts`
 2. Add array to `ShipDesign` interface
 3. Add panel component in `src/components/`
-4. Add case to `renderCurrentPanel()` in App.js
+4. Add case to `renderCurrentPanel(mass, cost, staff)` in App.tsx
 5. Update `calculateMass()` and `calculateCost()`
-6. Add to initial ship design state in App.js
+6. Add to initial ship design state in App.tsx
 7. Update `MassSidebar.tsx` to include new category
 8. Update `SummaryPanel.tsx` CSV/print/display to include new items
 9. Update all test mock data to include empty array for new field
@@ -366,8 +375,6 @@ The Custom panel (`src/components/CustomPanel.tsx`) is a recent addition that de
 
 ## Known Issues & Quirks
 
-- App.js is compiled JavaScript (not TypeScript source) - prefer editing App.tsx if available, or be aware of JSX syntax when editing
-- Defense objects store `mass * quantity` as `mass` property, unlike other components
 - Ship names in DB are stored as `ship.name` (nested property) for indexing
 - Port 8080 is hardcoded in webpack config and Docker setup
 - `public/initial-ships.json` is loaded once on first DB initialization - subsequent changes require DB flush
@@ -421,7 +428,6 @@ This section documents the implementation of the Custom panel as a reference for
 
 5. **Summary Panel** (`src/components/SummaryPanel.tsx`):
    - Updated generateCsvData(): added custom items section
-   - Updated generateTableRows(): added custom items to print HTML
    - Updated display JSX: added custom items table rows
 
 6. **Test Updates** (all test files):

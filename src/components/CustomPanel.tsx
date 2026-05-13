@@ -110,7 +110,7 @@ const CustomPanel: React.FC<CustomPanelProps> = ({ custom_items, onUpdate }) => 
               </thead>
               <tbody>
                 {custom_items.map((item, index) => (
-                  <tr key={index}>
+                  <tr key={`${item.name}-${index}`}>
                     <td>{item.name}</td>
                     <td>{item.mass.toFixed(1)} tons</td>
                     <td>{item.cost.toFixed(2)} MCr</td>

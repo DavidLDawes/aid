@@ -28,7 +28,8 @@
       "Bash(timeout 10 npm start)",
       "Bash(docker build:*)",
       "Bash(cd:*)",
-      "Read(//c/Users/**)"
+      "Read(//c/Users/**)",
+      "Bash(node_modules\\\\.bin\\\\jest.cmd --no-coverage)"
     ],
     "deny": []
   }
