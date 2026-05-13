@@ -1,5 +1,4 @@
 export interface Ship {
-  id?: number;
   name: string;
   tech_level: string;
   tonnage: number;
@@ -54,7 +53,7 @@ export interface Berth {
 
 export interface Facility {
   id?: number;
-  facility_type: 'gym' | 'spa' | 'garden' | 'commissary' | 'kitchens' | 'officers_mess_bar' | 'first_aid_station' | 'autodoc' | 'med_bay' | 'surgical_ward' | 'medical_bay' | 'surgical_bay' | 'medical_garden' | 'library' | 'range' | 'club' | 'park' | 'shrine';
+  facility_type: 'gym' | 'spa' | 'garden' | 'commissary' | 'kitchens' | 'officers_mess_bar' | 'first_aid_station' | 'autodoc' | 'medical_bay' | 'surgical_bay' | 'medical_garden' | 'library' | 'range' | 'club' | 'park' | 'shrine';
   quantity: number;
   mass: number;
   cost: number;
@@ -69,7 +68,7 @@ export interface Cargo {
 
 export interface Vehicle {
   id?: number;
-  vehicle_type: 'honey_badger_off_roader' | 'atv_tracked' | 'atv_wheeled' | 'air_raft_truck' | 'open_top_air_raft' | 'fire_scorpion_walker' | 'socrates_field_car' | 'ufo_floating_home' | 'sealed_air_raft_4t' | 'iderati_afv' | 'aat_infantry_support' | 'sealed_air_raft_3t' | 'pug_armored_car' | 'exploration_gbike' | 'awesome_walker' | 'socrates_field_car_variant' | 'armored_fighting_vehicle' | 'centurion_security_robot' | 'robodog_assault_bot' | 'fury_helicopter_gunship' | 'atlas_combat_droid';
+  vehicle_type: 'honey_badger_off_roader' | 'atv_tracked' | 'atv_wheeled' | 'air_raft_truck' | 'open_top_air_raft' | 'fire_scorpion_walker' | 'socrates_field_car' | 'ufo_floating_home' | 'sealed_air_raft_4t' | 'iderati_afv' | 'aat_infantry_support' | 'sealed_air_raft_3t' | 'pug_armored_car' | 'exploration_gbike' | 'awesome_walker' | 'socrates_field_car_variant' | 'armored_fighting_vehicle' | 'fury_helicopter_gunship';
   quantity: number;
   mass: number;
   cost: number;
@@ -77,7 +76,7 @@ export interface Vehicle {
 
 export interface Drone {
   id?: number;
-  drone_type: 'war' | 'repair' | 'rescue' | 'sensor' | 'comms';
+  drone_type: 'war' | 'repair' | 'rescue' | 'sensor' | 'comms' | 'centurion_security_robot' | 'robodog_assault_bot' | 'atlas_combat_droid';
   quantity: number;
   mass: number;
   cost: number;

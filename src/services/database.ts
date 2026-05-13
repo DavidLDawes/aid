@@ -13,6 +13,8 @@ class DatabaseService {
   private readonly version = 2;
 
   async initialize(): Promise<void> {
+    if (this.db) return;
+
     return new Promise((resolve, reject) => {
       const request = indexedDB.open(this.dbName, this.version);
 
@@ -280,6 +282,7 @@ class DatabaseService {
         if (ship) {
           resolve({
             ...ship,
+            cargo: cleanInvalidCargo(ship.cargo),
             createdAt: new Date(ship.createdAt),
             updatedAt: new Date(ship.updatedAt)
           });

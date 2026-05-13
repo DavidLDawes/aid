@@ -1,5 +1,6 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
 module.exports = (env, argv) => {
   const isProduction = argv.mode === 'production';
@@ -28,7 +29,10 @@ module.exports = (env, argv) => {
         },
         {
           test: /\.css$/,
-          use: ['style-loader', 'css-loader'],
+          use: [
+            isProduction ? MiniCssExtractPlugin.loader : 'style-loader',
+            'css-loader',
+          ],
         },
       ],
     },
@@ -36,6 +40,7 @@ module.exports = (env, argv) => {
       new HtmlWebpackPlugin({
         template: './index.html',
       }),
+      ...(isProduction ? [new MiniCssExtractPlugin({ filename: '[name].[contenthash].css' })] : []),
     ],
     devServer: {
       static: {
@@ -47,5 +52,23 @@ module.exports = (env, argv) => {
       hot: true,
     },
     devtool: isProduction ? 'source-map' : 'eval-source-map',
+    performance: {
+      // react-dom alone is ~178 KiB minified; the webpack default (244 KiB) predates React 19.
+      // Gzipped the full entrypoint is ~85 KiB, which is fine.
+      maxAssetSize: 250 * 1024,
+      maxEntrypointSize: 350 * 1024,
+    },
+    optimization: {
+      splitChunks: {
+        chunks: 'all',
+        cacheGroups: {
+          vendor: {
+            test: /[\\/]node_modules[\\/]/,
+            name: 'vendor',
+            chunks: 'all',
+          },
+        },
+      },
+    },
   };
 };

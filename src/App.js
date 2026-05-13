@@ -2,6 +2,7 @@ import { jsx as _jsx, Fragment as _Fragment, jsxs as _jsxs } from "react/jsx-run
 import { useState, useEffect, useCallback } from 'react';
 import { calculateTotalFuelMass, calculateVehicleServiceStaff, calculateDroneServiceStaff, calculateMedicalStaff, WEAPON_TYPES } from './data/constants';
 import { databaseService } from './services/database';
+import { generateShipPrintContent } from './utils/printContent';
 import SelectShipPanel from './components/SelectShipPanel';
 import ShipPanel from './components/ShipPanel';
 import EnginesPanel from './components/EnginesPanel';
@@ -19,6 +20,11 @@ import MassSidebar from './components/MassSidebar';
 import FileMenu from './components/FileMenu';
 import RulesMenu from './components/RulesMenu';
 import './App.css';
+const PANELS = [
+    'Ship', 'Engines', 'Fittings', 'Weapons', 'Defenses',
+    'Rec/Health', 'Cargo', 'Vehicles', 'Drones', 'Berths',
+    'Staff', 'Ship Design'
+];
 function App() {
     const [showSelectShip, setShowSelectShip] = useState(true);
     const [currentPanel, setCurrentPanel] = useState(0);
@@ -44,26 +50,15 @@ function App() {
         vehicles: [],
         drones: []
     });
-    const panels = [
-        'Ship', 'Engines', 'Fittings', 'Weapons', 'Defenses',
-        'Rec/Health', 'Cargo', 'Vehicles', 'Drones', 'Berths',
-        'Staff', 'Ship Design'
-    ];
     useEffect(() => {
         checkExistingShips();
     }, []);
     const checkExistingShips = async () => {
         try {
             await databaseService.initialize();
-            const hasShips = await databaseService.hasAnyShips();
-            console.log('App.tsx initial database check - has ships:', hasShips);
-            // Always show SelectShipPanel - it will handle loading initial data if needed
-            setShowSelectShip(true);
         }
         catch (error) {
-            console.error('Error checking existing ships:', error);
-            // If there's an error, still show SelectShipPanel and let it handle the loading
-            setShowSelectShip(true);
+            console.error('Error initializing database:', error);
         }
     };
     const handleFileSave = useCallback(async () => {
@@ -72,9 +67,7 @@ function App() {
             return;
         }
         try {
-            await databaseService.initialize();
             await databaseService.saveShip(shipDesign);
-            // Could add a toast notification here
         }
         catch (error) {
             console.error('Error saving ship:', error);
@@ -87,10 +80,8 @@ function App() {
                 ...shipDesign,
                 ship: { ...shipDesign.ship, name: newName }
             };
-            await databaseService.initialize();
             await databaseService.saveShip(modifiedShipDesign);
             setShipDesign(modifiedShipDesign);
-            // Could add a toast notification here
         }
         catch (error) {
             console.error('Error saving ship:', error);
@@ -110,48 +101,13 @@ function App() {
         const mass = calculateMass();
         const cost = calculateCost();
         const staff = calculateStaffRequirements();
-        const shipTitle = `${shipDesign.ship.name}, ${shipDesign.ship.configuration} configuration, ${shipDesign.ship.tonnage} tons, Tech Level ${shipDesign.ship.tech_level}`;
-        // Generate print content using similar logic to SummaryPanel
-        const printContent = generatePrintContent(shipTitle, mass, cost, staff);
-        printWindow.document.write(printContent);
+        const html = generateShipPrintContent(shipDesign, mass, cost, staff, combinePilotNavigator, noStewards);
+        printWindow.document.write(html);
         printWindow.document.close();
         printWindow.focus();
         printWindow.print();
         printWindow.close();
-    }, [shipDesign]);
-    const generatePrintContent = (shipTitle, mass, cost, staff) => {
-        // Simplified print content generation - would need full implementation
-        return `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Ship Design - ${shipDesign.ship.name}</title>
-          <style>
-            body { font-family: Arial, sans-serif; margin: 20px; }
-            .ship-title { font-size: 18px; font-weight: bold; margin-bottom: 20px; }
-            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-            th, td { padding: 8px 12px; border: 1px solid #ccc; text-align: left; }
-            th { background-color: #f0f0f0; font-weight: bold; }
-            .category-cell { font-weight: bold; }
-            .totals-row { border-top: 2px solid #000; font-weight: bold; }
-            .totals-row td { background-color: #f8f8f8; }
-            @media print {
-              body { margin: 0; }
-              .ship-title { page-break-after: avoid; }
-              table { page-break-inside: avoid; }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="ship-title">${shipTitle}</div>
-          <p>Print functionality available from File menu on all screens.</p>
-          <p>Mass: ${mass.used.toFixed(1)} / ${mass.total} tons</p>
-          <p>Cost: ${cost.total.toFixed(2)} MCr</p>
-          <p>Total Crew: ${staff.total}</p>
-        </body>
-      </html>
-    `;
-    };
+    }, [shipDesign, combinePilotNavigator, noStewards]);
     // Global keyboard shortcuts for file operations
     useEffect(() => {
         const handleKeyDown = (event) => {
@@ -186,14 +142,9 @@ function App() {
             else {
                 newRules.delete(ruleId);
             }
-            console.log('Active rules:', Array.from(newRules));
             return newRules;
         });
     }, []);
-    // For development - log active rules when they change
-    useEffect(() => {
-        console.log('Current active rules:', Array.from(activeRules));
-    }, [activeRules]);
     const calculateMass = () => {
         let used = 0;
         // Add engine masses
@@ -342,18 +293,15 @@ function App() {
                 return true;
         }
     };
-    const canAdvance = () => {
+    const canAdvance = (mass) => {
         if (!isCurrentPanelValid())
             return false;
-        if (currentPanel >= 1) { // After ship panel, check mass
-            const mass = calculateMass();
-            if (mass.isOverweight)
-                return false;
-        }
+        if (currentPanel >= 1 && mass.isOverweight)
+            return false;
         return true;
     };
-    const nextPanel = () => {
-        if (canAdvance() && currentPanel < panels.length - 1) {
+    const nextPanel = (mass) => {
+        if (canAdvance(mass) && currentPanel < PANELS.length - 1) {
             setCurrentPanel(currentPanel + 1);
         }
     };
@@ -377,16 +325,12 @@ function App() {
         const removedWeapons = loadedShipDesign.weapons.filter(weapon => !knownWeaponNames.includes(weapon.weapon_name));
         let cleanedShipDesign = loadedShipDesign;
         if (removedWeapons.length > 0) {
-            // Create cleaned ship design
             cleanedShipDesign = {
                 ...loadedShipDesign,
                 weapons: standardWeapons
             };
-            // Save the cleaned ship back to the database
             try {
-                await databaseService.initialize();
                 await databaseService.saveOrUpdateShipByName(cleanedShipDesign);
-                console.log(`Removed ${removedWeapons.length} non-standard weapons from ship "${cleanedShipDesign.ship.name}" and saved to database:`, removedWeapons.map(w => w.weapon_name));
             }
             catch (error) {
                 console.error('Error saving cleaned ship design:', error);
@@ -400,13 +344,10 @@ function App() {
         setShowSelectShip(true);
         setCurrentPanel(0);
     };
-    const renderCurrentPanel = () => {
+    const renderCurrentPanel = (mass, cost, staff) => {
         if (showSelectShip) {
             return _jsx(SelectShipPanel, { onNewShip: handleNewShip, onLoadShip: handleLoadShip });
         }
-        const mass = calculateMass();
-        const cost = calculateCost();
-        const staff = calculateStaffRequirements();
         switch (currentPanel) {
             case 0:
                 return _jsx(ShipPanel, { ship: shipDesign.ship, onUpdate: (ship) => updateShipDesign({ ship }), onLoadExistingShip: (loadedShipDesign) => setShipDesign(loadedShipDesign) });
@@ -436,7 +377,11 @@ function App() {
                 return null;
         }
     };
-    return (_jsxs("div", { className: "app", children: [_jsxs("header", { className: "app-header", children: [_jsxs("div", { className: "header-top", children: [!showSelectShip && (_jsxs(_Fragment, { children: [_jsx(FileMenu, { shipDesign: shipDesign, mass: calculateMass(), cost: calculateCost(), staff: calculateStaffRequirements(), combinePilotNavigator: combinePilotNavigator, noStewards: noStewards, onPrint: handleFilePrint, onSave: handleFileSave, onSaveAs: handleFileSaveWithName }), _jsx(RulesMenu, { shipDesign: shipDesign, onRuleChange: handleRuleChange })] })), _jsxs("h1", { children: ["Starship Designer", !showSelectShip && currentPanel > 0 && shipDesign.ship.name.trim() &&
-                                        `: ${shipDesign.ship.name}`] })] }), !showSelectShip && (_jsx("nav", { className: "panel-nav", children: panels.map((panel, index) => (_jsx("button", { className: `nav-button ${index === currentPanel ? 'active' : ''} ${index < currentPanel ? 'completed' : ''}`, onClick: () => setCurrentPanel(index), disabled: index > currentPanel + 1, children: panel }, panel))) }))] }), _jsxs("div", { className: "app-content", children: [_jsxs("main", { className: "main-panel", children: [_jsx("h2", { children: showSelectShip ? 'Select Ship' : panels[currentPanel] }), renderCurrentPanel(), !showSelectShip && (_jsxs(_Fragment, { children: [_jsxs("div", { className: "panel-controls", children: [_jsx("button", { onClick: prevPanel, disabled: currentPanel === 0, children: "Previous" }), _jsx("button", { onClick: nextPanel, disabled: currentPanel === panels.length - 1 || !canAdvance(), children: "Next" }), _jsx("button", { onClick: handleBackToShipSelect, className: "back-to-select", children: "Back to Ship Select" })] }), _jsx("div", { className: "panel-attribution", children: _jsx("p", { children: _jsx("a", { href: "https://www.traveller-srd.com/core-rules/spacecraft-design/", target: "_blank", rel: "noopener noreferrer", children: "Based on the Traveller SRD Spacecraft Design page, as best as I can." }) }) })] }))] }), !showSelectShip && currentPanel >= 1 && (_jsx(MassSidebar, { mass: calculateMass(), cost: calculateCost(), shipDesign: shipDesign, activeRules: activeRules }))] })] }));
+    // Compute derived values once per render
+    const mass = calculateMass();
+    const cost = calculateCost();
+    const staff = calculateStaffRequirements();
+    return (_jsxs("div", { className: "app", children: [_jsxs("header", { className: "app-header", children: [_jsxs("div", { className: "header-top", children: [!showSelectShip && (_jsxs(_Fragment, { children: [_jsx(FileMenu, { shipDesign: shipDesign, mass: mass, cost: cost, staff: staff, combinePilotNavigator: combinePilotNavigator, noStewards: noStewards, onPrint: handleFilePrint, onSave: handleFileSave, onSaveAs: handleFileSaveWithName }), _jsx(RulesMenu, { shipDesign: shipDesign, onRuleChange: handleRuleChange })] })), _jsxs("h1", { children: ["Starship Designer", !showSelectShip && currentPanel > 0 && shipDesign.ship.name.trim() &&
+                                        `: ${shipDesign.ship.name}`] })] }), !showSelectShip && (_jsx("nav", { className: "panel-nav", children: PANELS.map((panel, index) => (_jsx("button", { className: `nav-button ${index === currentPanel ? 'active' : ''} ${index < currentPanel ? 'completed' : ''}`, onClick: () => setCurrentPanel(index), disabled: index > currentPanel + 1 || (index === currentPanel + 1 && !canAdvance(mass)), children: panel }, panel))) }))] }), _jsxs("div", { className: "app-content", children: [_jsxs("main", { className: "main-panel", children: [_jsx("h2", { children: showSelectShip ? 'Select Ship' : PANELS[currentPanel] }), renderCurrentPanel(mass, cost, staff), !showSelectShip && (_jsxs(_Fragment, { children: [_jsxs("div", { className: "panel-controls", children: [_jsx("button", { onClick: prevPanel, disabled: currentPanel === 0, children: "Previous" }), _jsx("button", { onClick: () => nextPanel(mass), disabled: currentPanel === PANELS.length - 1 || !canAdvance(mass), children: "Next" }), _jsx("button", { onClick: handleBackToShipSelect, className: "back-to-select", children: "Back to Ship Select" })] }), _jsx("div", { className: "panel-attribution", children: _jsx("p", { children: _jsx("a", { href: "https://www.traveller-srd.com/core-rules/spacecraft-design/", target: "_blank", rel: "noopener noreferrer", children: "Based on the Traveller SRD Spacecraft Design page, as best as I can." }) }) })] }))] }), !showSelectShip && currentPanel >= 1 && (_jsx(MassSidebar, { mass: mass, cost: cost, shipDesign: shipDesign, activeRules: activeRules }))] })] }));
 }
 export default App;
