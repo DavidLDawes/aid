@@ -2,6 +2,7 @@
 New atttempt at a Starship Designer, built with Claude. Using a Wizard UI and local storage for the DB.
 ## Quick Start
 npm install
+
 npm run dev
 ## Docker Quick Start
 **Build Command**:
@@ -161,7 +162,7 @@ The table shows drive performance ratings by drive letter (A-Z) across different
 For reference and historical documentation, the complete performance table used by this application is preserved in `src/claude/bug/maneuver-broken.MD`.
 
 # DB
-Using innodb-like fake-indexeddb to handle indexing for shop names being exclusive, result is there's not really any SQL, just local files, which is actually kinda cool.
+Using innodb-like fake-indexeddb to handle indexing for ship names being exclusive, result is there's not really any SQL, just local files, which is actually kinda cool.
 
 On startup if there are no Ships defined in the DB then the contents of public/initial-ships.json are read into the DB.
 
