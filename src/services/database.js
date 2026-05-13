@@ -4,6 +4,8 @@ class DatabaseService {
     dbName = 'StarshipDesignerDB';
     version = 2;
     async initialize() {
+        if (this.db)
+            return;
         return new Promise((resolve, reject) => {
             const request = indexedDB.open(this.dbName, this.version);
             request.onerror = () => reject(request.error);
@@ -237,6 +239,7 @@ class DatabaseService {
                 if (ship) {
                     resolve({
                         ...ship,
+                        cargo: cleanInvalidCargo(ship.cargo),
                         createdAt: new Date(ship.createdAt),
                         updatedAt: new Date(ship.updatedAt)
                     });

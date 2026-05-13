@@ -34,6 +34,7 @@ export const HULL_SIZES = [
   { tonnage: 2000, code: 'L', cost: 200 }
 ];
 
+// Drive codes skip 'I' to avoid confusion with the digit '1'.
 export const ENGINE_DRIVES = {
   A: [
     { hullIndex: 0, performance: 2 },
@@ -558,23 +559,14 @@ export function getAvailableVehicles(shipTechLevel: string): typeof VEHICLE_TYPE
 
 export function calculateVehicleServiceStaff(vehicles: { vehicle_type: string; quantity: number }[]): number {
   let totalServiceStaff = 0;
-  
+
   for (const vehicle of vehicles) {
     const vehicleType = VEHICLE_TYPES.find(vt => vt.type === vehicle.vehicle_type);
     if (vehicleType) {
-      if (vehicleType.serviceStaff === 0.25) {
-        // Robodog: 0.25 per unit, rounded up per 4 units (1-4=1, 5-8=2, etc)
-        totalServiceStaff += Math.ceil((vehicle.quantity * vehicleType.serviceStaff));
-      } else if (vehicleType.serviceStaff === 0.5) {
-        // ATLAS: 0.5 per unit, rounded up per 2 units (1-2=1, 3-4=2, etc)  
-        totalServiceStaff += Math.ceil((vehicle.quantity * vehicleType.serviceStaff));
-      } else {
-        // Standard vehicles: 1 staff per unit (or 3/4 for walkers)
-        totalServiceStaff += vehicle.quantity * vehicleType.serviceStaff;
-      }
+      totalServiceStaff += vehicle.quantity * vehicleType.serviceStaff;
     }
   }
-  
+
   return totalServiceStaff;
 }
 
@@ -607,16 +599,16 @@ export function calculateMedicalStaff(facilities: { facility_type: string; quant
   let nurses = 0;
   let surgeons = 0;
   let techs = 0;
-  
+
   for (const facility of facilities) {
-    if (facility.facility_type === 'med_bay') {
+    if (facility.facility_type === 'medical_bay') {
       nurses += facility.quantity;
-    } else if (facility.facility_type === 'surgical_ward') {
+    } else if (facility.facility_type === 'surgical_bay') {
       surgeons += facility.quantity;
       techs += facility.quantity;
       nurses += facility.quantity;
     }
   }
-  
+
   return { nurses, surgeons, techs };
 }
