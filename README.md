@@ -1,56 +1,65 @@
 # Traveller Starship Designer
-New atttempt at a Starship Designer, built with Claude. Using a Wizard UI and local storage for the DB.
+
+New attempt at a Starship Designer, built with Claude. Using a Wizard UI and IndexedDB for local persistence.
+
 ## Quick Start
+
+```bash
 npm install
 
 npm run dev
+```
+
+The application will be available at `http://localhost:8080`.
+
 ## Docker Quick Start
-**Build Command**:
+
+**Build:**
 ```bash
 docker build -t starship-designer .
 ```
 
-**Run Command**:
+**Run:**
 ```bash
 docker run -p 8080:8080 starship-designer
 ```
-## Traveller SRD Ships
-Got it roughly working, output is a table in a web page, or a CSV, or print the table.
 
-Next up: figure out how to deploy it in GCP
+## Traveller SRD Ships
+
+Got it roughly working — output is a table in a web page, a CSV, or a print view.
 
 **TODO List**
-* Defenses: Add Stealth, Reflec, Ablative, Explosoive options
+* Defenses: Add Stealth, Reflec, Ablative, Explosive options
 * Defenses: Add Security
-* Distinguish Commercial vs. Military designs. Commercial->Lasers, Sandcasters * PD only, no Shields or Armor either.
+* Distinguish Commercial vs. Military designs. Commercial → Lasers, Sandcasters & PD only, no Shields or Armor.
 * Add overhead for vehicles: bays (5%) & service bays (15%), user selectable.
 * Add a ton of free space for every 10 staterooms available for Rec & Health purposes.
-The above Defensive options are all appropriate for military ships, not commercial.
+
 **TODO List - non Starships SRD**
 * Add a "Non-standard Features" tab where you can select the following non-canonical changes:
 * Add AntiMatter at TL-H, 1% of ship tons per Jump (J-2 = 2% etc.)
 * Add discounts for higher tech levels on engines
 * At higher TL (G+) robots can serve as Engineers & Service crew, with 1-1 human-bot ratio at TL G, 2-1 at H, etc.
-* At TL-F and higher, powerful batteries allow for external power for Jumps, with the ship decoupling and moving under normal power in the last couple minutes before Jump (to get separation) using the batteris to provide the last bit of power. As a result, no Jump fuel is needed, or covnersely the normal Jump fuel load (being unspent) is now available for a return trip without needing to refuel.
-* Implement the advanced/expensive TL uprades (Accurecy, EZ Repair, High Yield, etc.)
+* At TL-F and higher, powerful batteries allow for external power for Jumps, with the ship decoupling and moving under normal power in the last couple of minutes before Jump (to get separation) using the batteries to provide the last bit of power. As a result, no Jump fuel is needed, or conversely the normal Jump fuel load (being unspent) is now available for a return trip without needing to refuel.
+* Implement the advanced/expensive TL upgrades (Accuracy, EZ Repair, High Yield, etc.)
 * Traveller SRD Capital Ships
 
-## 🚀 Features
+## Features
 
 - **Multi-Panel Design Interface**: 12 specialized panels for complete starship configuration
 - **Real-time Mass & Cost Tracking**: Live calculations with overweight warnings
 - **Component Library**: Extensive selection of engines, weapons, defenses, and facilities
 - **Staff Requirements**: Auto-calculated crew requirements based on ship configuration
-- **Database Persistence**: Save and load ship designs into local storage
-- **Responsive Design**: Works seamlessly on desktop and mobile devices - maybe
+- **Database Persistence**: Save and load ship designs using browser-local IndexedDB
+- **Non-Standard Rules**: Optional rule variants including antimatter drives
 
-## 📋 System Requirements
+## System Requirements
 
-- **Node.js** (v16 or higher)
+- **Node.js** 22.x
 - **npm** package manager
 
-## 🛠️ Installation & Setup
-Requires node, 
+## Installation & Setup
+
 ### 1. Clone the Repository
 
 ```bash
@@ -58,233 +67,144 @@ git clone https://github.com/DavidLDawes/aid.git
 cd aid
 ```
 
-### 2. Database Setup
-
-1. **DB is auto-initialized the first time it is run**
-Check out the npm run commands for DB manipulation scripts to flush, load and unload the DB.
-### 3. Frontend Setup
+### 2. Install Dependencies
 
 ```bash
-
-# Install dependencies
 npm install
+```
 
-# Start the development server
+### 3. Start the Development Server
+
+```bash
 npm run dev
 ```
 
-The frontend application will be available at `http://localhost:5173`
+IndexedDB is auto-initialized on first run with ships from `public/initial-ships.json`.
 
-## 🎮 Usage
+## Design Process
 
-### Design Process
-
-1. **Ship Panel**: Configure basic ship information
-   - Name (max 32 characters)
-   - Tech Level (A-H)
-   - Tonnage (minimum 100 tons)
-   - Optional description
-
-2. **Engines Panel**: Configure propulsion systems
-   - Power Plant (Performance 1-10)
-   - Maneuver Drive (Performance 1-10)
-   - Jump Drive (Performance 1-10)
-
-3. **Fittings Panel**: Essential ship components
-   - Bridge or Half Bridge (required)
-   - Optional Launch Tubes
-
-4. **Weapons Panel**: Offensive systems
-   - 15 different weapon types
-   - Mount limits based on ship tonnage
-
-5. **Defenses Panel**: Protective systems
-   - Armor plating
-   - Point Defense systems
-   - Electronic countermeasures
-
-6. **Berths Panel**: Crew accommodations
-   - Various berth types for crew and passengers
-
-7. **Rec/Health Panel**: Life support facilities
-   - Commissary (required)
-   - Medical, recreational, and utility facilities
-
-8. **Cargo Panel**: Storage systems
-   - Multiple cargo bay types with different costs
-
-9. **Vehicles Panel**: Carried craft
-   - Shuttles, fighters, and utility vehicles
-
-10. **Drones Panel**: Automated systems
-    - Combat, repair, and sensor drones
-
-11. **Staff Panel**: Crew requirements
-    - Auto-calculated based on ship systems
-
-12. **Ship Design Panel**: Final summary
-    - Complete design overview
-    - Save/Load functionality
+1. **Ship Panel**: Name, Tech Level (A–H), Tonnage (100–2000 tons), Configuration, optional description
+2. **Engines Panel**: Power Plant, Maneuver Drive, Jump Drive
+3. **Fittings Panel**: Bridge or Half Bridge (required), Launch Tubes, Sensors
+4. **Weapons Panel**: Turrets and barbettes; mount limits based on tonnage
+5. **Defenses Panel**: Sandcaster and point-defense turrets, armor plating
+6. **Rec/Health Panel**: Commissary (required), medical, recreational, and utility facilities
+7. **Cargo Panel**: Multiple cargo bay types
+8. **Vehicles Panel**: Shuttles, fighters, and utility vehicles
+9. **Drones Panel**: Combat, repair, and sensor drones
+10. **Berths Panel**: Crew and passenger accommodations
+11. **Staff Panel**: Auto-calculated crew requirements
+12. **Ship Design Panel**: Final summary, CSV export, print view
 
 ### Mass Tracking
 
-The **Mass Sidebar** (visible from Engines panel onward) shows:
-- **Total**: Ship's maximum tonnage
-- **Used**: Currently allocated mass
-- **Remaining**: Available mass for components
-- **Overweight Warning**: Alerts when design exceeds limits
+The **Mass Sidebar** (visible from Engines panel onward) shows total, used, and remaining tonnage with an overweight warning when the design exceeds limits.
 
-## 🏗️ Project Structure
+## Project Structure
 
 ```
 aid/
-├── backend/                 # Node.js/Express API server
-│   ├── server.ts           # Main server application
-│   ├── schema.sql          # MySQL database schema
-│   ├── package.json        # Backend dependencies
-│   └── .env                # Environment configuration
-├── starship-designer/      # React frontend application
-│   ├── src/
-│   │   ├── components/     # React components for each panel
-│   │   ├── types/          # TypeScript type definitions
-│   │   ├── data/           # Constants and data structures
-│   │   └── App.tsx         # Main application component
-│   └── package.json        # Frontend dependencies
-└── README.md               # This file
+├── public/
+│   ├── index.html
+│   └── initial-ships.json      # Default ships loaded on first run
+├── src/
+│   ├── components/
+│   │   ├── SelectShipPanel.tsx # Ship selection screen
+│   │   ├── ShipPanel.tsx       # Panel 0 — basic ship info
+│   │   ├── EnginesPanel.tsx    # Panel 1 — engines
+│   │   ├── FittingsPanel.tsx   # Panel 2 — fittings
+│   │   ├── WeaponsPanel.tsx    # Panel 3 — weapons
+│   │   ├── DefensesPanel.tsx   # Panel 4 — defenses
+│   │   ├── FacilitiesPanel.tsx # Panel 5 — Rec/Health
+│   │   ├── CargoPanel.tsx      # Panel 6 — cargo
+│   │   ├── VehiclesPanel.tsx   # Panel 7 — vehicles
+│   │   ├── DronesPanel.tsx     # Panel 8 — drones
+│   │   ├── BerthsPanel.tsx     # Panel 9 — berths
+│   │   ├── StaffPanel.tsx      # Panel 10 — crew requirements
+│   │   ├── SummaryPanel.tsx    # Panel 11 — ship summary
+│   │   ├── MassSidebar.tsx     # Real-time mass/cost tracker
+│   │   ├── FileMenu.tsx        # Save/Load/Print menu
+│   │   └── RulesMenu.tsx       # Rules variants menu
+│   ├── data/
+│   │   └── constants.ts        # Tech levels, engines, weapons, etc.
+│   ├── services/
+│   │   ├── database.ts         # IndexedDB wrapper
+│   │   └── initialDataService.ts
+│   ├── types/
+│   │   └── ship.ts             # TypeScript interfaces
+│   ├── utils/
+│   │   └── sparesCalculation.ts
+│   ├── test/                   # Test utilities
+│   ├── App.tsx                 # Main app component
+│   ├── App.css                 # Global styles
+│   └── main.tsx                # React entry point
+├── dist/                       # Production build (generated)
+├── package.json
+├── webpack.config.cjs          # Webpack configuration
+├── tsconfig.json
+├── tsconfig.app.json
+├── jest.config.cjs
+├── Dockerfile
+└── README.md
 ```
 
-# Engine Performance Data
-
-This application uses engine performance ratings based on the Traveller SRD Spaceship Design rules. The official engine performance table can be found at: https://www.traveller-srd.com/core-rules/spacecraft-design/
-
-The table shows drive performance ratings by drive letter (A-Z) across different hull tonnages (100-2000 tons). This data is implemented in `src/data/constants.ts` as the `ENGINE_DRIVES` object and is used to determine which engine drives are compatible with specific hull sizes and power plant configurations.
-
-For reference and historical documentation, the complete performance table used by this application is preserved in `src/claude/bug/maneuver-broken.MD`.
-
-# DB
-Using innodb-like fake-indexeddb to handle indexing for ship names being exclusive, result is there's not really any SQL, just local files, which is actually kinda cool.
-
-On startup if there are no Ships defined in the DB then the contents of public/initial-ships.json are read into the DB.
-
-Adddedd a few npm scripts to twiddle with the DB:
-* npm run extractDB - copies ships from the DB to file(s)
-* npm run preloadDB - loads file(s) into Ships DB
-* npm run flushDB - removes all ships from the DB
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      ...tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      ...tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      ...tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-
-## 🧪 Development
-
-### Frontend Development
 
 ```bash
-cd starship-designer
-npm run dev    # Start Vite development server
-npm run build  # Build for production
-npm run preview # Preview production build
+npm install          # Install dependencies
+npm run dev          # Development server on port 8080
+npm run build        # Build for production
+npm preview          # Preview production build
+npm run lint         # Lint source files
+npm run test:run     # Run tests once (CI)
+npm test             # Run tests in watch mode
+
+# Database management
+npm run extractDB    # Export ships from IndexedDB to JSON files
+npm run preloadDB    # Import ships from JSON files to IndexedDB
+npm run flushDB      # Clear all ships from IndexedDB
+npm run setInitialDB # Reset DB to initial state
 ```
 
-## 🔧 API Endpoints
+## Engine Performance Data
 
-- `GET /api/ships` - List all saved ships
-- `GET /api/ships/:id` - Get specific ship design
-- `POST /api/ships` - Save new ship design
-- `DELETE /api/ships/:id` - Delete ship design
+This application uses engine performance ratings from the Traveller SRD Spacecraft Design rules:
+https://www.traveller-srd.com/core-rules/spacecraft-design/
 
-## 🎨 Technology Stack
+Drive performance by drive letter (A–Z) across hull tonnages is implemented in `src/data/constants.ts` as the `ENGINE_DRIVES` object.
 
-### Frontend
-- **React 18** with TypeScript
-- **Vite** for fast development and building
-- **CSS3** with responsive design
-- **Modern ES6+** JavaScript features
+## Database
 
-## 🐛 Troubleshooting
+Uses IndexedDB for browser-local persistence — no backend server required.
 
-### Common Issues
+On startup, if no ships are in the DB, the contents of `public/initial-ships.json` are loaded automatically.
 
-1. **Port Already in Use**
-   - Backend: Change `PORT` in `backend/.env`
-   - Frontend: Vite will automatically suggest alternate port
+```bash
+npm run extractDB    # copies ships from the DB to JSON files
+npm run preloadDB    # loads JSON files into the ships DB
+npm run flushDB      # removes all ships from the DB
+```
 
-2. **Module Not Found Errors**
-   - Run `npm install` in both directories
-   - Clear npm cache: `npm cache clean --force`
+## Technology Stack
 
-3. **CORS Errors**
-   - Ensure backend server is running
-   - Check API URL in frontend requests
+- **React 19** with TypeScript
+- **Webpack 5** with webpack-dev-server
+- **Jest** for testing
+- **IndexedDB** for browser-local persistence
+- **Node.js 22.x**
 
-## 📝 Contributing
+## Troubleshooting
+
+1. **Port Already in Use**: Port 8080 is configured in `webpack.config.cjs`
+2. **Module Not Found**: Run `npm install`; clear cache with `npm cache clean --force`
+3. **Database Issues**: Browser DevTools → Application → IndexedDB → StarshipDesignerDB
+
+## Contributing
 
 1. Create a feature branch
 2. Make your changes
-3. Test thoroughly
+3. Run `npm run test:run` to verify all tests pass
 4. Submit a pull request
 
-## 📄 License
+## License
 
 This project is part of the aid repository and follows the same licensing terms.
-
-## 🙏 Acknowledgments
-
-Built with modern web technologies and designed for extensibility and maintainability.
