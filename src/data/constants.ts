@@ -1,3 +1,5 @@
+import type { Cargo } from '../types/ship';
+
 export const TECH_LEVELS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
 
 export function getTechLevelIndex(techLevel: string): number {
@@ -504,7 +506,7 @@ export const CARGO_TYPES = [
 
 const VALID_CARGO_TYPES = new Set(CARGO_TYPES.map(ct => ct.type));
 
-export function cleanInvalidCargo(cargo: any[]): any[] {
+export function cleanInvalidCargo(cargo: Cargo[]): Cargo[] {
   return cargo.filter(cargoItem => {
     // Remove cargo entries with invalid types (e.g., old "standard" type)
     return VALID_CARGO_TYPES.has(cargoItem.cargo_type) && cargoItem.tonnage > 0;

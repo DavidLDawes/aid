@@ -6,7 +6,7 @@ import { logger } from '../utils/logger';
 interface InitialDataExport {
   exportDate: string;
   version: string;
-  ships: Array<ShipDesign & { _metadata?: any }>;
+  ships: Array<ShipDesign & { _metadata?: Record<string, unknown> }>;
 }
 
 class InitialDataService {

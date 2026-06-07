@@ -67,7 +67,7 @@ const FittingsPanel: React.FC<FittingsPanelProps> = ({ fittings, shipTonnage, on
     
     newFittings.push({
       fitting_type: 'comms_sensors',
-      comms_sensors_type: sensorType.type as any,
+      comms_sensors_type: sensorType.type as Fitting['comms_sensors_type'],
       mass: sensorType.mass,
       cost: sensorType.cost
     });
