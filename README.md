@@ -56,7 +56,7 @@ Got it roughly working — output is a table in a web page, a CSV, or a print vi
 ## System Requirements
 
 - **Node.js** 22+
-- **pnpm** 9+ package manager
+- **pnpm** 11+ package manager
 
 ## Installation & Setup
 
@@ -191,7 +191,7 @@ pnpm flushDB         # removes all ships from the DB
 - **Jest** for testing
 - **IndexedDB** for browser-local persistence
 - **Node.js 22+**
-- **pnpm 9+**
+- **pnpm 11+**
 
 ## Troubleshooting
 
