@@ -495,6 +495,8 @@ export const COMMS_SENSORS_TYPES = [
 ];
 // Computer types - no tonnage, only cost
 export const COMPUTER_TYPES = [
+    { name: 'Core/1', model: 'core_1', techLevel: 7, rating: 20, cost: 4 },
+    { name: 'Core/2', model: 'core_2', techLevel: 8, rating: 30, cost: 8 },
     { name: 'Core/3', model: 'core_3', techLevel: 9, rating: 40, cost: 12 },
     { name: 'Core/4', model: 'core_4', techLevel: 10, rating: 50, cost: 20 },
     { name: 'Core/5', model: 'core_5', techLevel: 11, rating: 60, cost: 30 },
@@ -503,41 +505,37 @@ export const COMPUTER_TYPES = [
     { name: 'Core/8', model: 'core_8', techLevel: 14, rating: 90, cost: 100 },
     { name: 'Core/9', model: 'core_9', techLevel: 15, rating: 100, cost: 130 }
 ];
-// Get minimum required computer based on ship size and jump performance
+// Get minimum required computer based on ship size and jump performance.
+// Always returns at least Core/1 — every ship requires a computer.
+// Core/N sits at index N-1 in COMPUTER_TYPES (Core/1=0, Core/2=1, … Core/9=8).
 export function getMinimumComputer(shipTonnage, jumpPerformance) {
-    // No computer required for ships under 3,000 tons
-    if (shipTonnage < 3000) {
-        return null;
-    }
-    // Size-based minimum computer index (null = no size-driven requirement at this jump)
+    // Size-based minimum for large capital ships (indices use the Core/N → index N-1 mapping)
     let sizeIndex = null;
-    if (shipTonnage <= 5000) {
-        sizeIndex = jumpPerformance >= 2 ? 0 : null; // Core/3
+    if (shipTonnage >= 3000) {
+        if (shipTonnage <= 5000) {
+            sizeIndex = jumpPerformance >= 2 ? 2 : null; // Core/3
+        }
+        else if (shipTonnage <= 10000) {
+            sizeIndex = jumpPerformance >= 2 ? 3 : null; // Core/4
+        }
+        else if (shipTonnage <= 50000) {
+            sizeIndex = jumpPerformance >= 3 ? 4 : null; // Core/5
+        }
+        else if (shipTonnage <= 100000) {
+            sizeIndex = jumpPerformance >= 4 ? 5 : null; // Core/6
+        }
+        else {
+            sizeIndex = jumpPerformance >= 6 ? 7 // Core/8 for J-6+
+                : jumpPerformance >= 5 ? 6 // Core/7 for J-5
+                    : null;
+        }
     }
-    else if (shipTonnage <= 10000) {
-        sizeIndex = jumpPerformance >= 2 ? 1 : null; // Core/4
-    }
-    else if (shipTonnage <= 50000) {
-        sizeIndex = jumpPerformance >= 3 ? 2 : null; // Core/5
-    }
-    else if (shipTonnage <= 100000) {
-        sizeIndex = jumpPerformance >= 4 ? 3 : null; // Core/6
-    }
-    else {
-        sizeIndex = jumpPerformance >= 6 ? 5 // Core/8 for J-6+
-            : jumpPerformance >= 5 ? 4 // Core/7 for J-5
-                : null;
-    }
-    // Jump-based floor: any jump-capable ship needs a computer at least equal to its Jump
-    // number. Core/N is at index N-3 (Core/3 is the smallest), so a J-N ship needs Core/N.
-    // Jumps below 3 floor to Core/3; jumps above the table cap at the largest model.
+    // Jump floor: a J-N ship requires Core/N (index N-1). Cap at the largest model.
     const jumpIndex = jumpPerformance >= 1
-        ? Math.min(COMPUTER_TYPES.length - 1, Math.max(0, jumpPerformance - 3))
+        ? Math.min(COMPUTER_TYPES.length - 1, jumpPerformance - 1)
         : null;
-    const candidates = [sizeIndex, jumpIndex].filter((i) => i !== null);
-    if (candidates.length === 0) {
-        return null;
-    }
+    // All ships require at least Core/1 (index 0); pick the highest applicable requirement.
+    const candidates = [0, sizeIndex, jumpIndex].filter((i) => i !== null);
     return COMPUTER_TYPES[Math.max(...candidates)];
 }
 // Get available computers based on ship requirements and tech level
