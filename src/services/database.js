@@ -123,41 +123,29 @@ class DatabaseService {
         return new Promise((resolve, reject) => {
             const transaction = this.db.transaction(['ships'], 'readwrite');
             const store = transaction.objectStore('ships');
-            // First check if a ship with this name already exists
-            const nameIndex = store.index('name');
-            const checkRequest = nameIndex.get(shipDesign.ship.name);
-            checkRequest.onerror = () => reject(checkRequest.error);
-            checkRequest.onsuccess = () => {
-                if (checkRequest.result) {
+            // Rely on the unique 'name' index to enforce uniqueness atomically; a duplicate
+            // name surfaces as a ConstraintError on add(), avoiding a check-then-add race.
+            const now = new Date();
+            const shipToSave = {
+                ...shipDesign,
+                createdAt: now,
+                updatedAt: now
+            };
+            const request = store.add(shipToSave);
+            request.onerror = () => {
+                if (request.error?.name === 'ConstraintError') {
                     const msg = `A ship named "${shipDesign.ship.name}" already exists. Please choose a different name.`;
                     logger.error(msg);
                     reject(new Error(msg));
-                    return;
                 }
-                // Name is unique, proceed with saving
-                const now = new Date();
-                const shipToSave = {
-                    ...shipDesign,
-                    createdAt: now,
-                    updatedAt: now
-                };
-                const request = store.add(shipToSave);
-                request.onerror = () => {
-                    // Handle the case where the unique constraint fails at the database level
-                    if (request.error?.name === 'ConstraintError') {
-                        const msg = `A ship named "${shipDesign.ship.name}" already exists. Please choose a different name.`;
-                        logger.error(msg);
-                        reject(new Error(msg));
-                    }
-                    else {
-                        logger.error('Failed to save ship', request.error);
-                        reject(request.error);
-                    }
-                };
-                request.onsuccess = () => {
-                    logger.info(`Ship saved with id ${request.result}`);
-                    resolve(request.result);
-                };
+                else {
+                    logger.error('Failed to save ship', request.error);
+                    reject(request.error);
+                }
+            };
+            request.onsuccess = () => {
+                logger.info(`Ship saved with id ${request.result}`);
+                resolve(request.result);
             };
         });
     }
@@ -286,6 +274,7 @@ class DatabaseService {
                 if (ship) {
                     resolve({
                         ...ship,
+                        cargo: cleanInvalidCargo(ship.cargo),
                         createdAt: new Date(ship.createdAt),
                         updatedAt: new Date(ship.updatedAt)
                     });

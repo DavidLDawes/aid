@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { databaseService, type StoredShipDesign } from '../services/database';
 import type { ShipDesign } from '../types/ship';
+import { logger } from '../utils/logger';
 
 interface SelectShipPanelProps {
   onNewShip: () => void;
@@ -187,20 +188,20 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPan
       setError(null);
       await databaseService.initialize();
       let savedShips = await databaseService.getAllShips();
-      console.log('SelectShipPanel loaded ships from database:', savedShips.length);
+      logger.info(`SelectShipPanel loaded ${savedShips.length} ships from database`);
 
       // If no ships exist, use hardcoded defaults
       if (savedShips.length === 0) {
-        console.log('No ships in database, using hardcoded default ships');
+        logger.info('No ships in database, using hardcoded default ships');
         savedShips = createDefaultShips();
       }
 
       setShips(savedShips);
-      console.log('Final ships array set:', savedShips.length, savedShips.map(s => s.ship.name));
+      logger.info(`Final ships array set: ${savedShips.length} (${savedShips.map(s => s.ship.name).join(', ')})`);
     } catch (err) {
-      console.error('SelectShipPanel error during ship loading:', err);
+      logger.error('SelectShipPanel error during ship loading', err);
       // Emergency fallback
-      console.log('🚨 Emergency fallback: using hardcoded ships due to error');
+      logger.info('Emergency fallback: using hardcoded ships due to error');
       const defaultShips = createDefaultShips();
       setShips(defaultShips);
       setError(null); // Clear error since we have fallback ships
@@ -217,7 +218,7 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPan
       if (selectedShipId < 0) {
         const ship = ships.find(s => s.id === selectedShipId);
         if (ship) {
-          console.log('Loading hardcoded ship:', ship.ship.name);
+          logger.info(`Loading hardcoded ship: ${ship.ship.name}`);
           // Remove database-specific fields before passing to parent
           const { id: _id, createdAt: _createdAt, updatedAt: _updatedAt, ...shipDesign } = ship;
           onLoadShip(shipDesign);
@@ -228,14 +229,14 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPan
       // Regular database ship loading
       const ship = await databaseService.getShipById(selectedShipId);
       if (ship) {
-        console.log('Loading database ship:', ship.ship.name);
+        logger.info(`Loading database ship: ${ship.ship.name}`);
         // Remove database-specific fields before passing to parent
         const { id: _id, createdAt: _createdAt, updatedAt: _updatedAt, ...shipDesign } = ship;
         onLoadShip(shipDesign);
       }
     } catch (err) {
       setError('Failed to load selected ship');
-      console.error('Load ship error:', err);
+      logger.error('Load ship error', err);
     }
   };
 

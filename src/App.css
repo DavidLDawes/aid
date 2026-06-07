@@ -229,6 +229,20 @@
   margin-top: 1rem;
 }
 
+.nonstandard-warning {
+  color: #c0392b;
+  font-weight: 600;
+  font-size: 0.875rem;
+  margin: 0.4rem 0 0 0;
+}
+
+.nonstandard-notice {
+  color: #c0392b;
+  font-style: italic;
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+}
+
 .validation-info {
   background-color: #f8f9fa;
   border: 1px solid #e9ecef;

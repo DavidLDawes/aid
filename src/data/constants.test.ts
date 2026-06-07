@@ -10,6 +10,7 @@ import {
   getWeaponMountLimit,
   convertTechLevelToNumber,
   getAvailableVehicles,
+  getMinimumComputer,
 } from './constants';
 
 describe('Tech Level Functions', () => {
@@ -368,5 +369,34 @@ describe('getAvailableVehicles', () => {
     vehicles.forEach(v => {
       expect(v.techLevel).toBeLessThanOrEqual(shipTLNum);
     });
+  });
+});
+describe('getMinimumComputer', () => {
+  it('should require no computer for ships under 3,000 tons', () => {
+    expect(getMinimumComputer(2999, 6)).toBeNull();
+    expect(getMinimumComputer(200, 2)).toBeNull();
+  });
+
+  it('should apply the size-based minimum for large jump-capable ships', () => {
+    // >100,000 tons at J-6 still needs Core/8 (size requirement exceeds jump floor)
+    expect(getMinimumComputer(150000, 6)?.name).toBe('Core/8');
+    // >100,000 tons at J-5 needs Core/7
+    expect(getMinimumComputer(150000, 5)?.name).toBe('Core/7');
+  });
+
+  it('should enforce a jump-number floor so a large J-4 ship needs at least Core/4', () => {
+    // Previously returned null; the jump floor now requires Core/4 (Jump 4)
+    expect(getMinimumComputer(150000, 4)?.name).toBe('Core/4');
+  });
+
+  it('should require at least the Core matching the Jump number', () => {
+    // 3,000-5,000 tons: size requirement is null at low jumps, jump floor applies
+    expect(getMinimumComputer(4000, 4)?.name).toBe('Core/4');
+    expect(getMinimumComputer(4000, 1)?.name).toBe('Core/3'); // J<3 floors to Core/3
+  });
+
+  it('should pick the more capable of the size and jump requirements', () => {
+    // 10,001-50,000 tons at J-3: size needs Core/5, jump floor needs Core/3 -> Core/5
+    expect(getMinimumComputer(20000, 3)?.name).toBe('Core/5');
   });
 });

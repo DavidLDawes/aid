@@ -509,31 +509,36 @@ export function getMinimumComputer(shipTonnage, jumpPerformance) {
     if (shipTonnage < 3000) {
         return null;
     }
-    // Determine minimum computer based on ship size and jump
-    if (shipTonnage >= 3000 && shipTonnage <= 5000) {
-        return jumpPerformance >= 2 ? COMPUTER_TYPES[0] : null; // Core/3
+    // Size-based minimum computer index (null = no size-driven requirement at this jump)
+    let sizeIndex = null;
+    if (shipTonnage <= 5000) {
+        sizeIndex = jumpPerformance >= 2 ? 0 : null; // Core/3
     }
-    else if (shipTonnage >= 5001 && shipTonnage <= 10000) {
-        return jumpPerformance >= 2 ? COMPUTER_TYPES[1] : null; // Core/4
+    else if (shipTonnage <= 10000) {
+        sizeIndex = jumpPerformance >= 2 ? 1 : null; // Core/4
     }
-    else if (shipTonnage >= 10001 && shipTonnage <= 50000) {
-        return jumpPerformance >= 3 ? COMPUTER_TYPES[2] : null; // Core/5
+    else if (shipTonnage <= 50000) {
+        sizeIndex = jumpPerformance >= 3 ? 2 : null; // Core/5
     }
-    else if (shipTonnage >= 50001 && shipTonnage <= 100000) {
-        return jumpPerformance >= 4 ? COMPUTER_TYPES[3] : null; // Core/6
+    else if (shipTonnage <= 100000) {
+        sizeIndex = jumpPerformance >= 4 ? 3 : null; // Core/6
     }
-    else if (shipTonnage >= 100001) {
-        if (jumpPerformance >= 6) {
-            return COMPUTER_TYPES[5]; // Core/8 for J-6+
-        }
-        else if (jumpPerformance >= 5) {
-            return COMPUTER_TYPES[4]; // Core/7 for J-5
-        }
-        else {
-            return null;
-        }
+    else {
+        sizeIndex = jumpPerformance >= 6 ? 5 // Core/8 for J-6+
+            : jumpPerformance >= 5 ? 4 // Core/7 for J-5
+                : null;
     }
-    return null;
+    // Jump-based floor: any jump-capable ship needs a computer at least equal to its Jump
+    // number. Core/N is at index N-3 (Core/3 is the smallest), so a J-N ship needs Core/N.
+    // Jumps below 3 floor to Core/3; jumps above the table cap at the largest model.
+    const jumpIndex = jumpPerformance >= 1
+        ? Math.min(COMPUTER_TYPES.length - 1, Math.max(0, jumpPerformance - 3))
+        : null;
+    const candidates = [sizeIndex, jumpIndex].filter((i) => i !== null);
+    if (candidates.length === 0) {
+        return null;
+    }
+    return COMPUTER_TYPES[Math.max(...candidates)];
 }
 // Get available computers based on ship requirements and tech level
 export function getAvailableComputers(shipTonnage, jumpPerformance, shipTechLevel) {

@@ -172,6 +172,9 @@ const ShipPanel: React.FC<ShipPanelProps> = ({ ship, onUpdate, onLoadExistingShi
               </option>
             ))}
           </select>
+          {ship.tonnage < 3000 && (
+            <p className="nonstandard-warning">Non-standard capital ship design &lt; 3,000 tons</p>
+          )}
         </div>
 
         <div className="form-group">
@@ -234,16 +237,13 @@ const ShipPanel: React.FC<ShipPanelProps> = ({ ship, onUpdate, onLoadExistingShi
       {hullSizeWarning.showWarning && (
         <div className="ship-name-conflict-dialog">
           <div className="conflict-dialog-content">
-            <h3>⚠️ Capital Ship Warning</h3>
+            <h3>⚠️ Non-Standard Capital Ship Size</h3>
             <p>
-              <strong>Too small for a capital ship, designing it anyway</strong>
+              Capital ship designs are for 3,000 ton or larger ships. You can design a smaller
+              ship using these rules but it is not standard according to the Traveller SRD.
             </p>
             <p>
-              You've selected a hull size of <strong>{hullSizeWarning.pendingTonnage?.toLocaleString()} tons</strong>,
-              which is below the 3,000-ton threshold typically used for capital ships.
-            </p>
-            <p>
-              Would you like to continue with this smaller hull size?
+              Continue with <strong>{hullSizeWarning.pendingTonnage?.toLocaleString()} tons</strong>?
             </p>
             <div className="conflict-dialog-actions">
               <button

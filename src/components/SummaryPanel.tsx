@@ -196,6 +196,11 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
     });
     lines.push(`Total,,${mass.used.toFixed(1)},${cost.total.toFixed(2)}`);
 
+    if (shipDesign.ship.tonnage < 3000) {
+      lines.push('');
+      lines.push('Non-standard capital ship design < 3,000 tons');
+    }
+
     return lines.join('\n');
   };
 
@@ -215,10 +220,15 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
     ? ` (hull code ${tonnageCodeDisplay}, ${sectionsDisplay} sections)`
     : tonnageCodeDisplay ? ` (${tonnageCodeDisplay})` : '';
 
+  const isNonStandardSize = shipDesign.ship.tonnage < 3000;
+
   return (
     <div className="panel-content">
       <div className="ship-title-line">
         <h3>{shipDesign.ship.name}, {shipDesign.ship.configuration} configuration, {shipDesign.ship.tonnage.toLocaleString()} tons{hullInfoDisplay}, Tech Level {shipDesign.ship.tech_level}</h3>
+        {isNonStandardSize && (
+          <p className="nonstandard-notice">Non-standard capital ship design &lt; 3,000 tons</p>
+        )}
       </div>
 
       <div className="ship-components-table">
@@ -528,6 +538,10 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
                 : staff.total
         }</p>
       </div>
+
+      {isNonStandardSize && (
+        <p className="nonstandard-notice">Non-standard capital ship design &lt; 3,000 tons</p>
+      )}
 
       {saveMessage && (
         <div className={`save-message ${saveMessage.includes('successfully') ? 'success' : 'error'}`}>
