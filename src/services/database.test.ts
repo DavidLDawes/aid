@@ -97,6 +97,12 @@ describe('Database Service', () => {
         .not.toThrow();
     });
 
+    it('should reject updating a ship that does not exist', async () => {
+      await expect(databaseService.updateShip(99999, mockShipDesign))
+        .rejects
+        .toThrow('Ship not found');
+    });
+
     it('should reject updating a ship to have a duplicate name', async () => {
       // Save two ships with different names
       await databaseService.saveShip(mockShipDesign); // First ship for name conflict test
