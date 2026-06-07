@@ -1,0 +1,5 @@
+allowBuilds:
+  unrs-resolver: true
+overrides:
+  test-exclude: '7.0.1'
+  glob: '10.4.5'
