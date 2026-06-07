@@ -73,10 +73,10 @@ function App() {
       return;
     }
 
-    logger.info(`Saving ship "${shipDesign.ship.name}"`);
+    logger.info(`Saving ship "${shipDesign.ship.name}" (${shipDesign.ship.tonnage} tons)`);
     try {
-      await databaseService.saveShip(shipDesign);
-      logger.info(`Ship "${shipDesign.ship.name}" saved`);
+      await databaseService.saveOrUpdateShipByName(shipDesign);
+      logger.info(`Ship "${shipDesign.ship.name}" saved successfully`);
     } catch (error) {
       logger.error(`Failed to save ship "${shipDesign.ship.name}"`, error);
       alert(error instanceof Error ? error.message : 'Failed to save ship design. Please try again.');
@@ -107,9 +107,13 @@ function App() {
   }, [shipDesign.ship.name, handleFileSaveWithName]);
 
   const handleFilePrint = useCallback(() => {
-    logger.info(`Printing ship "${shipDesign.ship.name}"`);
+    logger.info(`Opening print window for ship "${shipDesign.ship.name}"`);
     const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
+    if (!printWindow) {
+      logger.error('Print window blocked by browser');
+      alert('Unable to open the print window. Please allow pop-ups for this site and try again.');
+      return;
+    }
 
     const mass = calculateMass();
     const cost = calculateCost();
@@ -119,8 +123,12 @@ function App() {
     printWindow.document.write(html);
     printWindow.document.close();
     printWindow.focus();
+    printWindow.addEventListener('afterprint', () => {
+      logger.info(`Print dialog closed for "${shipDesign.ship.name}"`);
+      printWindow.close();
+    });
     printWindow.print();
-    printWindow.close();
+    logger.info(`Print dialog opened for "${shipDesign.ship.name}"`);
   }, [shipDesign, combinePilotNavigator, noStewards]);
 
   // Global keyboard shortcuts for file operations
@@ -209,12 +217,13 @@ function App() {
 
     const total = shipDesign.ship.tonnage;
     const remaining = total - used;
-    
+
     return {
       total,
       used,
       remaining,
-      isOverweight: remaining < 0
+      isOverweight: remaining < 0,
+      fuelMass
     };
   };
 
@@ -316,7 +325,7 @@ function App() {
   };
 
   const calculateAdjustedCrewCount = (staffRequirements: StaffRequirements): number => {
-    const isSmallShip = shipDesign.ship.tonnage === 100 || shipDesign.ship.tonnage === 200;
+    const isSmallShip = shipDesign.ship.tonnage >= 100 && shipDesign.ship.tonnage <= 200;
     if (!isSmallShip) return staffRequirements.total;
     
     return combinePilotNavigator && noStewards
