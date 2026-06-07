@@ -372,31 +372,35 @@ describe('getAvailableVehicles', () => {
   });
 });
 describe('getMinimumComputer', () => {
-  it('should require no computer for ships under 3,000 tons', () => {
-    expect(getMinimumComputer(2999, 6)).toBeNull();
-    expect(getMinimumComputer(200, 2)).toBeNull();
+  it('should require Core/1 minimum for all ships, including those under 3,000 tons', () => {
+    // No jump drive — base minimum Core/1
+    expect(getMinimumComputer(200, 0).name).toBe('Core/1');
+    // Small ship with jump drive — jump floor applies exactly (J-2 → Core/2)
+    expect(getMinimumComputer(200, 2).name).toBe('Core/2');
+    // Small ship with high jump — jump floor still applies (J-6 → Core/6)
+    expect(getMinimumComputer(2999, 6).name).toBe('Core/6');
   });
 
   it('should apply the size-based minimum for large jump-capable ships', () => {
     // >100,000 tons at J-6 still needs Core/8 (size requirement exceeds jump floor)
-    expect(getMinimumComputer(150000, 6)?.name).toBe('Core/8');
+    expect(getMinimumComputer(150000, 6).name).toBe('Core/8');
     // >100,000 tons at J-5 needs Core/7
-    expect(getMinimumComputer(150000, 5)?.name).toBe('Core/7');
+    expect(getMinimumComputer(150000, 5).name).toBe('Core/7');
   });
 
   it('should enforce a jump-number floor so a large J-4 ship needs at least Core/4', () => {
-    // Previously returned null; the jump floor now requires Core/4 (Jump 4)
-    expect(getMinimumComputer(150000, 4)?.name).toBe('Core/4');
+    expect(getMinimumComputer(150000, 4).name).toBe('Core/4');
   });
 
-  it('should require at least the Core matching the Jump number', () => {
-    // 3,000-5,000 tons: size requirement is null at low jumps, jump floor applies
-    expect(getMinimumComputer(4000, 4)?.name).toBe('Core/4');
-    expect(getMinimumComputer(4000, 1)?.name).toBe('Core/3'); // J<3 floors to Core/3
+  it('should require Core/N for a J-N ship regardless of size', () => {
+    // 3,000-5,000 tons at J-4: size needs Core/3, jump floor needs Core/4 → Core/4 wins
+    expect(getMinimumComputer(4000, 4).name).toBe('Core/4');
+    // 3,000-5,000 tons at J-1: size needs nothing (J<2), jump floor Core/1 → Core/1
+    expect(getMinimumComputer(4000, 1).name).toBe('Core/1');
   });
 
   it('should pick the more capable of the size and jump requirements', () => {
-    // 10,001-50,000 tons at J-3: size needs Core/5, jump floor needs Core/3 -> Core/5
-    expect(getMinimumComputer(20000, 3)?.name).toBe('Core/5');
+    // 10,001-50,000 tons at J-3: size needs Core/5, jump floor needs Core/3 → Core/5
+    expect(getMinimumComputer(20000, 3).name).toBe('Core/5');
   });
 });

@@ -29,7 +29,7 @@ export interface Fitting {
   cost: number;
   launch_vehicle_mass?: number;
   comms_sensors_type?: 'standard' | 'basic_civilian' | 'basic_military' | 'advanced' | 'very_advanced';
-  computer_model?: 'core_3' | 'core_4' | 'core_5' | 'core_6' | 'core_7' | 'core_8' | 'core_9';
+  computer_model?: 'core_1' | 'core_2' | 'core_3' | 'core_4' | 'core_5' | 'core_6' | 'core_7' | 'core_8' | 'core_9';
 }
 
 export interface Weapon {

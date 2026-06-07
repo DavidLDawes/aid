@@ -231,18 +231,11 @@ const FittingsPanel: React.FC<FittingsPanelProps> = ({ fittings, shipTonnage, sh
 
           return (
             <>
-              {minimumComputer ? (
-                <p>
-                  Minimum required: <strong>{minimumComputer.name}</strong> (TL {minimumComputer.techLevel}, Rating {minimumComputer.rating})
-                  <br />
-                  <small>Based on ship size ({shipTonnage.toLocaleString()} tons) and jump performance (J-{jumpPerformance})</small>
-                </p>
-              ) : (
-                <p className="info-message">
-                  No computer required for this configuration, but you may install one if desired.
-                  {jumpPerformance === 0 && <><br /><small>Ships with jump drives may require computers depending on tonnage and jump performance.</small></>}
-                </p>
-              )}
+              <p>
+                Minimum required: <strong>{minimumComputer.name}</strong> (TL {minimumComputer.techLevel}, Rating {minimumComputer.rating})
+                <br />
+                <small>Based on ship size ({shipTonnage.toLocaleString()} tons) and jump performance (J-{jumpPerformance})</small>
+              </p>
 
               {allAvailableComputers.length === 0 ? (
                 <p className="warning-message">
