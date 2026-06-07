@@ -44,5 +44,13 @@ jobs:
       - name: Test
         run: pnpm test:run
 
+      - name: Upload coverage
+        if: matrix.node-version == '22.x'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 30
+
       - name: Build
         run: pnpm build

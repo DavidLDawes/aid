@@ -1,5 +1,6 @@
 import type { ShipDesign } from '../types/ship';
 import { cleanInvalidCargo } from '../data/constants';
+import { logger } from '../utils/logger';
 
 export interface StoredShipDesign extends ShipDesign {
   id: number;
@@ -13,14 +14,23 @@ class DatabaseService {
   private readonly version = 2;
 
   async initialize(): Promise<void> {
-    if (this.db) return;
+    if (this.db) {
+      logger.info('Database already initialized');
+      return;
+    }
+
+    logger.info(`Opening database "${this.dbName}" v${this.version}`);
 
     return new Promise((resolve, reject) => {
       const request = indexedDB.open(this.dbName, this.version);
 
-      request.onerror = () => reject(request.error);
+      request.onerror = () => {
+        logger.error('Failed to open database', request.error);
+        reject(request.error);
+      };
       request.onsuccess = () => {
         this.db = request.result;
+        logger.info('Database initialized successfully');
         resolve();
       };
 
@@ -28,6 +38,7 @@ class DatabaseService {
         const db = (event.target as IDBOpenDBRequest).result;
         const transaction = (event.target as IDBOpenDBRequest).transaction!;
         const oldVersion = event.oldVersion;
+        logger.info(`Upgrading database from v${oldVersion} to v${this.version}`);
 
         // Version 1: Initial database creation
         if (oldVersion < 1) {
@@ -84,12 +95,16 @@ class DatabaseService {
   async getAllShips(): Promise<StoredShipDesign[]> {
     if (!this.db) throw new Error('Database not initialized');
 
+    logger.info('Loading all ships');
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction(['ships'], 'readonly');
       const store = transaction.objectStore('ships');
       const request = store.getAll();
 
-      request.onerror = () => reject(request.error);
+      request.onerror = () => {
+        logger.error('Failed to load ships', request.error);
+        reject(request.error);
+      };
       request.onsuccess = () => {
         const ships = request.result.map((ship: StoredShipDesign) => ({
           ...ship,
@@ -97,6 +112,7 @@ class DatabaseService {
           createdAt: new Date(ship.createdAt),
           updatedAt: new Date(ship.updatedAt)
         }));
+        logger.info(`Loaded ${ships.length} ships`);
         resolve(ships);
       };
     });
@@ -130,21 +146,27 @@ class DatabaseService {
   async saveShip(shipDesign: ShipDesign): Promise<number> {
     if (!this.db) throw new Error('Database not initialized');
 
+    logger.info(`Saving ship "${shipDesign.ship.name}"`);
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction(['ships'], 'readwrite');
       const store = transaction.objectStore('ships');
-      
+
       // First check if a ship with this name already exists
       const nameIndex = store.index('name');
       const checkRequest = nameIndex.get(shipDesign.ship.name);
-      
-      checkRequest.onerror = () => reject(checkRequest.error);
+
+      checkRequest.onerror = () => {
+        logger.error(`Failed to check name for "${shipDesign.ship.name}"`, checkRequest.error);
+        reject(checkRequest.error);
+      };
       checkRequest.onsuccess = () => {
         if (checkRequest.result) {
-          reject(new Error(`A ship named "${shipDesign.ship.name}" already exists. Please choose a different name.`));
+          const err = new Error(`A ship named "${shipDesign.ship.name}" already exists. Please choose a different name.`);
+          logger.error(err.message);
+          reject(err);
           return;
         }
-        
+
         // Name is unique, proceed with saving
         const now = new Date();
         const shipToSave = {
@@ -154,16 +176,22 @@ class DatabaseService {
         };
 
         const request = store.add(shipToSave);
-        
+
         request.onerror = () => {
           // Handle the case where the unique constraint fails at the database level
           if (request.error?.name === 'ConstraintError') {
-            reject(new Error(`A ship named "${shipDesign.ship.name}" already exists. Please choose a different name.`));
+            const err = new Error(`A ship named "${shipDesign.ship.name}" already exists. Please choose a different name.`);
+            logger.error(err.message);
+            reject(err);
           } else {
+            logger.error(`Failed to save ship "${shipDesign.ship.name}"`, request.error);
             reject(request.error);
           }
         };
-        request.onsuccess = () => resolve(request.result as number);
+        request.onsuccess = () => {
+          logger.info(`Ship "${shipDesign.ship.name}" saved with id ${request.result}`);
+          resolve(request.result as number);
+        };
       };
     });
   }
@@ -171,16 +199,21 @@ class DatabaseService {
   async updateShip(id: number, shipDesign: ShipDesign): Promise<void> {
     if (!this.db) throw new Error('Database not initialized');
 
+    logger.info(`Updating ship id=${id} "${shipDesign.ship.name}"`);
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction(['ships'], 'readwrite');
       const store = transaction.objectStore('ships');
-      
+
       const getRequest = store.get(id);
-      
-      getRequest.onerror = () => reject(getRequest.error);
+
+      getRequest.onerror = () => {
+        logger.error(`Failed to fetch ship id=${id} for update`, getRequest.error);
+        reject(getRequest.error);
+      };
       getRequest.onsuccess = () => {
         const existingShip = getRequest.result;
         if (!existingShip) {
+          logger.error(`Update failed: ship id=${id} not found`);
           reject(new Error('Ship not found'));
           return;
         }
@@ -190,13 +223,18 @@ class DatabaseService {
           const nameIndex = store.index('name');
           const checkRequest = nameIndex.get(shipDesign.ship.name);
           
-          checkRequest.onerror = () => reject(checkRequest.error);
+          checkRequest.onerror = () => {
+            logger.error(`Failed to check name "${shipDesign.ship.name}" during update`, checkRequest.error);
+            reject(checkRequest.error);
+          };
           checkRequest.onsuccess = () => {
             if (checkRequest.result) {
-              reject(new Error(`A ship named "${shipDesign.ship.name}" already exists. Please choose a different name.`));
+              const err = new Error(`A ship named "${shipDesign.ship.name}" already exists. Please choose a different name.`);
+              logger.error(err.message);
+              reject(err);
               return;
             }
-            
+
             // Name is unique, proceed with update
             performUpdate();
           };
@@ -217,12 +255,18 @@ class DatabaseService {
           putRequest.onerror = () => {
             // Handle the case where the unique constraint fails at the database level
             if (putRequest.error?.name === 'ConstraintError') {
-              reject(new Error(`A ship named "${shipDesign.ship.name}" already exists. Please choose a different name.`));
+              const err = new Error(`A ship named "${shipDesign.ship.name}" already exists. Please choose a different name.`);
+              logger.error(err.message);
+              reject(err);
             } else {
+              logger.error(`Failed to update ship id=${id}`, putRequest.error);
               reject(putRequest.error);
             }
           };
-          putRequest.onsuccess = () => resolve();
+          putRequest.onsuccess = () => {
+            logger.info(`Ship id=${id} "${shipDesign.ship.name}" updated`);
+            resolve();
+          };
         }
       };
     });
@@ -231,13 +275,20 @@ class DatabaseService {
   async deleteShip(id: number): Promise<void> {
     if (!this.db) throw new Error('Database not initialized');
 
+    logger.info(`Deleting ship id=${id}`);
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction(['ships'], 'readwrite');
       const store = transaction.objectStore('ships');
       const request = store.delete(id);
 
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => resolve();
+      request.onerror = () => {
+        logger.error(`Failed to delete ship id=${id}`, request.error);
+        reject(request.error);
+      };
+      request.onsuccess = () => {
+        logger.info(`Ship id=${id} deleted`);
+        resolve();
+      };
     });
   }
 
@@ -257,13 +308,20 @@ class DatabaseService {
   async flushAllShips(): Promise<void> {
     if (!this.db) throw new Error('Database not initialized');
 
+    logger.info('Flushing all ships from database');
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction(['ships'], 'readwrite');
       const store = transaction.objectStore('ships');
       const request = store.clear();
 
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => resolve();
+      request.onerror = () => {
+        logger.error('Failed to flush ships', request.error);
+        reject(request.error);
+      };
+      request.onsuccess = () => {
+        logger.info('All ships flushed');
+        resolve();
+      };
     });
   }
 

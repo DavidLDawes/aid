@@ -11,7 +11,7 @@
     "preview": "http-server dist",
     "test": "jest",
     "test:ui": "jest --watch",
-    "test:run": "jest --watchAll=false",
+    "test:run": "jest --watchAll=false --coverage",
     "extractDB": "node scripts/extractDB.mjs",
     "preloadDB": "node scripts/preloadDB.mjs",
     "setInitialDB": "node scripts/setInitialDB.mjs",
