@@ -45,7 +45,7 @@ describe('Database Service', () => {
           await databaseService.deleteShip(ship.id);
         }
       }
-    } catch (error) {
+    } catch {
       // Ignore cleanup errors
     }
   });
@@ -95,6 +95,12 @@ describe('Database Service', () => {
       await expect(databaseService.updateShip(shipId, updatedShip))
         .resolves
         .not.toThrow();
+    });
+
+    it('should reject updating a ship that does not exist', async () => {
+      await expect(databaseService.updateShip(99999, mockShipDesign))
+        .rejects
+        .toThrow('Ship not found');
     });
 
     it('should reject updating a ship to have a duplicate name', async () => {
@@ -264,7 +270,7 @@ describe('Database Service', () => {
       };
 
       // Save the ship (this bypasses cleaning since we're testing loading)
-      const shipId = await databaseService.saveShip(shipWithInvalidCargo as any);
+      const shipId = await databaseService.saveShip(shipWithInvalidCargo as unknown as ShipDesign);
 
       // Load the ship - should have cleaned cargo
       const loadedShip = await databaseService.getShipById(shipId);
@@ -294,8 +300,8 @@ describe('Database Service', () => {
         ]
       };
 
-      await databaseService.saveShip(ship1 as any);
-      await databaseService.saveShip(ship2 as any);
+      await databaseService.saveShip(ship1 as unknown as ShipDesign);
+      await databaseService.saveShip(ship2 as unknown as ShipDesign);
 
       // Load all ships - should have cleaned cargo
       const allShips = await databaseService.getAllShips();

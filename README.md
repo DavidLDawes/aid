@@ -5,9 +5,9 @@ New attempt at a Starship Designer, built with Claude. Using a Wizard UI and Ind
 ## Quick Start
 
 ```bash
-npm install
+pnpm install
 
-npm run dev
+pnpm dev
 ```
 
 The application will be available at `http://localhost:8080`.
@@ -55,8 +55,8 @@ Got it roughly working — output is a table in a web page, a CSV, or a print vi
 
 ## System Requirements
 
-- **Node.js** 22.x
-- **npm** package manager
+- **Node.js** 22+
+- **pnpm** 11+ package manager
 
 ## Installation & Setup
 
@@ -70,13 +70,13 @@ cd aid
 ### 2. Install Dependencies
 
 ```bash
-npm install
+pnpm install
 ```
 
 ### 3. Start the Development Server
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
 IndexedDB is auto-initialized on first run with ships from `public/initial-ships.json`.
@@ -150,19 +150,19 @@ aid/
 
 
 ```bash
-npm install          # Install dependencies
-npm run dev          # Development server on port 8080
-npm run build        # Build for production
-npm preview          # Preview production build
-npm run lint         # Lint source files
-npm run test:run     # Run tests once (CI)
-npm test             # Run tests in watch mode
+pnpm install         # Install dependencies
+pnpm dev             # Development server on port 8080
+pnpm build           # Build for production
+pnpm preview         # Preview production build
+pnpm lint            # Lint source files
+pnpm test:run        # Run tests once (CI)
+pnpm test            # Run tests in watch mode
 
 # Database management
-npm run extractDB    # Export ships from IndexedDB to JSON files
-npm run preloadDB    # Import ships from JSON files to IndexedDB
-npm run flushDB      # Clear all ships from IndexedDB
-npm run setInitialDB # Reset DB to initial state
+pnpm extractDB       # Export ships from IndexedDB to JSON files
+pnpm preloadDB       # Import ships from JSON files to IndexedDB
+pnpm flushDB         # Clear all ships from IndexedDB
+pnpm setInitialDB    # Reset DB to initial state
 ```
 
 ## Engine Performance Data
@@ -179,9 +179,9 @@ Uses IndexedDB for browser-local persistence — no backend server required.
 On startup, if no ships are in the DB, the contents of `public/initial-ships.json` are loaded automatically.
 
 ```bash
-npm run extractDB    # copies ships from the DB to JSON files
-npm run preloadDB    # loads JSON files into the ships DB
-npm run flushDB      # removes all ships from the DB
+pnpm extractDB       # copies ships from the DB to JSON files
+pnpm preloadDB       # loads JSON files into the ships DB
+pnpm flushDB         # removes all ships from the DB
 ```
 
 ## Technology Stack
@@ -190,19 +190,20 @@ npm run flushDB      # removes all ships from the DB
 - **Webpack 5** with webpack-dev-server
 - **Jest** for testing
 - **IndexedDB** for browser-local persistence
-- **Node.js 22.x**
+- **Node.js 22+**
+- **pnpm 11+**
 
 ## Troubleshooting
 
 1. **Port Already in Use**: Port 8080 is configured in `webpack.config.cjs`
-2. **Module Not Found**: Run `npm install`; clear cache with `npm cache clean --force`
+2. **Module Not Found**: Run `pnpm install`; clear cache with `pnpm store prune`
 3. **Database Issues**: Browser DevTools → Application → IndexedDB → StarshipDesignerDB
 
 ## Contributing
 
 1. Create a feature branch
 2. Make your changes
-3. Run `npm run test:run` to verify all tests pass
+3. Run `pnpm test:run` to verify all tests pass
 4. Submit a pull request
 
 ## License

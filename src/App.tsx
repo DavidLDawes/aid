@@ -3,6 +3,7 @@ import type { ShipDesign, MassCalculation, CostCalculation, StaffRequirements } 
 import { calculateTotalFuelMass, calculateVehicleServiceStaff, calculateDroneServiceStaff, calculateMedicalStaff, WEAPON_TYPES } from './data/constants';
 import { databaseService } from './services/database';
 import { generateShipPrintContent } from './utils/printContent';
+import { logger } from './utils/logger';
 import SelectShipPanel from './components/SelectShipPanel';
 import ShipPanel from './components/ShipPanel';
 import EnginesPanel from './components/EnginesPanel';
@@ -58,10 +59,11 @@ function App() {
   }, []);
 
   const checkExistingShips = async () => {
+    logger.info('Initializing database');
     try {
       await databaseService.initialize();
     } catch (error) {
-      console.error('Error initializing database:', error);
+      logger.error('Error initializing database', error);
     }
   };
 
@@ -71,15 +73,18 @@ function App() {
       return;
     }
 
+    logger.info(`Saving ship "${shipDesign.ship.name}"`);
     try {
       await databaseService.saveShip(shipDesign);
+      logger.info(`Ship "${shipDesign.ship.name}" saved`);
     } catch (error) {
-      console.error('Error saving ship:', error);
+      logger.error(`Failed to save ship "${shipDesign.ship.name}"`, error);
       alert(error instanceof Error ? error.message : 'Failed to save ship design. Please try again.');
     }
   }, [shipDesign]);
 
   const handleFileSaveWithName = useCallback(async (newName: string) => {
+    logger.info(`Saving ship as "${newName}"`);
     try {
       const modifiedShipDesign = {
         ...shipDesign,
@@ -87,8 +92,9 @@ function App() {
       };
       await databaseService.saveShip(modifiedShipDesign);
       setShipDesign(modifiedShipDesign);
+      logger.info(`Ship saved as "${newName}"`);
     } catch (error) {
-      console.error('Error saving ship:', error);
+      logger.error(`Failed to save ship as "${newName}"`, error);
       alert(error instanceof Error ? error.message : 'Failed to save ship design. Please try again.');
     }
   }, [shipDesign]);
@@ -101,6 +107,7 @@ function App() {
   }, [shipDesign.ship.name, handleFileSaveWithName]);
 
   const handleFilePrint = useCallback(() => {
+    logger.info(`Printing ship "${shipDesign.ship.name}"`);
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
@@ -143,6 +150,7 @@ function App() {
   }, [showSelectShip, handleFileSave, handleFileSaveAs, handleFilePrint]);
 
   const handleRuleChange = useCallback((ruleId: string, enabled: boolean) => {
+    logger.info(`Rule "${ruleId}" ${enabled ? 'enabled' : 'disabled'}`);
     setActiveRules(prevRules => {
       const newRules = new Set(prevRules);
       if (enabled) {
@@ -351,12 +359,14 @@ function App() {
 
   const nextPanel = (mass: MassCalculation) => {
     if (canAdvance(mass) && currentPanel < PANELS.length - 1) {
+      logger.info(`Advancing to panel ${currentPanel + 1}: ${PANELS[currentPanel + 1]}`);
       setCurrentPanel(currentPanel + 1);
     }
   };
 
   const prevPanel = () => {
     if (currentPanel > 0) {
+      logger.info(`Returning to panel ${currentPanel - 1}: ${PANELS[currentPanel - 1]}`);
       setCurrentPanel(currentPanel - 1);
     }
   };
@@ -366,25 +376,29 @@ function App() {
   };
 
   const handleNewShip = () => {
+    logger.info('Starting new ship design');
     setShowSelectShip(false);
     setCurrentPanel(0);
   };
 
   const handleLoadShip = async (loadedShipDesign: ShipDesign) => {
+    logger.info(`Loading ship "${loadedShipDesign.ship.name}"`);
+
     // Clean up non-standard weapons
     const knownWeaponNames = WEAPON_TYPES.map(wt => wt.name);
     const standardWeapons = loadedShipDesign.weapons.filter(weapon =>
       knownWeaponNames.includes(weapon.weapon_name)
     );
-    
+
     // Check if any weapons were removed
     const removedWeapons = loadedShipDesign.weapons.filter(weapon =>
       !knownWeaponNames.includes(weapon.weapon_name)
     );
-    
+
     let cleanedShipDesign = loadedShipDesign;
-    
+
     if (removedWeapons.length > 0) {
+      logger.info(`Removed ${removedWeapons.length} non-standard weapon(s) from "${loadedShipDesign.ship.name}"`);
       cleanedShipDesign = {
         ...loadedShipDesign,
         weapons: standardWeapons
@@ -393,16 +407,18 @@ function App() {
       try {
         await databaseService.saveOrUpdateShipByName(cleanedShipDesign);
       } catch (error) {
-        console.error('Error saving cleaned ship design:', error);
+        logger.error(`Failed to save cleaned ship design for "${loadedShipDesign.ship.name}"`, error);
       }
     }
-    
+
     setShipDesign(cleanedShipDesign);
     setShowSelectShip(false);
     setCurrentPanel(0);
+    logger.info(`Ship "${loadedShipDesign.ship.name}" loaded, entering Ship panel`);
   };
 
   const handleBackToShipSelect = () => {
+    logger.info('Returning to ship select');
     setShowSelectShip(true);
     setCurrentPanel(0);
   };

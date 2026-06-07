@@ -10,6 +10,15 @@ if (typeof structuredClone === 'undefined') {
 
 import 'fake-indexeddb/auto'
 
+// Suppress INFO logs in tests to keep output readable; ERROR stays visible
+beforeAll(() => {
+  jest.spyOn(console, 'info').mockImplementation(() => {});
+});
+
+afterAll(() => {
+  jest.restoreAllMocks();
+});
+
 beforeEach(() => {
   // Reset any global state between tests if needed
 })
