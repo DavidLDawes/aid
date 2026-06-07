@@ -49,6 +49,11 @@ function buildTableRows(
     rows.push(row(i === 0 ? 'Engines' : '', `${name} ${code}-${engine.performance}`, engine.mass, engine.cost));
   });
 
+  // Fuel
+  if (mass.fuelMass > 0) {
+    rows.push(row('Fuel', `Fuel (${shipDesign.ship.fuel_weeks} weeks)`, mass.fuelMass, 0));
+  }
+
   // Fittings
   let fittingIdx = 0;
   const hasBridge = shipDesign.fittings.some(f => f.fitting_type === 'bridge');
@@ -137,14 +142,18 @@ function buildTableRows(
   </tr>`);
 
   // Crew summary
-  const crewTotal = combinePilotNavigator && noStewards
+  const isSmallShip = shipDesign.ship.tonnage >= 100 && shipDesign.ship.tonnage <= 200;
+  const applyCombine = combinePilotNavigator && isSmallShip;
+  const applyNoStewards = noStewards && isSmallShip;
+
+  const crewTotal = applyCombine && applyNoStewards
     ? staff.total - 1 - staff.stewards
-    : combinePilotNavigator ? staff.total - 1
-    : noStewards ? staff.total - staff.stewards
+    : applyCombine ? staff.total - 1
+    : applyNoStewards ? staff.total - staff.stewards
     : staff.total;
 
   const crewRows: string[] = [];
-  if (combinePilotNavigator) {
+  if (applyCombine) {
     crewRows.push('<tr><td><strong>Crew</strong></td><td>Pilot/Navigator</td><td>1</td><td></td></tr>');
   } else {
     crewRows.push('<tr><td><strong>Crew</strong></td><td>Pilot</td><td>1</td><td></td></tr>');
@@ -153,7 +162,7 @@ function buildTableRows(
   crewRows.push(`<tr><td></td><td>Engineers</td><td>${staff.engineers}</td><td></td></tr>`);
   if (staff.gunners > 0) crewRows.push(`<tr><td></td><td>Gunners</td><td>${staff.gunners}</td><td></td></tr>`);
   if (staff.service > 0) crewRows.push(`<tr><td></td><td>Service Staff</td><td>${staff.service}</td><td></td></tr>`);
-  if (!noStewards && staff.stewards > 0) crewRows.push(`<tr><td></td><td>Stewards</td><td>${staff.stewards}</td><td></td></tr>`);
+  if (!applyNoStewards && staff.stewards > 0) crewRows.push(`<tr><td></td><td>Stewards</td><td>${staff.stewards}</td><td></td></tr>`);
   if (staff.nurses > 0) crewRows.push(`<tr><td></td><td>Nurses</td><td>${staff.nurses}</td><td></td></tr>`);
   if (staff.surgeons > 0) crewRows.push(`<tr><td></td><td>Surgeons</td><td>${staff.surgeons}</td><td></td></tr>`);
   if (staff.techs > 0) crewRows.push(`<tr><td></td><td>Medical Techs</td><td>${staff.techs}</td><td></td></tr>`);

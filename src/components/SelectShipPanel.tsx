@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { databaseService, type StoredShipDesign } from '../services/database';
 import { initialDataService } from '../services/initialDataService';
 import type { ShipDesign } from '../types/ship';
+import { logger } from '../utils/logger';
 
 interface SelectShipPanelProps {
   onNewShip: () => void;
@@ -119,41 +120,37 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPan
   };
 
   const loadShips = async () => {
+    logger.info('Loading ships from database');
     try {
       setLoading(true);
       setError(null);
       await databaseService.initialize();
       let savedShips = await databaseService.getAllShips();
-      console.log('SelectShipPanel loaded ships from database:', savedShips.length);
-      
-      // If no ships exist, try to load initial data
+      logger.info(`Loaded ${savedShips.length} ship(s) from database`);
+
       if (savedShips.length === 0) {
-        console.log('No ships in database, attempting to load initial ships...');
+        logger.info('No ships found, attempting to load initial data');
         const loaded = await initialDataService.loadInitialDataIfNeeded();
-        console.log('Initial data loading result:', loaded);
-        
+        logger.info(`Initial data load result: ${loaded}`);
+
         if (loaded) {
-          // Try to get ships again after loading
           savedShips = await databaseService.getAllShips();
-          console.log('After loading initial data, ships count:', savedShips.length);
+          logger.info(`After initial load: ${savedShips.length} ship(s) available`);
         }
-        
-        // Final fallback: if still no ships, use hardcoded defaults
+
         if (savedShips.length === 0) {
-          console.log('⚠️ All ship loading methods failed, using hardcoded default ships');
+          logger.info('All load methods failed, using hardcoded default ships');
           savedShips = createDefaultShips();
         }
       }
-      
+
       setShips(savedShips);
-      console.log('Final ships array set:', savedShips.length, savedShips.map(s => s.ship.name));
+      logger.info(`Ship list ready: ${savedShips.map(s => s.ship.name).join(', ')}`);
     } catch (err) {
-      console.error('SelectShipPanel error during ship loading:', err);
-      // Final emergency fallback
-      console.log('🚨 Emergency fallback: using hardcoded ships due to error');
+      logger.error('Error during ship loading, falling back to hardcoded defaults', err);
       const defaultShips = createDefaultShips();
       setShips(defaultShips);
-      setError(null); // Clear error since we have fallback ships
+      setError(null);
     } finally {
       setLoading(false);
     }
@@ -162,30 +159,30 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPan
   const handleLoadSelectedShip = async () => {
     if (!selectedShipId) return;
 
+    logger.info(`Loading ship id=${selectedShipId}`);
     try {
-      // Check if this is a hardcoded ship (negative ID)
       if (selectedShipId < 0) {
         const ship = ships.find(s => s.id === selectedShipId);
         if (ship) {
-          console.log('Loading hardcoded ship:', ship.ship.name);
-          // Remove database-specific fields before passing to parent
+          logger.info(`Loading hardcoded default ship "${ship.ship.name}"`);
           const { id: _id, createdAt: _createdAt, updatedAt: _updatedAt, ...shipDesign } = ship;
           onLoadShip(shipDesign);
           return;
         }
       }
 
-      // Regular database ship loading
       const ship = await databaseService.getShipById(selectedShipId);
       if (ship) {
-        console.log('Loading database ship:', ship.ship.name);
-        // Remove database-specific fields before passing to parent
+        logger.info(`Loading database ship "${ship.ship.name}" (${ship.ship.tonnage} tons, TL${ship.ship.tech_level})`);
         const { id: _id, createdAt: _createdAt, updatedAt: _updatedAt, ...shipDesign } = ship;
         onLoadShip(shipDesign);
+      } else {
+        logger.error(`Ship id=${selectedShipId} not found in database`);
+        setError('Selected ship not found');
       }
     } catch (err) {
+      logger.error(`Failed to load ship id=${selectedShipId}`, err);
       setError('Failed to load selected ship');
-      console.error('Load ship error:', err);
     }
   };
 

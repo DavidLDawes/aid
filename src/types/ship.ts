@@ -113,6 +113,7 @@ export interface MassCalculation {
   used: number;
   remaining: number;
   isOverweight: boolean;
+  fuelMass: number;
 }
 
 export interface CostCalculation {
