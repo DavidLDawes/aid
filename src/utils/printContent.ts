@@ -159,14 +159,20 @@ export function generateShipPrintContent(
     `<td><strong>${cost.total.toFixed(2)} MCr</strong></td></tr>`
   );
 
-  const adjustedTotal = combinePilotNavigator && noStewards
+  // Pilot/Navigator combining and steward removal only apply to small ships (100-200 tons),
+  // matching App.calculateAdjustedCrewCount so the printout agrees with the on-screen totals.
+  const isSmallShip = shipDesign.ship.tonnage >= 100 && shipDesign.ship.tonnage <= 200;
+  const applyCombine = combinePilotNavigator && isSmallShip;
+  const applyNoStewards = noStewards && isSmallShip;
+
+  const adjustedTotal = applyCombine && applyNoStewards
     ? staff.total - 1 - staff.stewards
-    : combinePilotNavigator ? staff.total - 1
-    : noStewards ? staff.total - staff.stewards
+    : applyCombine ? staff.total - 1
+    : applyNoStewards ? staff.total - staff.stewards
     : staff.total;
 
   const crewLines: string[] = [];
-  if (combinePilotNavigator) {
+  if (applyCombine) {
     crewLines.push('<p><strong>Pilot/Navigator:</strong> 1</p>');
   } else {
     crewLines.push(`<p><strong>Pilot:</strong> ${staff.pilot}</p>`);
@@ -175,11 +181,15 @@ export function generateShipPrintContent(
   crewLines.push(`<p><strong>Engineers:</strong> ${staff.engineers}</p>`);
   if (staff.gunners > 0) crewLines.push(`<p><strong>Gunners:</strong> ${staff.gunners}</p>`);
   if (staff.service > 0) crewLines.push(`<p><strong>Service Staff:</strong> ${staff.service}</p>`);
-  crewLines.push(`<p><strong>Stewards:</strong> ${noStewards ? 0 : staff.stewards}</p>`);
+  crewLines.push(`<p><strong>Stewards:</strong> ${applyNoStewards ? 0 : staff.stewards}</p>`);
   if (staff.nurses > 0) crewLines.push(`<p><strong>Nurses:</strong> ${staff.nurses}</p>`);
   if (staff.surgeons > 0) crewLines.push(`<p><strong>Surgeons:</strong> ${staff.surgeons}</p>`);
   if (staff.techs > 0) crewLines.push(`<p><strong>Medical Techs:</strong> ${staff.techs}</p>`);
   crewLines.push(`<p><strong>Total Crew:</strong> ${adjustedTotal}</p>`);
+
+  const nonStandardNotice = shipDesign.ship.tonnage < 3000
+    ? '<p class="nonstandard-notice"><em>Non-standard capital ship design &lt; 3,000 tons</em></p>'
+    : '';
 
   return `<!DOCTYPE html>
 <html>
@@ -194,6 +204,7 @@ export function generateShipPrintContent(
       .category-cell { font-weight: bold; }
       .totals-row { border-top: 2px solid #000; font-weight: bold; }
       .totals-row td { background-color: #f8f8f8; }
+      .nonstandard-notice { color: #c0392b; font-style: italic; margin-top: 1.5rem; }
       @media print { body { margin: 0; } table { page-break-inside: avoid; } }
     </style>
   </head>
@@ -207,6 +218,7 @@ export function generateShipPrintContent(
       <h3>Crew</h3>
       ${crewLines.join('')}
     </div>
+    ${nonStandardNotice}
   </body>
 </html>`;
 }

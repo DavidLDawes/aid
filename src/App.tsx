@@ -57,7 +57,7 @@ function App() {
 
     logger.info(`Saving ship "${shipDesign.ship.name}"`);
     try {
-      await databaseService.saveShip(shipDesign);
+      await databaseService.saveOrUpdateShipByName(shipDesign);
       logger.info('Ship saved');
     } catch (error) {
       logger.error('Error saving ship', error);
@@ -91,7 +91,11 @@ function App() {
   const handleFilePrint = useCallback(() => {
     logger.info(`Printing ship "${shipDesign.ship.name}"`);
     const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
+    if (!printWindow) {
+      logger.error('Print window was blocked by the browser');
+      alert('Unable to open the print window. Please allow pop-ups for this site and try again.');
+      return;
+    }
 
     const mass = calculateMass();
     const cost = calculateCost();
@@ -101,8 +105,10 @@ function App() {
     printWindow.document.write(printContent);
     printWindow.document.close();
     printWindow.focus();
+    // Close the window only after printing finishes; closing synchronously after
+    // print() can tear the window down before the dialog/render completes in some browsers.
+    printWindow.addEventListener('afterprint', () => printWindow.close());
     printWindow.print();
-    printWindow.close();
   }, [shipDesign, combinePilotNavigator, noStewards, activeRules]);
 
   // Global keyboard shortcuts for file operations
@@ -296,7 +302,7 @@ function App() {
   };
 
   const calculateAdjustedCrewCount = (staffRequirements: StaffRequirements): number => {
-    const isSmallShip = shipDesign.ship.tonnage === 100 || shipDesign.ship.tonnage === 200;
+    const isSmallShip = shipDesign.ship.tonnage >= 100 && shipDesign.ship.tonnage <= 200;
     if (!isSmallShip) return staffRequirements.total;
 
     return combinePilotNavigator && noStewards

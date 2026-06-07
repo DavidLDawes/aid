@@ -31,7 +31,11 @@
       "Read(//c/Users/**)",
       "Bash(node_modules\\\\.bin\\\\jest.cmd --no-coverage)",
       "Bash(node_modules\\\\.bin\\\\webpack.cmd --mode development)",
-      "Bash(Remove-Item *)"
+      "Bash(Remove-Item *)",
+      "Bash(pnpm lint *)",
+      "Bash(pnpm build *)",
+      "Bash(pnpm test:run)",
+      "Bash(git -C \"C:\\\\Users\\\\david\\\\play\\\\aid\" ls-files \"src/*.js\")"
     ],
     "deny": []
   }
