@@ -14,7 +14,7 @@ jest.mock('./database', () => ({
 }));
 
 // Mock fetch
-(globalThis as any).fetch = jest.fn();
+global.fetch = jest.fn() as unknown as typeof fetch;
 
 describe('Initial Data Service', () => {
   const mockShipDesign: ShipDesign = createEmptyShipDesign({
@@ -40,10 +40,10 @@ describe('Initial Data Service', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     // Default mock implementations
-    (databaseService.initialize as any).mockResolvedValue(undefined);
-    (databaseService.hasAnyShips as any).mockResolvedValue(false);
-    (databaseService.saveOrUpdateShipByName as any).mockResolvedValue(1);
-    (globalThis.fetch as any).mockResolvedValue({
+    (databaseService.initialize as jest.Mock).mockResolvedValue(undefined);
+    (databaseService.hasAnyShips as jest.Mock).mockResolvedValue(false);
+    (databaseService.saveOrUpdateShipByName as jest.Mock).mockResolvedValue(1);
+    (global.fetch as jest.Mock).mockResolvedValue({
       ok: true,
       json: () => Promise.resolve(mockInitialData)
     });
@@ -55,18 +55,18 @@ describe('Initial Data Service', () => {
 
   describe('loadInitialDataIfNeeded', () => {
     it('should return false if database already has ships', async () => {
-      (databaseService.hasAnyShips as any).mockResolvedValue(true);
+      (databaseService.hasAnyShips as jest.Mock).mockResolvedValue(true);
 
       const result = await initialDataService.loadInitialDataIfNeeded();
 
       expect(result).toBe(false);
       expect(databaseService.initialize).toHaveBeenCalled();
       expect(databaseService.hasAnyShips).toHaveBeenCalled();
-      expect(globalThis.fetch).not.toHaveBeenCalled();
+      expect(global.fetch).not.toHaveBeenCalled();
     });
 
     it('should return false if no initial data is available', async () => {
-      (globalThis.fetch as any).mockResolvedValue({
+      (global.fetch as jest.Mock).mockResolvedValue({
         ok: false,
         status: 404
       });
@@ -76,13 +76,13 @@ describe('Initial Data Service', () => {
       expect(result).toBe(false);
       expect(databaseService.initialize).toHaveBeenCalled();
       expect(databaseService.hasAnyShips).toHaveBeenCalled();
-      expect(globalThis.fetch).toHaveBeenCalled();
+      expect(global.fetch).toHaveBeenCalled();
       expect(databaseService.saveOrUpdateShipByName).not.toHaveBeenCalled();
     });
 
     it('should return false if initial data has no ships', async () => {
       const emptyData = { ...mockInitialData, ships: [] };
-      (globalThis.fetch as any).mockResolvedValue({
+      (global.fetch as jest.Mock).mockResolvedValue({
         ok: true,
         json: () => Promise.resolve(emptyData)
       });
@@ -99,7 +99,7 @@ describe('Initial Data Service', () => {
       expect(result).toBe(true);
       expect(databaseService.initialize).toHaveBeenCalled();
       expect(databaseService.hasAnyShips).toHaveBeenCalled();
-      expect(globalThis.fetch).toHaveBeenCalled();
+      expect(global.fetch).toHaveBeenCalled();
       expect(databaseService.saveOrUpdateShipByName).toHaveBeenCalledTimes(1);
       
       // Should call saveOrUpdateShipByName with ship data without metadata
@@ -107,7 +107,7 @@ describe('Initial Data Service', () => {
     });
 
     it('should handle errors during ship loading', async () => {
-      (databaseService.saveOrUpdateShipByName as any).mockRejectedValue(new Error('Save failed'));
+      (databaseService.saveOrUpdateShipByName as jest.Mock).mockRejectedValue(new Error('Save failed'));
       
       // Mock console.error to suppress error output during tests
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
@@ -122,7 +122,7 @@ describe('Initial Data Service', () => {
     });
 
     it('should handle fetch errors gracefully', async () => {
-      (globalThis.fetch as any).mockRejectedValue(new Error('Network error'));
+      (global.fetch as jest.Mock).mockRejectedValue(new Error('Network error'));
       
       // Mock console.error to suppress error output during tests
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
@@ -141,11 +141,11 @@ describe('Initial Data Service', () => {
       const result = await initialDataService.hasInitialData();
 
       expect(result).toBe(true);
-      expect(globalThis.fetch).toHaveBeenCalled();
+      expect(global.fetch).toHaveBeenCalled();
     });
 
     it('should return false if initial data is not available', async () => {
-      (globalThis.fetch as any).mockResolvedValue({
+      (global.fetch as jest.Mock).mockResolvedValue({
         ok: false,
         status: 404
       });
@@ -157,7 +157,7 @@ describe('Initial Data Service', () => {
 
     it('should return false if initial data has no ships', async () => {
       const emptyData = { ...mockInitialData, ships: [] };
-      (globalThis.fetch as any).mockResolvedValue({
+      (global.fetch as jest.Mock).mockResolvedValue({
         ok: true,
         json: () => Promise.resolve(emptyData)
       });
@@ -168,7 +168,7 @@ describe('Initial Data Service', () => {
     });
 
     it('should handle fetch errors gracefully', async () => {
-      (globalThis.fetch as any).mockRejectedValue(new Error('Network error'));
+      (global.fetch as jest.Mock).mockRejectedValue(new Error('Network error'));
 
       const result = await initialDataService.hasInitialData();
 

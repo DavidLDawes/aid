@@ -1,5 +1,6 @@
 import { describe, it, expect } from '@jest/globals';
 import { cleanInvalidCargo } from './constants';
+import type { Cargo } from '../types/ship';
 
 describe('Cargo Cleanup', () => {
   describe('cleanInvalidCargo', () => {
@@ -8,7 +9,7 @@ describe('Cargo Cleanup', () => {
         { cargo_type: 'cargo_bay', tonnage: 50, cost: 0 },
         { cargo_type: 'standard', tonnage: 20, cost: 0 }, // Invalid type
         { cargo_type: 'spares', tonnage: 5, cost: 2.5 },
-      ];
+      ] as Cargo[];
 
       const result = cleanInvalidCargo(cargo);
 
@@ -32,7 +33,7 @@ describe('Cargo Cleanup', () => {
     });
 
     it('should handle empty cargo array', () => {
-      const cargo: any[] = [];
+      const cargo: Cargo[] = [];
 
       const result = cleanInvalidCargo(cargo);
 
@@ -64,7 +65,7 @@ describe('Cargo Cleanup', () => {
         { cargo_type: 'spares', tonnage: 0, cost: 0 }, // Zero tonnage
         { cargo_type: 'invalid_type', tonnage: 10, cost: 1 }, // Invalid type
         { cargo_type: 'cold_storage_bay', tonnage: 5, cost: 1 }, // Valid
-      ];
+      ] as Cargo[];
 
       const result = cleanInvalidCargo(cargo);
 

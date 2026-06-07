@@ -13,31 +13,31 @@ When you spend time searching for commands to typecheck, lint, build, or test, y
 
 ```bash
 # Install dependencies
-npm install
+pnpm install
 
 # Development server (runs on port 8080)
-npm run dev
+pnpm dev
 
 # Build for production
-npm run build
+pnpm build
 
 # Preview production build
-npm preview
+pnpm preview
 
 # Linting
-npm run lint
+pnpm lint
 
 # Testing
-npm test                # Run tests in watch mode
-npm run test:ui         # Run tests with UI
-npm run test:run        # Run tests once (used in CI)
+pnpm test               # Run tests in watch mode
+pnpm test:ui            # Run tests with UI
+pnpm test:run           # Run tests once (used in CI)
 
 # Database management
-npm run extractDB       # Export ships from IndexedDB to JSON files
-npm run preloadDB       # Import ships from JSON files to IndexedDB
-npm run flushDB         # Clear all ships from IndexedDB
-npm run setInitialDB    # Reset DB to initial state
-npm run apply-feature   # Apply feature branches to ships
+pnpm extractDB          # Export ships from IndexedDB to JSON files
+pnpm preloadDB          # Import ships from JSON files to IndexedDB
+pnpm flushDB            # Clear all ships from IndexedDB
+pnpm setInitialDB       # Reset DB to initial state
+pnpm apply-feature      # Apply feature branches to ships
 ```
 
 ## Project Directory Structure
