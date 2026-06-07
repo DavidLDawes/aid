@@ -102,14 +102,14 @@ export function generateShipPrintContent(shipDesign, mass, cost, staff, combineP
     // Vehicles
     shipDesign.vehicles.filter(v => v.quantity > 0).forEach((vehicle, index) => {
         const vehicleType = VEHICLE_TYPES.find(vt => vt.type === vehicle.vehicle_type);
-        let name = (vehicleType?.name || vehicle.vehicle_type).replace(/\b\d+(\.\d+)?\s+ton\s+/gi, '');
+        const name = (vehicleType?.name || vehicle.vehicle_type).replace(/\b\d+(\.\d+)?\s+ton\s+/gi, '');
         const display = vehicle.quantity === 1 ? name : `${name} (x${vehicle.quantity})`;
         addRow(index === 0 ? 'Vehicles' : '', display, vehicle.mass * vehicle.quantity, vehicle.cost * vehicle.quantity);
     });
     // Drones
     shipDesign.drones.filter(d => d.quantity > 0).forEach((drone, index) => {
         const droneType = DRONE_TYPES.find(dt => dt.type === drone.drone_type);
-        let name = (droneType?.name || drone.drone_type).replace(/\b\d+(\.\d+)?\s+ton\s+/gi, '');
+        const name = (droneType?.name || drone.drone_type).replace(/\b\d+(\.\d+)?\s+ton\s+/gi, '');
         const display = drone.quantity === 1 ? name : `${name} (x${drone.quantity})`;
         addRow(index === 0 ? 'Drones' : '', display, drone.mass * drone.quantity, drone.cost * drone.quantity);
     });

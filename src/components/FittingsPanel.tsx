@@ -95,7 +95,7 @@ const FittingsPanel: React.FC<FittingsPanelProps> = ({ fittings, shipTonnage, sh
 
     newFittings.push({
       fitting_type: 'comms_sensors',
-      comms_sensors_type: sensorType.type as any,
+      comms_sensors_type: sensorType.type as Fitting['comms_sensors_type'],
       mass: sensorType.mass,
       cost: sensorType.cost
     });
@@ -111,7 +111,7 @@ const FittingsPanel: React.FC<FittingsPanelProps> = ({ fittings, shipTonnage, sh
       if (selectedComputer) {
         newFittings.push({
           fitting_type: 'computer',
-          computer_model: computerModel as any,
+          computer_model: computerModel as Fitting['computer_model'],
           mass: 0, // Computers don't take tonnage
           cost: selectedComputer.cost
         });

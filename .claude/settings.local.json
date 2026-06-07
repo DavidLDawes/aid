@@ -30,7 +30,8 @@
       "Bash(cd:*)",
       "Read(//c/Users/**)",
       "Bash(node_modules\\\\.bin\\\\jest.cmd --no-coverage)",
-      "Bash(node_modules\\\\.bin\\\\webpack.cmd --mode development)"
+      "Bash(node_modules\\\\.bin\\\\webpack.cmd --mode development)",
+      "Bash(Remove-Item *)"
     ],
     "deny": []
   }

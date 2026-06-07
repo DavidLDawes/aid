@@ -154,7 +154,7 @@ const WeaponsPanel: React.FC<WeaponsPanelProps> = ({
     const maxAllowed = maxBayWeapons - otherBayWeaponsCount;
     const clampedQuantity = Math.min(validQuantity, maxAllowed);
 
-    let newWeapons = weapons.filter(w => w.weapon_name !== bayWeaponType.name);
+    const newWeapons = weapons.filter(w => w.weapon_name !== bayWeaponType.name);
 
     if (clampedQuantity > 0) {
       newWeapons.push({

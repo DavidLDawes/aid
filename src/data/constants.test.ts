@@ -1,10 +1,15 @@
 import { describe, it, expect } from '@jest/globals';
-import { 
-  getTechLevelIndex, 
-  isTechLevelAtLeast, 
+import {
+  getTechLevelIndex,
+  isTechLevelAtLeast,
   calculateTotalFuelMass,
   calculateJumpFuel,
-  calculateManeuverFuel
+  calculateManeuverFuel,
+  getAvailableEngines,
+  getBridgeMassAndCost,
+  getWeaponMountLimit,
+  convertTechLevelToNumber,
+  getAvailableVehicles,
 } from './constants';
 
 describe('Tech Level Functions', () => {
@@ -211,6 +216,157 @@ describe('Fuel Calculation Functions', () => {
       
       // Check that precision is maintained (no rounding errors)
       expect(antimatterFuel).toBe(normalFuel * 0.1);
+    });
+  });
+});
+
+describe('calculateJumpFuel', () => {
+  it('should return 10% of ship tonnage per jump performance', () => {
+    expect(calculateJumpFuel(200, 1)).toBe(20);
+    expect(calculateJumpFuel(200, 2)).toBe(40);
+    expect(calculateJumpFuel(400, 3)).toBe(120);
+  });
+
+  it('should return 0 for zero jump performance', () => {
+    expect(calculateJumpFuel(200, 0)).toBe(0);
+  });
+});
+
+describe('calculateManeuverFuel', () => {
+  it('should return 1% of ship tonnage × performance × (weeks/2)', () => {
+    // formula: tonnage * 0.01 * performance * (weeks / 2)
+    expect(calculateManeuverFuel(200, 1, 2)).toBe(2);   // 200 * 0.01 * 1 * 1
+    expect(calculateManeuverFuel(200, 2, 2)).toBe(4);   // 200 * 0.01 * 2 * 1
+    expect(calculateManeuverFuel(100, 1, 4)).toBe(2);   // 100 * 0.01 * 1 * 2
+  });
+
+  it('should return 0 for zero performance', () => {
+    expect(calculateManeuverFuel(200, 0, 4)).toBe(0);
+  });
+});
+
+describe('getAvailableEngines', () => {
+  it('should always return performance ratings 1 through maxPerformance', () => {
+    const engines = getAvailableEngines(200, 'power_plant');
+    expect(engines.length).toBeGreaterThan(0);
+    expect(engines[0].performance).toBe(1);
+  });
+
+  it('should return non-empty array for any tonnage', () => {
+    const engines = getAvailableEngines(200, 'power_plant');
+    expect(engines.length).toBeGreaterThan(0);
+  });
+
+  it('should return engines with correct shape', () => {
+    const engines = getAvailableEngines(200, 'power_plant');
+    const e = engines[0];
+    expect(e).toHaveProperty('code');
+    expect(e).toHaveProperty('performance');
+    expect(e).toHaveProperty('mass');
+    expect(e).toHaveProperty('cost');
+    expect(e).toHaveProperty('label');
+  });
+
+  it('should use P- label for power_plant', () => {
+    const engines = getAvailableEngines(200, 'power_plant');
+    expect(engines[0].label).toMatch(/^P-/);
+  });
+
+  it('should use J- label for jump_drive', () => {
+    const engines = getAvailableEngines(200, 'jump_drive');
+    expect(engines[0].label).toMatch(/^J-/);
+  });
+
+  it('should use M- label for maneuver_drive', () => {
+    const engines = getAvailableEngines(200, 'maneuver_drive');
+    expect(engines[0].label).toMatch(/^M-/);
+  });
+
+  it('should filter out drives exceeding powerPlantPerformance for jump/maneuver', () => {
+    const limited = getAvailableEngines(400, 'jump_drive', 2);
+    const unlimited = getAvailableEngines(400, 'jump_drive');
+    expect(limited.length).toBeLessThanOrEqual(unlimited.length);
+    limited.forEach(e => expect(e.performance).toBeLessThanOrEqual(2));
+  });
+
+  it('should NOT filter power_plant by powerPlantPerformance', () => {
+    const filtered = getAvailableEngines(400, 'power_plant', 1);
+    const unfiltered = getAvailableEngines(400, 'power_plant');
+    expect(filtered.length).toBe(unfiltered.length);
+  });
+});
+
+describe('getBridgeMassAndCost', () => {
+  it('should return 10t mass for ships ≤200 tons', () => {
+    expect(getBridgeMassAndCost(200, false)).toEqual({ mass: 10, cost: 5 });
+    expect(getBridgeMassAndCost(100, false)).toEqual({ mass: 10, cost: 5 });
+  });
+
+  it('should return 20t mass for ships 201–1000 tons', () => {
+    expect(getBridgeMassAndCost(1000, false)).toEqual({ mass: 20, cost: 10 });
+    expect(getBridgeMassAndCost(500, false)).toEqual({ mass: 20, cost: 10 });
+  });
+
+  it('should return 40t mass for ships 1001–2000 tons', () => {
+    expect(getBridgeMassAndCost(2000, false)).toEqual({ mass: 40, cost: 20 });
+    expect(getBridgeMassAndCost(1500, false)).toEqual({ mass: 40, cost: 20 });
+  });
+
+  it('should return 60t mass for ships >2000 tons', () => {
+    expect(getBridgeMassAndCost(2001, false)).toEqual({ mass: 60, cost: 30 });
+    expect(getBridgeMassAndCost(5000, false)).toEqual({ mass: 60, cost: 30 });
+  });
+
+  it('should halve mass and use cost = halvedMass * 1.5 for half bridge', () => {
+    expect(getBridgeMassAndCost(200, true)).toEqual({ mass: 5, cost: 7.5 });
+    expect(getBridgeMassAndCost(1000, true)).toEqual({ mass: 10, cost: 15 });
+  });
+});
+
+describe('getWeaponMountLimit', () => {
+  it('should return 1 mount per 100 tons (floored)', () => {
+    expect(getWeaponMountLimit(100)).toBe(1);
+    expect(getWeaponMountLimit(200)).toBe(2);
+    expect(getWeaponMountLimit(500)).toBe(5);
+    expect(getWeaponMountLimit(150)).toBe(1);
+    expect(getWeaponMountLimit(199)).toBe(1);
+  });
+});
+
+describe('convertTechLevelToNumber', () => {
+  it('should convert tech level letters to numbers', () => {
+    expect(convertTechLevelToNumber('A')).toBe(10);
+    expect(convertTechLevelToNumber('B')).toBe(11);
+    expect(convertTechLevelToNumber('C')).toBe(12);
+    expect(convertTechLevelToNumber('H')).toBe(17);
+  });
+
+  it('should map any A-Z letter to charCode offset + 10', () => {
+    // 'Z' is a valid single uppercase letter so returns 35, not 0
+    expect(convertTechLevelToNumber('Z')).toBe(35);
+  });
+
+  it('should return 0 for empty string', () => {
+    expect(convertTechLevelToNumber('')).toBe(0);
+  });
+});
+
+describe('getAvailableVehicles', () => {
+  it('should return an array', () => {
+    expect(Array.isArray(getAvailableVehicles('B'))).toBe(true);
+  });
+
+  it('should return at least as many vehicles at higher TL', () => {
+    const lowTL = getAvailableVehicles('A');
+    const highTL = getAvailableVehicles('H');
+    expect(highTL.length).toBeGreaterThanOrEqual(lowTL.length);
+  });
+
+  it('should only return vehicles within ship tech level', () => {
+    const vehicles = getAvailableVehicles('B');
+    const shipTLNum = convertTechLevelToNumber('B');
+    vehicles.forEach(v => {
+      expect(v.techLevel).toBeLessThanOrEqual(shipTLNum);
     });
   });
 });
