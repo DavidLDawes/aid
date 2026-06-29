@@ -13,8 +13,8 @@ interface Engine {
 
 // Engineering staff calculation function (extracted from App.tsx logic)
 function calculateEngineers(engines: Engine[], shipTonnage: number): number {
-  let engineers = 0;
-  
+  let engineers: number;
+
   if (shipTonnage === 100) {
     engineers = 1;
   } else if (shipTonnage === 200 || shipTonnage === 300) {

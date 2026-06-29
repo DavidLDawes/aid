@@ -182,7 +182,7 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPan
     return [largeLiner, destroyer];
   };
 
-  const loadShips = async () => {
+  async function loadShips() {
     try {
       setLoading(true);
       setError(null);
@@ -208,7 +208,7 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPan
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   const handleLoadSelectedShip = async () => {
     if (!selectedShipId) return;
