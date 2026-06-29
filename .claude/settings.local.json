@@ -29,7 +29,12 @@
       "Bash(docker build:*)",
       "Bash(gh pr *)",
       "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\David Lyman Dawes\\\\play\\\\aid\" -Recurse -Force | Select-Object -Property FullName | ForEach-Object { $_.FullName })",
-      "Bash(node_modules\\\\.bin\\\\jest --no-coverage)"
+      "Bash(node_modules\\\\.bin\\\\jest --no-coverage)",
+      "PowerShell(pnpm *)",
+      "Bash(Get-ChildItem *)",
+      "Bash(node_modules\\\\.bin\\\\tsc.cmd --noEmit)",
+      "PowerShell(node_modules\\\\.bin\\\\tsc.cmd --noEmit 2>&1 | Select-Object -First 60)",
+      "PowerShell(node_modules\\\\.bin\\\\jest.cmd --no-coverage 2>&1 | Select-Object -Last 30)"
     ],
     "deny": []
   }

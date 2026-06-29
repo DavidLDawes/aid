@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { ShipDesign, MassCalculation, CostCalculation, StaffRequirements } from '../types/ship';
 import { COMMS_SENSORS_TYPES, DEFENSE_TYPES, FACILITY_TYPES, CARGO_TYPES, VEHICLE_TYPES, DRONE_TYPES, BERTH_TYPES } from '../data/constants';
 import { databaseService } from '../services/database';
+import { logger } from '../utils/logger';
 
 interface SummaryPanelProps {
   shipDesign: ShipDesign;
@@ -18,9 +19,10 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [showCsvModal, setShowCsvModal] = useState(false);
   const [csvData, setCsvData] = useState<string>('');
-  const [showOverwriteDialog, setShowOverwriteDialog] = useState(false);
-  const [pendingShipName, setPendingShipName] = useState<string>('');
 
+  const isSmallShip = shipDesign.ship.tonnage >= 100 && shipDesign.ship.tonnage <= 200;
+  const applyCombine = combinePilotNavigator && isSmallShip;
+  const applyNoStewards = noStewards && isSmallShip;
 
   const handleSaveDesign = async () => {
     if (!shipDesign.ship.name.trim()) {
@@ -29,54 +31,23 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
       return;
     }
 
+    logger.info(`Saving ship "${shipDesign.ship.name}" (${shipDesign.ship.tonnage} tons) from SummaryPanel`);
     try {
       setSaving(true);
-      setSaveMessage(null);
-      await databaseService.initialize();
-      await databaseService.saveShip(shipDesign);
-      setSaveMessage('Ship design saved successfully!');
-      setTimeout(() => setSaveMessage(null), 3000);
-    } catch (error) {
-      console.error('Error saving ship:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to save ship design. Please try again.';
-      
-      // Check if this is a name collision error
-      if (errorMessage.includes('already exists')) {
-        setPendingShipName(shipDesign.ship.name);
-        setShowOverwriteDialog(true);
-      } else {
-        setSaveMessage(errorMessage);
-        setTimeout(() => setSaveMessage(null), 5000);
-      }
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleOverwriteConfirm = async () => {
-    try {
-      setSaving(true);
-      setShowOverwriteDialog(false);
       setSaveMessage(null);
       await databaseService.initialize();
       await databaseService.saveOrUpdateShipByName(shipDesign);
+      logger.info(`Ship "${shipDesign.ship.name}" saved successfully`);
       setSaveMessage('Ship design saved successfully!');
       setTimeout(() => setSaveMessage(null), 3000);
     } catch (error) {
-      console.error('Error overwriting ship:', error);
+      logger.error(`Failed to save ship "${shipDesign.ship.name}"`, error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to save ship design. Please try again.';
       setSaveMessage(errorMessage);
       setTimeout(() => setSaveMessage(null), 5000);
     } finally {
       setSaving(false);
-      setPendingShipName('');
     }
-  };
-
-  const handleOverwriteCancel = () => {
-    setShowOverwriteDialog(false);
-    setPendingShipName('');
-    setSaving(false);
   };
 
   const generateCsvData = () => {
@@ -103,7 +74,7 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
       const performanceCode = engine.engine_type === 'power_plant' ? 'P' :
                             engine.engine_type === 'jump_drive' ? 'J' :
                             'M';
-      
+
       allRows.push({
         category: index === 0 ? 'Engines' : '',
         item: `${engineName} ${performanceCode}-${engine.performance}`,
@@ -111,7 +82,17 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
         cost: engine.cost
       });
     });
-    
+
+    // Fuel
+    if (mass.fuelMass > 0) {
+      allRows.push({
+        category: 'Fuel',
+        item: `Fuel (${shipDesign.ship.fuel_weeks} weeks)`,
+        mass: mass.fuelMass,
+        cost: 0
+      });
+    }
+
     // Fittings
     let fittingRowIndex = 0;
     const hasBridge = shipDesign.fittings.some(f => f.fitting_type === 'bridge');
@@ -291,6 +272,7 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
   };
 
   const handleCsvExport = () => {
+    logger.info(`Generating CSV export for "${shipDesign.ship.name}"`);
     const csvContent = generateCsvData();
     setCsvData(csvContent);
     setShowCsvModal(true);
@@ -339,6 +321,16 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
               });
             })()}
             
+            {/* Fuel */}
+            {mass.fuelMass > 0 && (
+              <tr key="fuel">
+                <td>Fuel</td>
+                <td>Fuel ({shipDesign.ship.fuel_weeks} weeks)</td>
+                <td>{mass.fuelMass.toFixed(1)} tons</td>
+                <td></td>
+              </tr>
+            )}
+
             {/* Fittings */}
             {(() => {
               const rows: React.ReactElement[] = [];
@@ -630,7 +622,7 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
       
       <div className="summary-section">
         <h4>Crew</h4>
-        {combinePilotNavigator ? (
+        {applyCombine ? (
           <p><strong>Pilot/Navigator:</strong> 1</p>
         ) : (
           <>
@@ -641,16 +633,16 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
         <p><strong>Engineers:</strong> {staff.engineers}</p>
         {staff.gunners > 0 && <p><strong>Gunners:</strong> {staff.gunners}</p>}
         {staff.service > 0 && <p><strong>Service Staff:</strong> {staff.service}</p>}
-        <p><strong>Stewards:</strong> {noStewards ? 0 : staff.stewards}</p>
+        {!applyNoStewards && <p><strong>Stewards:</strong> {staff.stewards}</p>}
         {staff.nurses > 0 && <p><strong>Nurses:</strong> {staff.nurses}</p>}
         {staff.surgeons > 0 && <p><strong>Surgeons:</strong> {staff.surgeons}</p>}
         {staff.techs > 0 && <p><strong>Medical Techs:</strong> {staff.techs}</p>}
         <p><strong>Total:</strong> {
-          combinePilotNavigator && noStewards
+          applyCombine && applyNoStewards
             ? staff.total - 1 - staff.stewards
-            : combinePilotNavigator 
-              ? staff.total - 1 
-              : noStewards 
+            : applyCombine
+              ? staff.total - 1
+              : applyNoStewards
                 ? staff.total - staff.stewards
                 : staff.total
         }</p>
@@ -704,32 +696,6 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
                 onClick={() => setShowCsvModal(false)}
               >
                 Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Overwrite Confirmation Dialog */}
-      {showOverwriteDialog && (
-        <div className="ship-name-conflict-dialog">
-          <div className="conflict-dialog-content">
-            <h3>Ship Name Conflict</h3>
-            <p>A ship named "{pendingShipName}" already exists. Do you want to overwrite it?</p>
-            <div className="conflict-dialog-actions">
-              <button 
-                className="overwrite-btn" 
-                onClick={handleOverwriteConfirm}
-                disabled={saving}
-              >
-                {saving ? 'Overwriting...' : 'Overwrite'}
-              </button>
-              <button 
-                className="change-name-btn" 
-                onClick={handleOverwriteCancel}
-                disabled={saving}
-              >
-                Cancel
               </button>
             </div>
           </div>
