@@ -13,6 +13,12 @@ node_modules/
 dist/
 build/
 
+# Compiled JS artifacts (project uses TypeScript; .js files in src/ are tsc output)
+src/**/*.js
+
+# Claude Code local settings (user-specific, not shared)
+.claude/settings.local.json
+
 # IDE
 .vscode/
 .vs/
