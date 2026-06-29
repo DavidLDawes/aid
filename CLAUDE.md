@@ -15,13 +15,17 @@ When you spend time searching for commands to typecheck, lint, build, or test, y
 # Install dependencies
 pnpm install
 
-# Development server (runs on port 8080)
-pnpm dev
+# Local development (build + serve on port 8080) — ~4s rebuild per change
+pnpm serve
+
+# NOTE: pnpm dev (webpack-dev-server) is intentionally broken — the uuid override
+# required to fix a security vulnerability (uuid >=11.1.1 is ESM-only) crashes
+# sockjs at startup. Use pnpm serve instead.
 
 # Build for production
 pnpm build
 
-# Preview production build
+# Preview production build (http-server on port 8080)
 pnpm preview
 
 # Linting
