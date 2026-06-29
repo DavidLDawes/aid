@@ -20,3 +20,4 @@ overrides:
   launch-editor: '>=2.14.1'
   http-proxy-middleware: '>=2.0.10'
   '@babel/core': '>=7.29.1'
+  'schema-utils>ajv': '>=8.18.0'
