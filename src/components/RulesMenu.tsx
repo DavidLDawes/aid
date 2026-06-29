@@ -24,52 +24,22 @@ const RulesMenu: React.FC<RulesMenuProps> = ({ shipDesign, onRuleChange }) => {
   const canUseAntimatter = isTechLevelAtLeast(currentTechLevel, 'H');
   const canUseLongerJumps = isTechLevelAtLeast(currentTechLevel, 'G');
   
-  const [rules, setRules] = useState<RuleItem[]>([
-    {
-      id: 'spacecraft_design_srd',
-      name: 'Spacecraft Design SRD',
-      enabled: true,
-      disabled: false
-    },
-    {
-      id: 'high_guard_capital_ships',
-      name: 'High Guard Capital Ship Design SRD',
-      enabled: false,
-      disabled: true // greyed out and can't be selected
-    },
-    {
-      id: 'antimatter',
-      name: 'Antimatter',
-      enabled: false,
-      disabled: !canUseAntimatter
-    },
-    {
-      id: 'longer_jumps',
-      name: 'Longer Jumps',
-      enabled: false,
-      disabled: !canUseLongerJumps
-    }
-  ]);
-  
-  // Update rules when tech level changes
-  useEffect(() => {
-    setRules(prevRules => prevRules.map(rule => {
-      if (rule.id === 'antimatter') {
-        return { 
-          ...rule, 
-          disabled: !canUseAntimatter,
-          enabled: rule.enabled && canUseAntimatter // Turn off if no longer available
-        };
-      } else if (rule.id === 'longer_jumps') {
-        return { 
-          ...rule, 
-          disabled: !canUseLongerJumps,
-          enabled: rule.enabled && canUseLongerJumps // Turn off if no longer available
-        };
-      }
-      return rule;
-    }));
-  }, [canUseAntimatter, canUseLongerJumps]);
+  const [enabledRuleIds, setEnabledRuleIds] = useState<Set<string>>(
+    new Set(['spacecraft_design_srd'])
+  );
+
+  // Derive full rule list each render; tech-level constraints are computed inline
+  // so no useEffect is needed to sync disabled state.
+  const rules: RuleItem[] = [
+    { id: 'spacecraft_design_srd', name: 'Spacecraft Design SRD', enabled: true, disabled: false },
+    { id: 'high_guard_capital_ships', name: 'High Guard Capital Ship Design SRD', enabled: false, disabled: true },
+    { id: 'antimatter', name: 'Antimatter',
+      enabled: enabledRuleIds.has('antimatter') && canUseAntimatter,
+      disabled: !canUseAntimatter },
+    { id: 'longer_jumps', name: 'Longer Jumps',
+      enabled: enabledRuleIds.has('longer_jumps') && canUseLongerJumps,
+      disabled: !canUseLongerJumps },
+  ];
 
   const toggleRule = (ruleId: string) => {
     const rule = rules.find(r => r.id === ruleId);
@@ -78,16 +48,16 @@ const RulesMenu: React.FC<RulesMenuProps> = ({ shipDesign, onRuleChange }) => {
     // Don't allow disabling the Spacecraft Design SRD (it's always selected)
     if (ruleId === 'spacecraft_design_srd') return;
 
-    setRules(prevRules => 
-      prevRules.map(r => 
-        r.id === ruleId 
-          ? { ...r, enabled: !r.enabled }
-          : r
-      )
-    );
+    const newEnabled = !rule.enabled;
+    setEnabledRuleIds(prev => {
+      const next = new Set(prev);
+      if (newEnabled) next.add(ruleId);
+      else next.delete(ruleId);
+      return next;
+    });
 
     if (onRuleChange) {
-      onRuleChange(ruleId, !rule.enabled);
+      onRuleChange(ruleId, newEnabled);
     }
   };
 

@@ -35,7 +35,24 @@
       "Bash(pnpm lint *)",
       "Bash(pnpm build *)",
       "Bash(pnpm test:run)",
-      "Bash(git -C \"C:\\\\Users\\\\david\\\\play\\\\aid\" ls-files \"src/*.js\")"
+      "Bash(git -C \"C:\\\\Users\\\\david\\\\play\\\\aid\" ls-files \"src/*.js\")",
+      "Bash(pnpm outdated *)",
+      "Bash(pnpm audit *)",
+      "Bash(pnpm info *)",
+      "Bash(pnpm install *)",
+      "Bash(ls src/**/*.js)",
+      "Bash(find src *)",
+      "Bash(git ls-files *)",
+      "Bash(node_modules\\\\.bin\\\\jest.cmd src/services/antimatterIntegration.test.ts --no-coverage)",
+      "Bash(node_modules\\\\.bin\\\\jest.cmd src/components/RulesMenu.test.tsx --no-coverage)",
+      "Bash(pnpm exec *)",
+      "Bash(pnpm why *)",
+      "Bash(grep -v \"^--$\")",
+      "Bash(grep \"\\\\.js$\")",
+      "Bash(git show *)",
+      "Bash(grep -E \"\\\\.\\(js|js\\\\.map\\)$\")",
+      "Bash(xargs git rm --cached)",
+      "Bash(git stash *)"
     ],
     "deny": []
   }

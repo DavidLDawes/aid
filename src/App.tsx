@@ -150,7 +150,7 @@ function App() {
     });
   }, []);
 
-  const calculateMass = (): MassCalculation => {
+  function calculateMass(): MassCalculation {
     let used = 0;
 
     used += sumMass(shipDesign.engines);
@@ -190,9 +190,9 @@ function App() {
 
     const total = shipDesign.ship.tonnage;
     return { total, used, remaining: total - used, isOverweight: used > total };
-  };
+  }
 
-  const calculateCost = (): CostCalculation => {
+  function calculateCost(): CostCalculation {
     let total = 0;
 
     total += sumCost(shipDesign.engines);
@@ -225,13 +225,13 @@ function App() {
     }
 
     return { total };
-  };
+  }
 
-  const calculateStaffRequirements = (): StaffRequirements => {
+  function calculateStaffRequirements(): StaffRequirements {
     const pilot = 1;
     const navigator = 1;
 
-    let engineers = 0;
+    let engineers: number;
     const shipTonnage = shipDesign.ship.tonnage;
 
     if (shipTonnage === 100) {
@@ -299,7 +299,7 @@ function App() {
     const total = pilot + navigator + engineers + gunners + service + stewards + nurses + surgeons + techs;
 
     return { pilot, navigator, engineers, gunners, service, stewards, nurses, surgeons, techs, total };
-  };
+  }
 
   const calculateAdjustedCrewCount = (staffRequirements: StaffRequirements): number => {
     const isSmallShip = shipDesign.ship.tonnage >= 100 && shipDesign.ship.tonnage <= 200;
