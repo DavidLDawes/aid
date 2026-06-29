@@ -32,6 +32,17 @@ export function getMaxJumpByTechLevel(techLevel: string): number {
   return Math.min(maxJump, 6);
 }
 
+// Calculate maximum jump performance considering the Longer Jumps optional rule.
+// Without the rule: same as getMaxJumpByTechLevel (capped at J-6).
+// With the rule: TL-H allows J-10, TL-G allows J-8; lower tech levels are unchanged.
+export function getEffectiveMaxJump(techLevel: string, longerJumpsEnabled: boolean): number {
+  if (longerJumpsEnabled) {
+    if (isTechLevelAtLeast(techLevel, 'H')) return 10;
+    if (isTechLevelAtLeast(techLevel, 'G')) return 8;
+  }
+  return getMaxJumpByTechLevel(techLevel);
+}
+
 // Tonnage code table for capital ships (3,000+ tons)
 export const TONNAGE_CODES = [
   { minTonnage: 3000, code: 'CA' },
@@ -111,7 +122,9 @@ export const HULL_SIZES = Array.from({ length: 10000 }, (_, i) => {
   return { tonnage, code, cost };
 });
 
-// Engine performance percentages as a function of ship displacement
+// Engine performance percentages as a function of ship displacement.
+// Levels 1-6 are from the Traveller SRD. Levels 7-10 are extensions used
+// by the Longer Jumps optional rule (TL-G allows J-8, TL-H allows J-10).
 export const ENGINE_PERFORMANCE_PERCENTAGES = {
   power_plant: {
     1: 1.5,
@@ -119,7 +132,11 @@ export const ENGINE_PERFORMANCE_PERCENTAGES = {
     3: 2.5,
     4: 3.0,
     5: 4.0,
-    6: 5.0
+    6: 5.0,
+    7: 6.0,
+    8: 7.0,
+    9: 8.0,
+    10: 9.0
   },
   maneuver_drive: {
     1: 1.0,
@@ -127,7 +144,11 @@ export const ENGINE_PERFORMANCE_PERCENTAGES = {
     3: 1.5,
     4: 1.75,
     5: 2.5,
-    6: 3.25
+    6: 3.25,
+    7: 4.0,
+    8: 4.75,
+    9: 5.5,
+    10: 6.25
   },
   jump_drive: {
     1: 2.0,
@@ -135,7 +156,11 @@ export const ENGINE_PERFORMANCE_PERCENTAGES = {
     3: 4.0,
     4: 5.0,
     5: 6.0,
-    6: 7.0
+    6: 7.0,
+    7: 8.0,
+    8: 9.0,
+    9: 10.0,
+    10: 11.0
   }
 };
 
@@ -152,11 +177,11 @@ export function calculateEngineMassAndCost(
   engineType: 'power_plant' | 'maneuver_drive' | 'jump_drive',
   performance: number
 ): { mass: number; cost: number } {
-  if (performance < 1 || performance > 6) {
+  if (performance < 1 || performance > 10) {
     return { mass: 0, cost: 0 };
   }
 
-  const percentage = ENGINE_PERFORMANCE_PERCENTAGES[engineType][performance as 1 | 2 | 3 | 4 | 5 | 6];
+  const percentage = ENGINE_PERFORMANCE_PERCENTAGES[engineType][performance as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10];
   const mass = (shipTonnage * percentage) / 100;
   const costPerTon = ENGINE_COST_PER_TON[engineType];
   const cost = mass * costPerTon;
@@ -164,16 +189,18 @@ export function calculateEngineMassAndCost(
   return { mass, cost };
 }
 
-export function getAvailableEngines(hullTonnage: number, engineType: string, powerPlantPerformance?: number, techLevel?: string) {
+export function getAvailableEngines(hullTonnage: number, engineType: string, powerPlantPerformance?: number, techLevel?: string, longerJumpsEnabled?: boolean) {
   const availableEngines = [];
 
   const performanceLabel = engineType === 'jump_drive' ? 'J' :
                           engineType === 'maneuver_drive' ? 'M' : 'P';
 
-  // For jump drives, determine max performance based on tech level
-  let maxPerformance = 6;
+  // When Longer Jumps rule is active, power plants and maneuver drives can reach
+  // performance 10 (to support J-8/J-10 drives). Jump drives are further limited
+  // by tech level via getEffectiveMaxJump.
+  let maxPerformance = longerJumpsEnabled ? 10 : 6;
   if (engineType === 'jump_drive' && techLevel) {
-    maxPerformance = getMaxJumpByTechLevel(techLevel);
+    maxPerformance = getEffectiveMaxJump(techLevel, longerJumpsEnabled ?? false);
   }
 
   // Generate engines for performance ratings 1 up to max allowed
