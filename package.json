@@ -9,6 +9,7 @@
     "build": "tsc -b && webpack --mode production",
     "lint": "eslint .",
     "preview": "http-server dist",
+    "serve": "pnpm build && pnpm preview",
     "test": "jest",
     "test:ui": "jest --watch",
     "test:run": "jest --watchAll=false --coverage",
