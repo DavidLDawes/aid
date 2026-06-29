@@ -75,15 +75,9 @@ const ShipPanel: React.FC<ShipPanelProps> = ({ ship, onUpdate, onLoadExistingShi
   }, []);
 
   useEffect(() => {
-    // Check immediately when name changes
-    if (ship.name.trim() && ship.name.length >= 2) {
-      checkShipName(ship.name);
-    }
-    
-    // Also check after a delay for final validation
     const timeoutId = setTimeout(() => {
       checkShipName(ship.name);
-    }, 1500); // Debounce for 1500ms
+    }, 500);
 
     return () => clearTimeout(timeoutId);
   }, [ship.name, checkShipName]);

@@ -64,7 +64,8 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, shipT
     const powerPlant = getEngine('power_plant');
     // Only apply power plant performance filtering if a specific power plant drive is selected
     const powerPlantPerformance = (powerPlant.drive_code && powerPlant.performance > 0) ? powerPlant.performance : undefined;
-    const availableEngines = getAvailableEngines(shipTonnage, type, powerPlantPerformance, shipTechLevel);
+    const longerJumpsEnabled = activeRules.has('longer_jumps');
+    const availableEngines = getAvailableEngines(shipTonnage, type, powerPlantPerformance, shipTechLevel, longerJumpsEnabled);
 
     return (
       <div key={type} className="engine-group">
@@ -219,6 +220,14 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, shipT
                     <td><em>Antimatter Fuel Savings:</em></td>
                     <td><em>{((jumpFuel + maneuverFuel) * 0.9).toFixed(1)} tons saved</em></td>
                     <td><small><em>90% reduction from standard fuel</em></small></td>
+                  </tr>
+                )}
+                {jumpDrive.performance > 6 && !useAntimatter && (
+                  <tr className="fuel-warning">
+                    <td colSpan={3}>
+                      <strong>⚠ J-{jumpDrive.performance} requires {jumpDrive.performance * 10}% of ship mass in standard fuel per jump.</strong>{' '}
+                      Enable the <em>Antimatter</em> rule to reduce jump fuel to {jumpDrive.performance}% per jump.
+                    </td>
                   </tr>
                 )}
                 <tr className="total-row">

@@ -75,8 +75,10 @@ aid/
 │   │   └── ship.ts             # Ship interfaces
 │   ├── utils/                  # Utility functions
 │   │   ├── calculations.ts     # Mass/cost aggregation helpers
+│   │   ├── logger.ts           # Console logger with [StarshipDesigner] prefix
 │   │   ├── printContent.ts     # Shared print HTML generator
-│   │   └── shipDefaults.ts     # Ship initialization helpers
+│   │   ├── shipDefaults.ts     # Ship initialization helpers
+│   │   └── sparesCalculation.ts # Spares tonnage / months-between-service helpers
 │   ├── test/                   # Test utilities
 │   ├── App.tsx                 # Main app component
 │   ├── App.css                 # Global styles
@@ -113,6 +115,7 @@ Test files are co-located with source files using .test.ts/.test.tsx extension
 - Handles mass/cost calculations and validation
 - Manages file operations (save/load/print)
 - Implements "Rules Menu" system for optional rule sets (e.g., antimatter drives)
+- `SelectShipPanel` is eagerly loaded; all 13 design panels are **lazy-loaded** via `React.lazy()` to reduce initial bundle size
 
 **Panel Flow**: Ship → Engines → Fittings → Weapons → Defenses → Rec/Health → Cargo → Vehicles → Drones → Custom → Berths → Staff → Ship Design
 
@@ -245,6 +248,16 @@ const calcFM = (t, j, w) => { ... };
 - Includes `escapeHtml()` for XSS prevention
 - Used by `handleFilePrint()` in App.tsx; replaces the former App.tsx stub and SummaryPanel's `generateTableRows()` function
 
+**`src/utils/logger.ts`**: Lightweight console logger
+- Exports a `logger` object with `info()` and `error()` methods
+- All messages are prefixed with `[StarshipDesigner]` for easy DevTools filtering
+- Used throughout App.tsx for DB operations, saves, prints, and rule changes
+
+**`src/utils/sparesCalculation.ts`**: Spares / maintenance helpers (used by CargoPanel)
+- `calculateMonthsBetweenService(spares, shipTonnage)`: Returns months between service; formula is `1 + floor((spares / shipTonnage) * 100)` — every 1% of ship tonnage in spares adds one month
+- `getSparesIncrement(currentSpares, shipTonnage)`: Tons needed to reach the next service interval
+- `getSparesPercentage(spares, shipTonnage)`: Spares as a percentage of ship tonnage
+
 ## Important Implementation Details
 
 ### Mass Calculation Complexity
@@ -261,17 +274,22 @@ The `calculateMass()` function in App.tsx handles:
 ### Staff Requirements Logic
 
 Complex crew calculation in `calculateStaffRequirements()` (hoisted before JSX return in App.tsx, called once per render):
-- **Engineers**: Based on ship tonnage tiers (100/200-300/400+) and engine mass (1 per 100 tons)
+- **Engineers**: Tiered by ship tonnage:
+  - 100 tons: fixed 1 engineer
+  - 200 or 300 tons: fixed 2 engineers
+  - 400+ tons: at least 1 per engine (`max(engineCount, 1)`), plus `ceil(mass/100) - 1` extra for each engine whose mass exceeds 100 tons
+  - Other sizes (fallback): `ceil(totalEnginesMass / 100)`
 - **Gunners**:
   - 1 per 10 turrets/barbettes (rounded up)
   - 1 per 10 defense turrets (rounded up)
-  - Defensive screens: minimum 4 or (tons/100) if >400 tons
+  - Defensive screens: minimum 4, or `ceil(totalScreenTons / 100)` if total screen tonnage >400
   - Spinal weapons: +10 gunners
+  - Bay weapons: 2 gunners per bay weapon (per unit quantity)
 - **Stewards**: 1 per 8 staterooms (rounded up)
 - **Medical**: Calculated by `calculateMedicalStaff()` based on medical facilities
-- **Service**: For vehicle/drone maintenance
+- **Service**: Vehicle service (`calculateVehicleServiceStaff`) + drone service (`calculateDroneServiceStaff`) from `constants.ts`
 
-Small ships (100-200 tons) can combine pilot/navigator roles and skip stewards.
+Small ships (**exactly** 100 or 200 tons — not 300+) can combine pilot/navigator roles and skip stewards.
 
 ### Tech Level Dependencies
 
@@ -312,8 +330,21 @@ Rules affect calculations (e.g., fuel mass with antimatter) - check `activeRules
   - `jest.setup.js`: Global mocks
   - `src/test/setup.ts`: Testing Library setup
   - `jest-environment-jsdom-with-structuredclone.js`: Custom environment for structuredClone support
-- **Coverage**: Focus on utility functions (`sparesCalculation`, `constants`) and services (`database`, `initialDataService`)
+- **Coverage**: Utility functions and business logic extracted from App.tsx
 - **Mocking**: `fake-indexeddb` for IndexedDB tests
+- **Test files** (current):
+  - `src/utils/sparesCalculation.test.ts` — spares/service interval math
+  - `src/utils/printContent.test.ts` — print HTML generation
+  - `src/data/constants.test.ts` — game constants and helpers
+  - `src/data/cargoCleanup.test.ts` — `cleanInvalidCargo()` filtering
+  - `src/services/database.test.ts` — IndexedDB service
+  - `src/services/flushDB.test.ts` — DB flush utility
+  - `src/services/initialDataService.test.ts` — initial ship loading
+  - `src/services/antimatterIntegration.test.ts` — antimatter rule integration
+  - `src/services/engineeringStaff.test.ts` — engineer count calculation (extracted from App.tsx)
+  - `src/services/serviceStaff.test.ts` — vehicle/drone service staff calculation
+  - `src/services/crewAdjustments.test.ts` — small-ship pilot/steward adjustments
+  - `src/components/RulesMenu.test.tsx` — RulesMenu component
 
 ## File Operations
 

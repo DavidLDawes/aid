@@ -140,6 +140,7 @@ aid/
 ```bash
 pnpm install         # Install dependencies
 pnpm dev             # Development server on port 8080
+pnpm start           # Alias for pnpm dev
 pnpm build           # Build for production
 pnpm preview         # Preview production build
 pnpm lint            # Lint source files
