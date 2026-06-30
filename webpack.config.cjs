@@ -18,7 +18,7 @@ class InjectBundlesPlugin {
             let html = fs.readFileSync(this.templatePath, 'utf-8');
 
             const rawPublicPath = compilation.outputOptions.publicPath;
-            const publicPath = !rawPublicPath || rawPublicPath === 'auto' ? '/' : String(rawPublicPath);
+            const publicPath = !rawPublicPath || rawPublicPath === 'auto' ? '' : String(rawPublicPath);
 
             const entry = compilation.entrypoints.get('main');
             const jsFiles = entry
