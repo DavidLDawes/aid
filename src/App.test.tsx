@@ -24,7 +24,7 @@ jest.mock('./services/initialDataService', () => ({
 }));
 
 // Mock print window
-const mockPrintWindow = {
+const _mockPrintWindow = {
   document: { write: jest.fn(), close: jest.fn() },
   focus: jest.fn(),
   addEventListener: jest.fn(),

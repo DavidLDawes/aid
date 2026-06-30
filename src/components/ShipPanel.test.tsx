@@ -28,7 +28,7 @@ const createMockShip = (overrides: Partial<Ship> = {}): Ship => ({
   ...overrides
 });
 
-const createMockShipDesign = (ship: Ship): ShipDesign => ({
+const _createMockShipDesign = (ship: Ship): ShipDesign => ({
   ship,
   engines: [],
   fittings: [],
