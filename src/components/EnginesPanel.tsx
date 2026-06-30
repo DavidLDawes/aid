@@ -1,6 +1,6 @@
 import React from 'react';
 import type { Engine } from '../types/ship';
-import { getAvailableEngines, calculateJumpFuel, calculateManeuverFuel } from '../data/constants';
+import { getAvailableEngines, calculateManeuverFuel } from '../data/constants';
 
 interface EnginesPanelProps {
   engines: Engine[];
@@ -12,65 +12,36 @@ interface EnginesPanelProps {
   onFuelWeeksUpdate: (weeks: number) => void;
 }
 
-const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, shipTechLevel, fuelWeeks, activeRules, onUpdate, onFuelWeeksUpdate }) => {
+const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, shipTechLevel, fuelWeeks, onUpdate, onFuelWeeksUpdate }) => {
 
   const getEngine = (type: Engine['engine_type']): Engine => {
-    const defaultEngine = engines.find(e => e.engine_type === type);
-    if (defaultEngine) {
-      return defaultEngine;
-    }
-
-    // For maneuver drive, if not configured, return M-0 performance
-    if (type === 'maneuver_drive') {
-      return {
-        engine_type: type,
-        drive_code: 'M-0',
-        performance: 0,
-        mass: 0,
-        cost: 0
-      };
-    }
-
-    return {
-      engine_type: type,
-      drive_code: '',
-      performance: 1,
-      mass: 0.1,
-      cost: 0
-    };
+    const found = engines.find(e => e.engine_type === type);
+    if (found) return found;
+    return { engine_type: type, drive_code: type === 'maneuver_drive' ? 'M-0' : '', performance: 0, mass: 0, cost: 0 };
   };
 
   const updateEngine = (type: Engine['engine_type'], updates: Partial<Engine>) => {
     const newEngines = [...engines];
     const existingIndex = newEngines.findIndex(e => e.engine_type === type);
-    
-    const updatedEngine = { 
-      ...getEngine(type), 
-      ...updates, 
-      engine_type: type 
-    };
+    const updatedEngine = { ...getEngine(type), ...updates, engine_type: type };
 
     if (existingIndex >= 0) {
       newEngines[existingIndex] = updatedEngine;
     } else {
       newEngines.push(updatedEngine);
     }
-
     onUpdate(newEngines);
   };
 
   const renderEngineInput = (type: Engine['engine_type'], label: string) => {
     const engine = getEngine(type);
     const powerPlant = getEngine('power_plant');
-    // Only apply power plant performance filtering if a specific power plant drive is selected
     const powerPlantPerformance = (powerPlant.drive_code && powerPlant.performance > 0) ? powerPlant.performance : undefined;
-    const longerJumpsEnabled = activeRules.has('longer_jumps');
-    const availableEngines = getAvailableEngines(shipTonnage, type, powerPlantPerformance, shipTechLevel, longerJumpsEnabled);
+    const availableEngines = getAvailableEngines(shipTonnage, type, powerPlantPerformance, shipTechLevel, false);
 
     return (
       <div key={type} className="engine-group">
         <h3>{label}</h3>
-        
         <div className="form-row">
           <div className="form-group">
             <label>Drive Selection {type === 'maneuver_drive' ? '' : '*'}</label>
@@ -78,16 +49,11 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, shipT
               value={engine.drive_code}
               onChange={(e) => {
                 if (e.target.value === 'M-0' && type === 'maneuver_drive') {
-                  updateEngine(type, { 
-                    drive_code: 'M-0',
-                    performance: 0,
-                    mass: 0,
-                    cost: 0
-                  });
+                  updateEngine(type, { drive_code: 'M-0', performance: 0, mass: 0, cost: 0 });
                 } else {
                   const selectedEngine = availableEngines.find(eng => eng.code === e.target.value);
                   if (selectedEngine) {
-                    updateEngine(type, { 
+                    updateEngine(type, {
                       drive_code: selectedEngine.code,
                       performance: selectedEngine.performance,
                       mass: selectedEngine.mass,
@@ -101,28 +67,18 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, shipT
               {type === 'maneuver_drive' && (
                 <option value="M-0">None (M-0 performance, 0 tons, 0 MCr)</option>
               )}
-              {availableEngines.map(availEngine => (
-                <option key={availEngine.code} value={availEngine.code}>
-                  {availEngine.label}
-                </option>
+              {availableEngines.map(eng => (
+                <option key={eng.code} value={eng.code}>{eng.label}</option>
               ))}
             </select>
-            {type === 'jump_drive' && (
-              <small>Limited by Tech Level {shipTechLevel} (max J-{availableEngines.length > 0 ? availableEngines[availableEngines.length - 1].performance : 1}){powerPlantPerformance ? ` and Power Plant P-${powerPlantPerformance}` : ''}</small>
-            )}
             {type === 'maneuver_drive' && powerPlantPerformance && (
               <small>Limited by Power Plant P-{powerPlantPerformance}</small>
             )}
-            {type === 'maneuver_drive' && !powerPlantPerformance && (
-              <small className="info">Select Power Plant first to see power-limited options</small>
-            )}
           </div>
-
         </div>
-        
         {engine.drive_code && (
           <div className="engine-info">
-            <small>Performance: {engine.performance} ({type === 'jump_drive' ? 'J' : type === 'maneuver_drive' ? 'M' : 'P'}-{engine.performance})</small>
+            <small>Performance: {engine.performance} ({type === 'maneuver_drive' ? 'M' : 'P'}-{engine.performance})</small>
           </div>
         )}
       </div>
@@ -130,58 +86,36 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, shipT
   };
 
   const powerPlant = getEngine('power_plant');
-  const jumpDrive = getEngine('jump_drive');
   const maneuverDrive = getEngine('maneuver_drive');
-  
-  const powerRequirementsMet = 
-    (!jumpDrive.drive_code || jumpDrive.performance <= powerPlant.performance) &&
-    (!maneuverDrive.drive_code || maneuverDrive.performance <= powerPlant.performance);
-  
-  // Calculate fuel requirements with antimatter consideration
-  const useAntimatter = activeRules.has('antimatter');
-  const jumpFuel = jumpDrive.performance > 0 ? calculateJumpFuel(shipTonnage, jumpDrive.performance) : 0;
-  const maneuverFuel = maneuverDrive.performance > 0 ? calculateManeuverFuel(shipTonnage, maneuverDrive.performance, fuelWeeks) : 0;
-  
-  // Apply antimatter reduction if active
-  const adjustedJumpFuel = useAntimatter ? jumpFuel * 0.1 : jumpFuel;
-  const adjustedManeuverFuel = useAntimatter ? maneuverFuel * 0.1 : maneuverFuel;
-  const totalFuelMass = adjustedJumpFuel + adjustedManeuverFuel;
-  
-  // Calculate total engine mass
-  const totalEngineMass = engines.reduce((sum, engine) => sum + engine.mass, 0);
-  
-  // Calculate remaining mass available for fuel (assuming we need some buffer)
-  const usedMass = totalEngineMass; // This should include other ship components in a real calculation
-  const remainingMass = shipTonnage - usedMass;
-  const fuelFitsInShip = totalFuelMass <= remainingMass;
-  
-  // Calculate maximum weeks possible given remaining mass
-  const maxPossibleWeeks = maneuverDrive.performance > 0 
-    ? Math.floor(2 * (remainingMass - adjustedJumpFuel) / (shipTonnage * 0.01 * maneuverDrive.performance * (useAntimatter ? 0.1 : 1)))
+
+  const powerRequirementsMet = !maneuverDrive.drive_code || maneuverDrive.performance <= powerPlant.performance;
+
+  const maneuverFuel = maneuverDrive.performance > 0
+    ? calculateManeuverFuel(shipTonnage, maneuverDrive.performance, fuelWeeks)
+    : 0;
+
+  const totalEngineMass = engines.reduce((sum, e) => sum + e.mass, 0);
+  const remainingMass = shipTonnage - totalEngineMass;
+  const fuelFitsInShip = maneuverFuel <= remainingMass;
+
+  const maxPossibleWeeks = maneuverDrive.performance > 0
+    ? Math.floor(2 * remainingMass / (shipTonnage * 0.01 * maneuverDrive.performance))
     : 12;
   const effectiveMaxWeeks = Math.min(12, Math.max(2, maxPossibleWeeks));
-  
-  const requiredEnginesConfigured = 
-    engines.some(e => e.engine_type === 'power_plant' && e.drive_code && e.performance >= 1) &&
-    engines.some(e => e.engine_type === 'jump_drive' && e.drive_code && e.performance >= 1);
-  
-  const allEnginesConfigured = requiredEnginesConfigured &&
-    powerRequirementsMet &&
-    fuelFitsInShip;
+
+  const requiredConfigured = engines.some(e => e.engine_type === 'power_plant' && e.drive_code && e.performance >= 1);
 
   return (
     <div className="panel-content">
-      <p>Configure the engine types for your starship. Power Plant and Jump Drive are required. Maneuver Drive is optional (defaults to M-0).</p>
-      <p><small><strong>Note:</strong> Jump and Maneuver drives require a Power Plant with equal or higher performance rating.</small></p>
-      
+      <p>Configure engines for the megastructure. Power Plant is required. Jump Drive is not available for megastructures. Maneuver Drive is optional (defaults to M-0).</p>
+
       <div className="engines-horizontal-layout">
         {renderEngineInput('power_plant', 'Power Plant')}
         {renderEngineInput('maneuver_drive', 'Maneuver Drive')}
-        {renderEngineInput('jump_drive', 'Jump Drive')}
       </div>
 
       <div className="fuel-section">
-        <h3>Fuel Requirements</h3>
+        <h3>Maneuver Fuel Requirements</h3>
         <div className="fuel-horizontal-layout">
           <div className="fuel-selection">
             <div className="form-group">
@@ -191,10 +125,8 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, shipT
                 value={fuelWeeks}
                 onChange={(e) => onFuelWeeksUpdate(parseInt(e.target.value))}
               >
-                {Array.from({length: effectiveMaxWeeks - 1}, (_, i) => i + 2).map(weeks => (
-                  <option key={weeks} value={weeks}>
-                    {weeks} weeks
-                  </option>
+                {Array.from({ length: effectiveMaxWeeks - 1 }, (_, i) => i + 2).map(weeks => (
+                  <option key={weeks} value={weeks}>{weeks} weeks</option>
                 ))}
               </select>
               <small>Maximum {effectiveMaxWeeks} weeks based on available mass</small>
@@ -202,41 +134,22 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, shipT
           </div>
 
           <div className="fuel-summary">
-            <h4>Fuel Mass Breakdown{useAntimatter ? ' (Antimatter)' : ''}:</h4>
+            <h4>Fuel Mass Breakdown:</h4>
             <table>
               <tbody>
                 <tr>
-                  <td>Jump Fuel (per jump):</td>
-                  <td>{adjustedJumpFuel.toFixed(1)} tons</td>
-                  <td><small>({jumpDrive.performance > 0 ? `J-${jumpDrive.performance}` : 'No Jump Drive'} × 0.1 × {shipTonnage}t{useAntimatter ? ' × 0.1 antimatter' : ''})</small></td>
-                </tr>
-                <tr>
                   <td>Maneuver Fuel ({fuelWeeks} weeks):</td>
-                  <td>{adjustedManeuverFuel.toFixed(1)} tons</td>
-                  <td><small>({maneuverDrive.performance > 0 ? `M-${maneuverDrive.performance}` : 'No Maneuver Drive'} × 0.01 × {shipTonnage}t × {fuelWeeks/2}{useAntimatter ? ' × 0.1 antimatter' : ''})</small></td>
+                  <td>{maneuverFuel.toFixed(1)} tons</td>
+                  <td><small>({maneuverDrive.performance > 0 ? `M-${maneuverDrive.performance}` : 'No Maneuver Drive'} × 0.01 × {shipTonnage.toLocaleString()}t × {fuelWeeks / 2})</small></td>
                 </tr>
-                {useAntimatter && (
-                  <tr className="antimatter-savings">
-                    <td><em>Antimatter Fuel Savings:</em></td>
-                    <td><em>{((jumpFuel + maneuverFuel) * 0.9).toFixed(1)} tons saved</em></td>
-                    <td><small><em>90% reduction from standard fuel</em></small></td>
-                  </tr>
-                )}
-                {jumpDrive.performance > 6 && !useAntimatter && (
-                  <tr className="fuel-warning">
-                    <td colSpan={3}>
-                      <strong>⚠ J-{jumpDrive.performance} requires {jumpDrive.performance * 10}% of ship mass in standard fuel per jump.</strong>{' '}
-                      Enable the <em>Antimatter</em> rule to reduce jump fuel to {jumpDrive.performance}% per jump.
-                    </td>
-                  </tr>
-                )}
                 <tr className="total-row">
-                  <td><strong>Total Fuel Mass:</strong></td>
-                  <td><strong>{totalFuelMass.toFixed(1)} tons</strong></td>
-                  <td><small>{((totalFuelMass / shipTonnage) * 100).toFixed(1)}% of ship mass</small></td>
+                  <td><strong>Total Maneuver Fuel:</strong></td>
+                  <td><strong>{maneuverFuel.toFixed(1)} tons</strong></td>
+                  <td><small>{shipTonnage > 0 ? ((maneuverFuel / shipTonnage) * 100).toFixed(2) : '0.00'}% of structure mass</small></td>
                 </tr>
               </tbody>
             </table>
+            <p><small>Note: Fuel storage, scoops, processors, and antimatter plants are configured in the Fuel panel.</small></p>
           </div>
         </div>
       </div>
@@ -247,20 +160,16 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, shipT
           <li className={engines.some(e => e.engine_type === 'power_plant') ? 'valid' : 'invalid'}>
             ✓ Power Plant configured
           </li>
-          <li className={'valid'}>
-            ✓ Maneuver Drive configured (M-0 if none selected)
-          </li>
-          <li className={engines.some(e => e.engine_type === 'jump_drive') ? 'valid' : 'invalid'}>
-            ✓ Jump Drive configured
-          </li>
+          <li className="valid">✓ Maneuver Drive configured (M-0 if none selected)</li>
+          <li className="valid">✓ No Jump Drive (megastructures do not jump)</li>
           <li className={powerRequirementsMet ? 'valid' : 'invalid'}>
-            ✓ Power Plant provides sufficient power for Jump and Maneuver drives
+            ✓ Power Plant provides sufficient power for Maneuver Drive
           </li>
           <li className={fuelFitsInShip ? 'valid' : 'invalid'}>
-            ✓ Fuel requirements fit within available ship mass
+            ✓ Maneuver fuel fits within available mass
           </li>
-          <li className={allEnginesConfigured ? 'valid' : 'invalid'}>
-            ✓ Required engines have valid drive selection with automatic mass and cost
+          <li className={requiredConfigured ? 'valid' : 'invalid'}>
+            ✓ Required engines have valid drive selection
           </li>
         </ul>
       </div>
@@ -278,14 +187,13 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, shipT
             </tr>
           </thead>
           <tbody>
-            {/* Always show all three engine types */}
-            {['power_plant', 'maneuver_drive', 'jump_drive'].map(engineType => {
-              const engine = getEngine(engineType as Engine['engine_type']);
+            {(['power_plant', 'maneuver_drive'] as Engine['engine_type'][]).map(engineType => {
+              const engine = getEngine(engineType);
               return (
                 <tr key={engineType}>
-                  <td>{engineType.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</td>
+                  <td>{engineType === 'power_plant' ? 'Power Plant' : 'Maneuver Drive'}</td>
                   <td>{engine.drive_code || '-'}</td>
-                  <td>{engine.performance} ({engineType === 'jump_drive' ? 'J' : engineType === 'maneuver_drive' ? 'M' : 'P'}-{engine.performance})</td>
+                  <td>{engine.performance} ({engineType === 'maneuver_drive' ? 'M' : 'P'}-{engine.performance})</td>
                   <td>{engine.mass.toFixed(1)}</td>
                   <td>{engine.cost.toFixed(2)}</td>
                 </tr>
@@ -294,7 +202,6 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, shipT
           </tbody>
         </table>
       </div>
-
     </div>
   );
 };

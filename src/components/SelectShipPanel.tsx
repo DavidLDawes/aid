@@ -19,167 +19,55 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPan
   }, []);
 
   const createDefaultShips = () => {
-    // Fallback: create default ship in memory if all loading fails
-    const largeLiner = {
-      id: -1, // Temporary ID
+    // Fallback: create default megastructure in memory if all loading fails
+    const ringWorld = {
+      id: -1,
       ship: {
-        name: 'Large Liner',
-        tech_level: 'E' as const,
-        tonnage: 8000,
-        configuration: 'standard' as const,
-        fuel_weeks: 2,
+        name: 'Ring World Alpha',
+        tech_level: 'H' as const,
+        tonnage: 5_000_000,
+        configuration: 'distributed' as const,
+        fuel_weeks: 4,
         missile_reloads: 0,
         sand_reloads: 0,
-        sections: 2,
-        description: 'Luxury passenger liner (hull code CE)'
+        sections: 5,
+        description: 'Five-section ring world habitat'
       },
       engines: [
-        { engine_type: 'power_plant' as const, drive_code: 'P', performance: 2, mass: 160, cost: 320 },
-        { engine_type: 'maneuver_drive' as const, drive_code: 'M', performance: 2, mass: 100, cost: 200 },
-        { engine_type: 'jump_drive' as const, drive_code: 'J', performance: 2, mass: 240, cost: 240 }
+        { engine_type: 'power_plant' as const, drive_code: 'P-6', performance: 6, mass: 50000, cost: 100000 },
+        { engine_type: 'maneuver_drive' as const, drive_code: 'M-1', performance: 1, mass: 25000, cost: 50000 }
       ],
       fittings: [
-        { fitting_type: 'half_bridge' as const, mass: 60, cost: 90 },
-        { fitting_type: 'comms_sensors' as const, comms_sensors_type: 'basic_civilian' as const, mass: 1, cost: 0.05 }
+        { fitting_type: 'comms_sensors' as const, comms_sensors_type: 'very_advanced' as const, mass: 500, cost: 200 },
+        { fitting_type: 'computer' as const, computer_model: 'core_9' as const, mass: 0, cost: 36000 }
       ],
-      weapons: [
-        { weapon_name: 'Hard Point', mass: 1, cost: 1, quantity: 80 }
-      ],
+      weapons: [],
       defenses: [],
       berths: [
-        { berth_type: 'luxury_staterooms' as const, quantity: 20, mass: 5, cost: 0.6 },
-        { berth_type: 'low_berths' as const, quantity: 200, mass: 0.5, cost: 0.05 },
-        { berth_type: 'emergency_low_berths' as const, quantity: 2, mass: 1, cost: 1 },
-        { berth_type: 'staterooms' as const, quantity: 1162, mass: 4, cost: 0.5 }
+        { berth_type: 'staterooms' as const, quantity: 10000, mass: 4, cost: 0.5 }
       ],
       facilities: [
-        { facility_type: 'commissary' as const, quantity: 4, mass: 2, cost: 0.2 },
-        { facility_type: 'gym' as const, quantity: 4, mass: 3, cost: 0.1 },
-        { facility_type: 'spa' as const, quantity: 6, mass: 1.5, cost: 0.2 },
-        { facility_type: 'garden' as const, quantity: 2, mass: 4, cost: 0.05 },
-        { facility_type: 'officers_mess_bar' as const, quantity: 1, mass: 4, cost: 0.3 },
-        { facility_type: 'kitchens' as const, quantity: 2, mass: 3, cost: 0.4 },
-        { facility_type: 'first_aid_station' as const, quantity: 4, mass: 0.5, cost: 0.1 },
-        { facility_type: 'autodoc' as const, quantity: 2, mass: 1.5, cost: 0.05 },
-        { facility_type: 'med_bay' as const, quantity: 1, mass: 4, cost: 2 },
-        { facility_type: 'medical_garden' as const, quantity: 1, mass: 4, cost: 1 },
-        { facility_type: 'library' as const, quantity: 2, mass: 1, cost: 0.1 },
-        { facility_type: 'range' as const, quantity: 1, mass: 2, cost: 2 },
-        { facility_type: 'park' as const, quantity: 2, mass: 6, cost: 1 },
-        { facility_type: 'shrine' as const, quantity: 4, mass: 1, cost: 1 },
-        { facility_type: 'club' as const, quantity: 4, mass: 3, cost: 0.1 }
+        { facility_type: 'commissary' as const, quantity: 20, mass: 2, cost: 0.2 }
       ],
-      cargo: [
-        { cargo_type: 'cargo_bay' as const, tonnage: 320, cost: 0 },
-        { cargo_type: 'spares' as const, tonnage: 240, cost: 120 },
-        { cargo_type: 'cold_storage_bay' as const, tonnage: 10, cost: 2 },
-        { cargo_type: 'data_storage_bay' as const, tonnage: 2, cost: 0.6 },
-        { cargo_type: 'secure_storage_bay' as const, tonnage: 4, cost: 2.8 },
-        { cargo_type: 'vacuum_bay' as const, tonnage: 8, cost: 1.6 }
+      cargo: [],
+      vehicles: [],
+      drones: [],
+      custom_items: [],
+      fuel_systems: [
+        { system_type: 'fuel_scoop' as const, quantity: 1000, mass: 0, cost: 1000 },
+        { system_type: 'fuel_processor' as const, quantity: 10, mass: 10000, cost: 500 },
+        { system_type: 'fuel_tank' as const, quantity: 500, mass: 500000, cost: 500 }
       ],
-      vehicles: [
-        { vehicle_type: 'air_raft_truck' as const, quantity: 2, mass: 5, cost: 0.55 },
-        { vehicle_type: 'pug_armored_car' as const, quantity: 1, mass: 4, cost: 0.03 }
-      ],
-      drones: [
-        { drone_type: 'comms' as const, quantity: 10, mass: 0.1, cost: 0.2 },
-        { drone_type: 'sensor' as const, quantity: 4, mass: 1, cost: 1 },
-        { drone_type: 'repair' as const, quantity: 4, mass: 10, cost: 1 },
-        { drone_type: 'rescue' as const, quantity: 1, mass: 10, cost: 0.5 }
-      ],
-      custom_items: [
-        { name: 'ATLAS Combat Droid', mass: 1, cost: 0.025 },
-        { name: 'ATLAS Combat Droid', mass: 1, cost: 0.025 },
-        { name: 'ATLAS Combat Droid', mass: 1, cost: 0.025 },
-        { name: 'ATLAS Combat Droid', mass: 1, cost: 0.025 }
+      zone_sections: [
+        { zone_type: 'residential' as const, units: 500, mass: 500000, cost: 20000 },
+        { zone_type: 'farm' as const, units: 200, mass: 200000, cost: 6000 },
+        { zone_type: 'park' as const, units: 100, mass: 100000, cost: 6000 }
       ],
       createdAt: new Date(),
       updatedAt: new Date()
     };
 
-    const destroyer = {
-      id: -2, // Temporary ID
-      ship: {
-        name: 'Destroyer',
-        tech_level: 'E' as const,
-        tonnage: 28000,
-        configuration: 'standard' as const,
-        fuel_weeks: 2,
-        missile_reloads: 0,
-        sand_reloads: 0,
-        sections: 3,
-        description: 'Military warship (hull code CJ)'
-      },
-      engines: [
-        { engine_type: 'power_plant' as const, drive_code: 'P', performance: 6, mass: 1400, cost: 2800 },
-        { engine_type: 'maneuver_drive' as const, drive_code: 'M', performance: 6, mass: 910, cost: 1820 },
-        { engine_type: 'jump_drive' as const, drive_code: 'J', performance: 5, mass: 1680, cost: 1680 }
-      ],
-      fittings: [
-        { fitting_type: 'bridge' as const, mass: 180, cost: 90 },
-        { fitting_type: 'comms_sensors' as const, comms_sensors_type: 'very_advanced' as const, mass: 5, cost: 4 }
-      ],
-      weapons: [
-        { weapon_name: 'Dual Fusion Gun Barbette', mass: 10, cost: 16, quantity: 20 },
-        { weapon_name: 'Triple Beam Laser Turret', mass: 2, cost: 4, quantity: 240 }
-      ],
-      defenses: [
-        { defense_type: 'dual_point_defense_laser_turret' as const, quantity: 80, mass: 1, cost: 1.5 },
-        { defense_type: 'nuclear_damper' as const, quantity: 4, mass: 120, cost: 160 },
-        { defense_type: 'meson_screen' as const, quantity: 4, mass: 240, cost: 320 }
-      ],
-      berths: [
-        { berth_type: 'low_berths' as const, quantity: 100, mass: 0.5, cost: 0.05 },
-        { berth_type: 'emergency_low_berths' as const, quantity: 8, mass: 1, cost: 1 },
-        { berth_type: 'staterooms' as const, quantity: 128, mass: 4, cost: 0.5 },
-        { berth_type: 'luxury_staterooms' as const, quantity: 8, mass: 5, cost: 0.6 }
-      ],
-      facilities: [
-        { facility_type: 'commissary' as const, quantity: 4, mass: 2, cost: 0.2 },
-        { facility_type: 'gym' as const, quantity: 4, mass: 3, cost: 0.1 },
-        { facility_type: 'spa' as const, quantity: 4, mass: 1.5, cost: 0.2 },
-        { facility_type: 'garden' as const, quantity: 4, mass: 4, cost: 0.05 },
-        { facility_type: 'officers_mess_bar' as const, quantity: 1, mass: 4, cost: 0.3 },
-        { facility_type: 'kitchens' as const, quantity: 2, mass: 3, cost: 0.4 },
-        { facility_type: 'first_aid_station' as const, quantity: 4, mass: 0.5, cost: 0.1 },
-        { facility_type: 'autodoc' as const, quantity: 2, mass: 1.5, cost: 0.05 },
-        { facility_type: 'med_bay' as const, quantity: 1, mass: 4, cost: 2 },
-        { facility_type: 'medical_garden' as const, quantity: 2, mass: 4, cost: 1 },
-        { facility_type: 'library' as const, quantity: 4, mass: 1, cost: 0.1 },
-        { facility_type: 'range' as const, quantity: 3, mass: 2, cost: 2 },
-        { facility_type: 'shrine' as const, quantity: 2, mass: 1, cost: 1 },
-        { facility_type: 'surgical_bay' as const, quantity: 1, mass: 5, cost: 8 }
-      ],
-      cargo: [
-        { cargo_type: 'cargo_bay' as const, tonnage: 240, cost: 0 },
-        { cargo_type: 'spares' as const, tonnage: 560, cost: 280 },
-        { cargo_type: 'cold_storage_bay' as const, tonnage: 24, cost: 4.8 },
-        { cargo_type: 'data_storage_bay' as const, tonnage: 4, cost: 1.2 },
-        { cargo_type: 'secure_storage_bay' as const, tonnage: 8, cost: 5.6 }
-      ],
-      vehicles: [
-        { vehicle_type: 'air_raft_truck' as const, quantity: 2, mass: 5, cost: 0.55 },
-        { vehicle_type: 'pug_armored_car' as const, quantity: 2, mass: 4, cost: 0.025 },
-        { vehicle_type: 'aat_infantry_support' as const, quantity: 1, mass: 22, cost: 2 },
-        { vehicle_type: 'fury_helicopter_gunship' as const, quantity: 4, mass: 8, cost: 1.2 }
-      ],
-      drones: [
-        { drone_type: 'comms' as const, quantity: 80, mass: 0.1, cost: 0.2 },
-        { drone_type: 'sensor' as const, quantity: 20, mass: 1, cost: 1 },
-        { drone_type: 'repair' as const, quantity: 8, mass: 10, cost: 1 },
-        { drone_type: 'rescue' as const, quantity: 1, mass: 10, cost: 0.5 },
-        { drone_type: 'war' as const, quantity: 56, mass: 10, cost: 2 }
-      ],
-      custom_items: Array(20).fill(null).map(() => ({
-        name: 'ATLAS Combat Droid',
-        mass: 1,
-        cost: 0.024
-      })),
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-
-    return [largeLiner, destroyer];
+    return [ringWorld];
   };
 
   async function loadShips() {

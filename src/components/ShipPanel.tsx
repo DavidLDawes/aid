@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import type { Ship, ShipDesign } from '../types/ship';
-import { TECH_LEVELS, HULL_SIZES, getTonnageCode, getNumberOfSections } from '../data/constants';
+import { TECH_LEVELS, MEGASTRUCTURE_HULL_SIZES, getMegastructureSections } from '../data/constants';
 import { databaseService } from '../services/database';
 
 interface ShipPanelProps {
@@ -22,14 +22,6 @@ const ShipPanel: React.FC<ShipPanelProps> = ({ ship, onUpdate, onLoadExistingShi
     existingShip: null
   });
 
-  const [hullSizeWarning, setHullSizeWarning] = useState<{
-    showWarning: boolean;
-    pendingTonnage: number | null;
-  }>({
-    showWarning: false,
-    pendingTonnage: null
-  });
-
   const checkShipName = useCallback(async (name: string) => {
     if (!name.trim() || name.length < 2) {
       setNameCheckState(prev => ({ ...prev, existingShipFound: false, showConflictDialog: false }));
@@ -40,7 +32,7 @@ const ShipPanel: React.FC<ShipPanelProps> = ({ ship, onUpdate, onLoadExistingShi
       setNameCheckState(prev => ({ ...prev, isChecking: true }));
       await databaseService.initialize();
       const existingShip = await databaseService.getShipByName(name.trim());
-      
+
       if (existingShip) {
         setNameCheckState({
           isChecking: false,
@@ -57,7 +49,9 @@ const ShipPanel: React.FC<ShipPanelProps> = ({ ship, onUpdate, onLoadExistingShi
             cargo: existingShip.cargo,
             vehicles: existingShip.vehicles,
             drones: existingShip.drones,
-            custom_items: existingShip.custom_items || []
+            custom_items: existingShip.custom_items || [],
+            fuel_systems: (existingShip as unknown as ShipDesign).fuel_systems || [],
+            zone_sections: (existingShip as unknown as ShipDesign).zone_sections || []
           }
         });
       } else {
@@ -87,26 +81,7 @@ const ShipPanel: React.FC<ShipPanelProps> = ({ ship, onUpdate, onLoadExistingShi
   };
 
   const handleTonnageChange = (newTonnage: number) => {
-    // Check if tonnage is below 3,000 tons
-    if (newTonnage < 3000) {
-      setHullSizeWarning({
-        showWarning: true,
-        pendingTonnage: newTonnage
-      });
-    } else {
-      onUpdate({ ...ship, tonnage: newTonnage });
-    }
-  };
-
-  const handleContinueWithSmallShip = () => {
-    if (hullSizeWarning.pendingTonnage !== null) {
-      onUpdate({ ...ship, tonnage: hullSizeWarning.pendingTonnage });
-    }
-    setHullSizeWarning({ showWarning: false, pendingTonnage: null });
-  };
-
-  const handleCancelSmallShip = () => {
-    setHullSizeWarning({ showWarning: false, pendingTonnage: null });
+    onUpdate({ ...ship, tonnage: newTonnage, sections: getMegastructureSections(newTonnage) });
   };
 
   const handleLoadExistingShip = () => {
@@ -121,18 +96,19 @@ const ShipPanel: React.FC<ShipPanelProps> = ({ ship, onUpdate, onLoadExistingShi
   };
 
   const handleChangeNameFocus = () => {
-    // Focus the name input to allow user to change the name
     const nameInput = document.getElementById('ship-name');
-    if (nameInput) {
-      nameInput.focus();
-    }
+    if (nameInput) nameInput.focus();
   };
+
+  const sections = getMegastructureSections(ship.tonnage);
 
   return (
     <div className="panel-content">
+      <p>Megastructures are &gt;1,000,000 tons. Configuration is distributed (multiple million-ton sections).</p>
+
       <div className="ship-basic-info-row">
         <div className="form-group">
-          <label htmlFor="ship-name">Ship Name *</label>
+          <label htmlFor="ship-name">Megastructure Name *</label>
           <div className="ship-name-input-container">
             <input
               id="ship-name"
@@ -140,35 +116,36 @@ const ShipPanel: React.FC<ShipPanelProps> = ({ ship, onUpdate, onLoadExistingShi
               maxLength={32}
               value={ship.name}
               onChange={(e) => handleInputChange('name', e.target.value)}
-              placeholder="Enter ship name (max 32 characters)"
+              placeholder="Enter megastructure name (max 32 characters)"
               className={nameCheckState.existingShipFound ? 'name-conflict' : ''}
             />
             {nameCheckState.isChecking && (
               <span className="name-check-status checking">Checking...</span>
             )}
             {nameCheckState.existingShipFound && !nameCheckState.showConflictDialog && (
-              <span className="name-check-status conflict">Ship name already exists</span>
+              <span className="name-check-status conflict">Name already exists</span>
             )}
           </div>
           <small>{ship.name.length}/32 characters</small>
         </div>
 
         <div className="form-group">
-          <label htmlFor="tonnage">Hull Size *</label>
+          <label htmlFor="tonnage">Total Tonnage *</label>
           <select
             id="tonnage"
             value={ship.tonnage}
             onChange={(e) => handleTonnageChange(parseInt(e.target.value))}
           >
-            {HULL_SIZES.map(hull => (
+            {MEGASTRUCTURE_HULL_SIZES.map(hull => (
               <option key={hull.tonnage} value={hull.tonnage}>
-                {hull.tonnage.toLocaleString()} tons - {hull.cost.toLocaleString()} MCr
+                {hull.tonnage.toLocaleString()} tons ({hull.tonnage / 1_000_000}M) — {hull.cost.toLocaleString()} MCr hull
               </option>
             ))}
           </select>
-          {ship.tonnage < 3000 && (
-            <p className="nonstandard-warning">Non-standard capital ship design &lt; 3,000 tons</p>
-          )}
+          <div className="info-message" style={{ marginTop: '0.5rem' }}>
+            <p><strong>Sections:</strong> {sections} × 1,000,000-ton sections</p>
+            <p><strong>Control Center:</strong> {(sections * 100).toLocaleString()} tons required</p>
+          </div>
         </div>
 
         <div className="form-group">
@@ -183,34 +160,6 @@ const ShipPanel: React.FC<ShipPanelProps> = ({ ship, onUpdate, onLoadExistingShi
             ))}
           </select>
         </div>
-
-        <div className="form-group">
-          <label htmlFor="configuration">Configuration *</label>
-          <select
-            id="configuration"
-            value={ship.configuration}
-            onChange={(e) => handleInputChange('configuration', e.target.value)}
-          >
-            <option value="standard">Standard (wedge, cone, sphere or cylinder)</option>
-            <option value="streamlined">Streamlined (wing, disc or lifting body for atmospheric entry)</option>
-            <option value="distributed">Distributed (multiple sections, atmosphere/gravity incompatible)</option>
-          </select>
-        </div>
-
-        {(() => {
-          const hullCode = getTonnageCode(ship.tonnage);
-          const sections = getNumberOfSections(ship.tonnage);
-
-          if (hullCode && sections) {
-            return (
-              <div className="info-message">
-                <p><strong>Hull Code:</strong> {hullCode}</p>
-                <p><strong>Sections:</strong> {sections}</p>
-              </div>
-            );
-          }
-          return null;
-        })()}
       </div>
 
       <div className="ship-description-row">
@@ -221,76 +170,32 @@ const ShipPanel: React.FC<ShipPanelProps> = ({ ship, onUpdate, onLoadExistingShi
             maxLength={250}
             value={ship.description || ''}
             onChange={(e) => handleInputChange('description', e.target.value)}
-            placeholder="Enter ship description (max 250 characters)"
+            placeholder="Enter megastructure description (max 250 characters)"
             rows={4}
           />
           <small>{(ship.description || '').length}/250 characters</small>
         </div>
       </div>
 
-      {hullSizeWarning.showWarning && (
-        <div className="ship-name-conflict-dialog">
-          <div className="conflict-dialog-content">
-            <h3>⚠️ Non-Standard Capital Ship Size</h3>
-            <p>
-              Capital ship designs are for 3,000 ton or larger ships. You can design a smaller
-              ship using these rules but it is not standard according to the Traveller SRD.
-            </p>
-            <p>
-              Continue with <strong>{hullSizeWarning.pendingTonnage?.toLocaleString()} tons</strong>?
-            </p>
-            <div className="conflict-dialog-actions">
-              <button
-                onClick={handleContinueWithSmallShip}
-                className="load-existing-btn"
-              >
-                Continue
-              </button>
-              <button
-                onClick={handleCancelSmallShip}
-                className="change-name-btn"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {nameCheckState.showConflictDialog && nameCheckState.existingShip && (
         <div className="ship-name-conflict-dialog">
           <div className="conflict-dialog-content">
-            <h3>Ship Name Already Exists</h3>
-            <p>A ship named "<strong>{ship.name}</strong>" already exists in your saved designs.</p>
+            <h3>Name Already Exists</h3>
+            <p>A megastructure named "<strong>{ship.name}</strong>" already exists in your saved designs.</p>
             <div className="existing-ship-info">
-              <p><strong>Existing Ship Details:</strong></p>
               <ul>
-                <li>Tonnage: {nameCheckState.existingShip.ship.tonnage} tons</li>
+                <li>Tonnage: {nameCheckState.existingShip.ship.tonnage.toLocaleString()} tons</li>
                 <li>Tech Level: {nameCheckState.existingShip.ship.tech_level}</li>
-                <li>Configuration: {nameCheckState.existingShip.ship.configuration}</li>
-                {nameCheckState.existingShip.ship.description && (
-                  <li>Description: {nameCheckState.existingShip.ship.description}</li>
-                )}
               </ul>
             </div>
             <div className="conflict-dialog-actions">
-              <button
-                onClick={handleLoadExistingShip}
-                className="load-existing-btn"
-                disabled={!onLoadExistingShip}
-              >
-                Load Existing Ship
+              <button onClick={handleLoadExistingShip} className="load-existing-btn" disabled={!onLoadExistingShip}>
+                Load Existing
               </button>
-              <button
-                onClick={handleChangeNameFocus}
-                className="change-name-btn"
-              >
+              <button onClick={handleChangeNameFocus} className="change-name-btn">
                 Choose Different Name
               </button>
-              <button
-                onClick={handleKeepNewName}
-                className="keep-name-btn"
-              >
+              <button onClick={handleKeepNewName} className="keep-name-btn">
                 Keep This Name (Will Replace)
               </button>
             </div>
@@ -301,21 +206,11 @@ const ShipPanel: React.FC<ShipPanelProps> = ({ ship, onUpdate, onLoadExistingShi
       <div className="validation-info">
         <h3>Requirements:</h3>
         <ul>
-          <li className={ship.name.trim() ? 'valid' : 'invalid'}>
-            ✓ Ship name is required
-          </li>
-          <li className={ship.tech_level ? 'valid' : 'invalid'}>
-            ✓ Tech level is required
-          </li>
-          <li className={ship.tonnage >= 100 ? 'valid' : 'invalid'}>
-            ✓ Hull size is required
-          </li>
-          <li className={ship.configuration ? 'valid' : 'invalid'}>
-            ✓ Configuration is required
-          </li>
+          <li className={ship.name.trim() ? 'valid' : 'invalid'}>✓ Name is required</li>
+          <li className={ship.tech_level ? 'valid' : 'invalid'}>✓ Tech level is required</li>
+          <li className={ship.tonnage >= 1_000_000 ? 'valid' : 'invalid'}>✓ Tonnage must be ≥ 1,000,000 tons</li>
         </ul>
       </div>
-
     </div>
   );
 };

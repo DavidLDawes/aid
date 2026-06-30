@@ -8,14 +8,13 @@ export interface Ship {
   missile_reloads: number;
   sand_reloads: number;
   armor_percentage?: number;
-  spinal_weapon?: string; // Name of the spinal weapon (e.g., "Particle Spinal Mount A")
-  sections?: number; // Number of sections for capital ships (2-6 based on hull code)
+  sections?: number; // Number of million-ton sections
   description?: string;
 }
 
 export interface Engine {
   id?: number;
-  engine_type: 'power_plant' | 'maneuver_drive' | 'jump_drive';
+  engine_type: 'power_plant' | 'maneuver_drive';
   drive_code: string;
   performance: number;
   mass: number;
@@ -24,7 +23,7 @@ export interface Engine {
 
 export interface Fitting {
   id?: number;
-  fitting_type: 'bridge' | 'half_bridge' | 'launch_tube' | 'comms_sensors' | 'computer';
+  fitting_type: 'control_center' | 'launch_tube' | 'comms_sensors' | 'computer';
   mass: number;
   cost: number;
   launch_vehicle_mass?: number;
@@ -94,6 +93,22 @@ export interface CustomItem {
   cost: number;
 }
 
+export interface FuelSystem {
+  id?: number;
+  system_type: 'fuel_scoop' | 'fuel_processor' | 'fuel_tank' | 'antimatter_plant';
+  quantity: number;
+  mass: number;
+  cost: number;
+}
+
+export interface ZoneSection {
+  id?: number;
+  zone_type: 'residential' | 'commercial' | 'industrial' | 'heavy_industrial' | 'farm' | 'research_university' | 'park' | 'lake' | 'cargo' | 'secure_storage' | 'cold_storage' | 'garden' | 'livestock';
+  units: number;
+  mass: number;
+  cost: number;
+}
+
 export interface StaffRequirements {
   pilot: number;
   navigator: number;
@@ -119,6 +134,8 @@ export interface ShipDesign {
   vehicles: Vehicle[];
   drones: Drone[];
   custom_items: CustomItem[];
+  fuel_systems: FuelSystem[];
+  zone_sections: ZoneSection[];
 }
 
 export interface MassCalculation {

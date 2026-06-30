@@ -2,7 +2,7 @@ import { describe, it, expect } from '@jest/globals';
 import { generateShipPrintContent } from './printContent';
 import type { ShipDesign, MassCalculation, CostCalculation, StaffRequirements } from '../types/ship';
 
-const baseMass: MassCalculation = { total: 200, used: 120, remaining: 80, isOverweight: false };
+const baseMass: MassCalculation = { total: 1_000_000, used: 120_000, remaining: 880_000, isOverweight: false };
 const baseCost: CostCalculation = { total: 45.5 };
 const baseStaff: StaffRequirements = {
   pilot: 1, navigator: 1, engineers: 2, gunners: 0,
@@ -12,23 +12,23 @@ const baseRules = new Set(['spacecraft_design_srd']);
 
 const baseShip: ShipDesign = {
   ship: {
-    name: 'Test Trader',
+    name: 'Test Megastructure',
     tech_level: 'B',
-    tonnage: 200,
+    tonnage: 1_000_000,
     configuration: 'standard',
     fuel_weeks: 2,
     missile_reloads: 0,
     sand_reloads: 0,
+    sections: 1,
     description: '',
   },
   engines: [
-    { engine_type: 'power_plant', drive_code: 'A', performance: 1, mass: 2, cost: 4 },
-    { engine_type: 'jump_drive', drive_code: 'A', performance: 1, mass: 10, cost: 10 },
-    { engine_type: 'maneuver_drive', drive_code: 'A', performance: 1, mass: 2, cost: 8 },
+    { engine_type: 'power_plant', drive_code: 'P-1', performance: 1, mass: 2, cost: 4 },
+    { engine_type: 'maneuver_drive', drive_code: 'M-1', performance: 1, mass: 2, cost: 8 },
   ],
   fittings: [
-    { fitting_type: 'bridge', mass: 10, cost: 5 },
     { fitting_type: 'comms_sensors', comms_sensors_type: 'standard', mass: 0, cost: 0 },
+    { fitting_type: 'computer', computer_model: 'core_1', mass: 0, cost: 30 },
   ],
   weapons: [],
   defenses: [],
@@ -38,6 +38,8 @@ const baseShip: ShipDesign = {
   vehicles: [],
   drones: [],
   custom_items: [],
+  fuel_systems: [],
+  zone_sections: [],
 };
 
 describe('generateShipPrintContent', () => {
@@ -52,12 +54,12 @@ describe('generateShipPrintContent', () => {
 
   it('should include the ship name in the title and header', () => {
     const html = generateShipPrintContent(baseShip, baseMass, baseCost, baseStaff, false, false, baseRules);
-    expect(html).toContain('Test Trader');
+    expect(html).toContain('Test Megastructure');
   });
 
   it('should include tonnage and tech level in the title', () => {
     const html = generateShipPrintContent(baseShip, baseMass, baseCost, baseStaff, false, false, baseRules);
-    expect(html).toContain('200 tons');
+    expect(html).toContain('1,000,000 tons');
     expect(html).toContain('Tech Level B');
   });
 
@@ -72,45 +74,52 @@ describe('generateShipPrintContent', () => {
   });
 
   it('should escape ampersands and quotes in ship name', () => {
-    const ship = { ...baseShip, ship: { ...baseShip.ship, name: 'A & B "Trader"' } };
+    const ship = { ...baseShip, ship: { ...baseShip.ship, name: 'A & B "Megastructure"' } };
     const html = generateShipPrintContent(ship, baseMass, baseCost, baseStaff, false, false, baseRules);
-    expect(html).toContain('A &amp; B &quot;Trader&quot;');
+    expect(html).toContain('A &amp; B &quot;Megastructure&quot;');
   });
 
   it('should include engine rows', () => {
     const html = generateShipPrintContent(baseShip, baseMass, baseCost, baseStaff, false, false, baseRules);
     expect(html).toContain('Power Plant');
-    expect(html).toContain('Jump Drive');
     expect(html).toContain('Maneuver Drive');
     expect(html).toContain('Engines');
+  });
+
+  it('should not include Jump Drive (megastructures have no jump drives)', () => {
+    const html = generateShipPrintContent(baseShip, baseMass, baseCost, baseStaff, false, false, baseRules);
+    expect(html).not.toContain('Jump Drive');
   });
 
   it('should omit M-0 maneuver drive', () => {
     const ship = {
       ...baseShip,
       engines: [
-        { engine_type: 'power_plant' as const, drive_code: 'A', performance: 1, mass: 2, cost: 4 },
-        { engine_type: 'jump_drive' as const, drive_code: 'A', performance: 1, mass: 10, cost: 10 },
-        { engine_type: 'maneuver_drive' as const, drive_code: 'A', performance: 0, mass: 0, cost: 0 },
+        { engine_type: 'power_plant' as const, drive_code: 'P-1', performance: 1, mass: 2, cost: 4 },
+        { engine_type: 'maneuver_drive' as const, drive_code: 'M-0', performance: 0, mass: 0, cost: 0 },
       ],
     };
     const html = generateShipPrintContent(ship, baseMass, baseCost, baseStaff, false, false, baseRules);
     expect(html).not.toContain('M-0');
   });
 
-  it('should include fittings section', () => {
+  it('should include control center section', () => {
     const html = generateShipPrintContent(baseShip, baseMass, baseCost, baseStaff, false, false, baseRules);
-    expect(html).toContain('Bridge');
-    expect(html).toContain('Fittings');
+    expect(html).toContain('Control Center');
+    expect(html).toContain('100 tons');
   });
 
-  it('should include half bridge label when applicable', () => {
-    const ship = {
-      ...baseShip,
-      fittings: [{ fitting_type: 'half_bridge' as const, mass: 5, cost: 7.5 }],
-    };
-    const html = generateShipPrintContent(ship, baseMass, baseCost, baseStaff, false, false, baseRules);
-    expect(html).toContain('Half Bridge');
+  it('should not include Bridge (megastructures have no bridge)', () => {
+    const html = generateShipPrintContent(baseShip, baseMass, baseCost, baseStaff, false, false, baseRules);
+    expect(html).not.toContain('>Bridge<');
+    expect(html).not.toContain('>Half Bridge<');
+  });
+
+  it('should include fittings section with sensors and computer', () => {
+    const html = generateShipPrintContent(baseShip, baseMass, baseCost, baseStaff, false, false, baseRules);
+    expect(html).toContain('Fittings');
+    expect(html).toContain('Sensors');
+    expect(html).toContain('Computer');
   });
 
   it('should include weapons when present', () => {
@@ -188,11 +197,37 @@ describe('generateShipPrintContent', () => {
     expect(html).toContain('Drones');
   });
 
+  it('should include fuel systems when present', () => {
+    const ship = {
+      ...baseShip,
+      fuel_systems: [
+        { system_type: 'fuel_scoop' as const, quantity: 100, mass: 0, cost: 100 },
+        { system_type: 'fuel_tank' as const, quantity: 10, mass: 10000, cost: 10 },
+      ],
+    };
+    const html = generateShipPrintContent(ship, baseMass, baseCost, baseStaff, false, false, baseRules);
+    expect(html).toContain('Fuel Systems');
+    expect(html).toContain('Fuel Scoops');
+    expect(html).toContain('fuel tank');
+  });
+
+  it('should include zone sections when present', () => {
+    const ship = {
+      ...baseShip,
+      zone_sections: [
+        { zone_type: 'residential' as const, units: 100, mass: 100000, cost: 4000 },
+      ],
+    };
+    const html = generateShipPrintContent(ship, baseMass, baseCost, baseStaff, false, false, baseRules);
+    expect(html).toContain('Zone Sections');
+    expect(html).toContain('Residential');
+  });
+
   it('should include totals row', () => {
     const html = generateShipPrintContent(baseShip, baseMass, baseCost, baseStaff, false, false, baseRules);
     expect(html).toContain('Total');
-    expect(html).toContain('120.0 tons');
-    expect(html).toContain('45.50 MCr');
+    expect(html).toContain('120,000 tons');
+    expect(html).toContain('46 MCr');
   });
 
   it('should show separate Pilot and Navigator by default', () => {

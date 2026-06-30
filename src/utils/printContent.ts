@@ -1,8 +1,9 @@
 import type { ShipDesign, MassCalculation, CostCalculation, StaffRequirements } from '../types/ship';
 import {
   COMMS_SENSORS_TYPES, DEFENSE_TYPES, FACILITY_TYPES, CARGO_TYPES,
-  VEHICLE_TYPES, DRONE_TYPES, BERTH_TYPES,
-  getTonnageCode, getNumberOfSections, calculateTotalFuelMass
+  VEHICLE_TYPES, DRONE_TYPES, BERTH_TYPES, ZONE_SECTION_TYPES,
+  calculateManeuverFuel, calculateControlCenterMass, calculateControlCenterCost,
+  getMegastructureSections, PLANT_PER_SCOOP
 } from '../data/constants';
 
 function escapeHtml(str: string): string {
@@ -20,16 +21,12 @@ export function generateShipPrintContent(
   staff: StaffRequirements,
   combinePilotNavigator: boolean,
   noStewards: boolean,
-  activeRules: Set<string>
+  _activeRules: Set<string>
 ): string {
-  const tonnageCode = getTonnageCode(shipDesign.ship.tonnage);
-  const sections = getNumberOfSections(shipDesign.ship.tonnage);
-  const hullInfo = tonnageCode && sections
-    ? ` (hull code ${tonnageCode}, ${sections} sections)`
-    : tonnageCode ? ` (${tonnageCode})` : '';
+  const sections = getMegastructureSections(shipDesign.ship.tonnage);
   const shipTitle = escapeHtml(
-    `${shipDesign.ship.name}, ${shipDesign.ship.configuration} configuration, ` +
-    `${shipDesign.ship.tonnage.toLocaleString()} tons${hullInfo}, Tech Level ${shipDesign.ship.tech_level}`
+    `${shipDesign.ship.name} — ${shipDesign.ship.tonnage.toLocaleString()} tons ` +
+    `(${sections} section${sections !== 1 ? 's' : ''}), Tech Level ${shipDesign.ship.tech_level}`
   );
 
   const rows: string[] = [];
@@ -39,44 +36,44 @@ export function generateShipPrintContent(
     rows.push(`<tr>${cat}<td>${escapeHtml(item)}</td><td>${rowMass.toFixed(1)} tons</td><td>${rowCost.toFixed(2)} MCr</td></tr>`);
   };
 
-  // Engines
+  // Control Center
+  const controlCenterMass = calculateControlCenterMass(shipDesign.ship.tonnage);
+  const controlCenterCost = calculateControlCenterCost(shipDesign.ship.tonnage);
+  addRow('Control Center', `${sections} section${sections !== 1 ? 's' : ''} × 100 tons @ 0.5 MCr/ton`, controlCenterMass, controlCenterCost);
+
+  // Engines (no jump drives on megastructures)
   const validEngines = shipDesign.engines.filter(e =>
     !(e.engine_type === 'maneuver_drive' && e.performance === 0)
   );
   validEngines.forEach((engine, index) => {
-    const name = engine.engine_type === 'power_plant' ? 'Power Plant' :
-                 engine.engine_type === 'jump_drive' ? 'Jump Drive' : 'Maneuver Drive';
-    const code = engine.engine_type === 'power_plant' ? 'P' :
-                 engine.engine_type === 'jump_drive' ? 'J' : 'M';
+    const name = engine.engine_type === 'power_plant' ? 'Power Plant' : 'Maneuver Drive';
+    const code = engine.engine_type === 'power_plant' ? 'P' : 'M';
     addRow(index === 0 ? 'Engines' : '', `${name} ${code}-${engine.performance}`, engine.mass, engine.cost);
   });
 
-  // Fuel
-  const jumpPerf = shipDesign.engines.find(e => e.engine_type === 'jump_drive')?.performance || 0;
+  // Maneuver fuel only
   const manPerf = shipDesign.engines.find(e => e.engine_type === 'maneuver_drive')?.performance || 0;
-  const fuelMass = calculateTotalFuelMass(
-    shipDesign.ship.tonnage, jumpPerf, manPerf, shipDesign.ship.fuel_weeks, activeRules.has('antimatter')
-  );
-  addRow('', 'Fuel', fuelMass, 0);
-
-  // Fittings
-  let fittingIdx = 0;
-  const bridge = shipDesign.fittings.find(f => f.fitting_type === 'bridge' || f.fitting_type === 'half_bridge');
-  if (bridge) {
-    addRow(fittingIdx++ === 0 ? 'Fittings' : '', bridge.fitting_type === 'bridge' ? 'Bridge' : 'Half Bridge', bridge.mass, bridge.cost);
+  const manFuelMass = manPerf > 0
+    ? calculateManeuverFuel(shipDesign.ship.tonnage, manPerf, shipDesign.ship.fuel_weeks)
+    : 0;
+  if (manFuelMass > 0) {
+    addRow('', `Maneuver Fuel (M-${manPerf}, ${shipDesign.ship.fuel_weeks} weeks)`, manFuelMass, 0);
   }
+
+  // Fittings (control_center is auto-calculated above; skip it here)
+  let fittingIdx = 0;
   shipDesign.fittings.filter(f => f.fitting_type === 'launch_tube').forEach(tube => {
     addRow(fittingIdx++ === 0 ? 'Fittings' : '', `Launch Tube (${tube.launch_vehicle_mass || 1} ton vehicle)`, tube.mass, tube.cost);
   });
   const comms = shipDesign.fittings.find(f => f.fitting_type === 'comms_sensors');
   if (comms) {
     const sensorType = COMMS_SENSORS_TYPES.find(t => t.type === comms.comms_sensors_type);
-    addRow(fittingIdx++ === 0 ? 'Fittings' : '', `${sensorType?.name || 'Standard'} Comms & Sensors`, comms.mass, comms.cost);
+    addRow(fittingIdx++ === 0 ? 'Fittings' : '', `${sensorType?.name || 'Standard'} Sensors`, comms.mass, comms.cost);
   }
   const computer = shipDesign.fittings.find(f => f.fitting_type === 'computer');
   if (computer && computer.computer_model) {
     const modelDisplay = computer.computer_model.replace('core_', 'Core/');
-    addRow(fittingIdx++ === 0 ? 'Fittings' : '', `Computer ${modelDisplay}`, computer.mass ?? 0, computer.cost);
+    addRow(fittingIdx++ === 0 ? 'Fittings' : '', `Computer ${modelDisplay}`, 0, computer.cost);
   }
 
   // Weapons
@@ -98,12 +95,6 @@ export function generateShipPrintContent(
     if (shipDesign.ship.sand_reloads > 0) {
       addRow(defenseIdx++ === 0 ? 'Defenses' : '', 'Sand', shipDesign.ship.sand_reloads, 0);
     }
-  }
-
-  // Armor
-  if (shipDesign.ship.armor_percentage) {
-    const armorMass = (shipDesign.ship.tonnage * shipDesign.ship.armor_percentage) / 100;
-    addRow('Armor', `${shipDesign.ship.armor_percentage}% armor`, armorMass, armorMass * 0.1);
   }
 
   // Berths
@@ -128,8 +119,7 @@ export function generateShipPrintContent(
   // Cargo
   shipDesign.cargo.filter(c => c.tonnage > 0).forEach((cargo, index) => {
     const cargoType = CARGO_TYPES.find(ct => ct.type === cargo.cargo_type);
-    const name = cargoType?.name || cargo.cargo_type;
-    addRow(index === 0 ? 'Cargo' : '', name, cargo.tonnage, cargo.cost);
+    addRow(index === 0 ? 'Cargo' : '', cargoType?.name || cargo.cargo_type, cargo.tonnage, cargo.cost);
   });
 
   // Vehicles
@@ -153,26 +143,41 @@ export function generateShipPrintContent(
     addRow(index === 0 ? 'Custom' : '', item.name, item.mass, item.cost);
   });
 
+  // Fuel Systems
+  const fuelSystems = shipDesign.fuel_systems || [];
+  const scoopQty = fuelSystems.find(f => f.system_type === 'fuel_scoop')?.quantity ?? 0;
+  const plantMass = scoopQty * PLANT_PER_SCOOP.mass;
+  const plantCost = scoopQty * PLANT_PER_SCOOP.cost;
+  let fuelIdx = 0;
+  if (scoopQty > 0) {
+    addRow(fuelIdx++ === 0 ? 'Fuel Systems' : '', `Fuel Scoops (${scoopQty.toLocaleString()})`, 0, scoopQty);
+    addRow(fuelIdx++ === 0 ? 'Fuel Systems' : '', `Plant (${scoopQty.toLocaleString()} × 100 tons)`, plantMass, plantCost);
+  }
+  fuelSystems.filter(f => f.system_type !== 'fuel_scoop' && f.quantity > 0).forEach(f => {
+    addRow(fuelIdx++ === 0 ? 'Fuel Systems' : '', `${f.system_type.replace(/_/g, ' ')} (${f.quantity})`, f.mass, f.cost);
+  });
+
+  // Zone Sections
+  const zoneSections = shipDesign.zone_sections || [];
+  zoneSections.filter(z => z.units > 0).forEach((zone, index) => {
+    const spec = ZONE_SECTION_TYPES.find(z2 => z2.type === zone.zone_type);
+    addRow(index === 0 ? 'Zone Sections' : '', `${spec?.name || zone.zone_type} (${zone.units} units)`, zone.mass, zone.cost);
+  });
+
   rows.push(
     `<tr class="totals-row"><td><strong>Total</strong></td><td></td>` +
-    `<td><strong>${mass.used.toFixed(1)} tons</strong></td>` +
-    `<td><strong>${cost.total.toFixed(2)} MCr</strong></td></tr>`
+    `<td><strong>${mass.used.toLocaleString()} tons</strong></td>` +
+    `<td><strong>${Math.round(cost.total).toLocaleString()} MCr</strong></td></tr>`
   );
 
-  // Pilot/Navigator combining and steward removal only apply to small ships (100-200 tons),
-  // matching App.calculateAdjustedCrewCount so the printout agrees with the on-screen totals.
-  const isSmallShip = shipDesign.ship.tonnage >= 100 && shipDesign.ship.tonnage <= 200;
-  const applyCombine = combinePilotNavigator && isSmallShip;
-  const applyNoStewards = noStewards && isSmallShip;
-
-  const adjustedTotal = applyCombine && applyNoStewards
+  const adjustedTotal = combinePilotNavigator && noStewards
     ? staff.total - 1 - staff.stewards
-    : applyCombine ? staff.total - 1
-    : applyNoStewards ? staff.total - staff.stewards
+    : combinePilotNavigator ? staff.total - 1
+    : noStewards ? staff.total - staff.stewards
     : staff.total;
 
   const crewLines: string[] = [];
-  if (applyCombine) {
+  if (combinePilotNavigator) {
     crewLines.push('<p><strong>Pilot/Navigator:</strong> 1</p>');
   } else {
     crewLines.push(`<p><strong>Pilot:</strong> ${staff.pilot}</p>`);
@@ -181,20 +186,16 @@ export function generateShipPrintContent(
   crewLines.push(`<p><strong>Engineers:</strong> ${staff.engineers}</p>`);
   if (staff.gunners > 0) crewLines.push(`<p><strong>Gunners:</strong> ${staff.gunners}</p>`);
   if (staff.service > 0) crewLines.push(`<p><strong>Service Staff:</strong> ${staff.service}</p>`);
-  crewLines.push(`<p><strong>Stewards:</strong> ${applyNoStewards ? 0 : staff.stewards}</p>`);
+  crewLines.push(`<p><strong>Stewards:</strong> ${noStewards ? 0 : staff.stewards}</p>`);
   if (staff.nurses > 0) crewLines.push(`<p><strong>Nurses:</strong> ${staff.nurses}</p>`);
   if (staff.surgeons > 0) crewLines.push(`<p><strong>Surgeons:</strong> ${staff.surgeons}</p>`);
   if (staff.techs > 0) crewLines.push(`<p><strong>Medical Techs:</strong> ${staff.techs}</p>`);
   crewLines.push(`<p><strong>Total Crew:</strong> ${adjustedTotal}</p>`);
 
-  const nonStandardNotice = shipDesign.ship.tonnage < 3000
-    ? '<p class="nonstandard-notice"><em>Non-standard capital ship design &lt; 3,000 tons</em></p>'
-    : '';
-
   return `<!DOCTYPE html>
 <html>
   <head>
-    <title>Ship Design - ${escapeHtml(shipDesign.ship.name)}</title>
+    <title>Megastructure Design - ${escapeHtml(shipDesign.ship.name)}</title>
     <style>
       body { font-family: Arial, sans-serif; margin: 20px; }
       .ship-title { font-size: 18px; font-weight: bold; margin-bottom: 20px; }
@@ -204,7 +205,6 @@ export function generateShipPrintContent(
       .category-cell { font-weight: bold; }
       .totals-row { border-top: 2px solid #000; font-weight: bold; }
       .totals-row td { background-color: #f8f8f8; }
-      .nonstandard-notice { color: #c0392b; font-style: italic; margin-top: 1.5rem; }
       @media print { body { margin: 0; } table { page-break-inside: avoid; } }
     </style>
   </head>
@@ -218,7 +218,6 @@ export function generateShipPrintContent(
       <h3>Crew</h3>
       ${crewLines.join('')}
     </div>
-    ${nonStandardNotice}
   </body>
 </html>`;
 }

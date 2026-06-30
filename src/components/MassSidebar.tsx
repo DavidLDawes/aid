@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import type { MassCalculation, CostCalculation, ShipDesign } from '../types/ship';
-import { calculateTotalFuelMass, calculateArmorMass } from '../data/constants';
+import {
+  calculateManeuverFuel, calculateControlCenterMass, PLANT_PER_SCOOP
+} from '../data/constants';
 import { sumMass, sumMassWithQuantity, sumCargoTonnage } from '../utils/calculations';
 
 interface MassSidebarProps {
@@ -10,7 +12,7 @@ interface MassSidebarProps {
   activeRules: Set<string>;
 }
 
-const MassSidebar: React.FC<MassSidebarProps> = ({ mass, cost, shipDesign, activeRules }) => {
+const MassSidebar: React.FC<MassSidebarProps> = ({ mass, cost, shipDesign }) => {
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
 
   const toggleSection = (sectionName: string) => {
@@ -23,7 +25,6 @@ const MassSidebar: React.FC<MassSidebarProps> = ({ mass, cost, shipDesign, activ
     setExpandedSections(newExpanded);
   };
 
-  // Calculate masses for each category
   const enginesMass = sumMass(shipDesign.engines);
   const fittingsMass = sumMass(shipDesign.fittings);
   const weaponsMass = sumMassWithQuantity(shipDesign.weapons);
@@ -35,31 +36,42 @@ const MassSidebar: React.FC<MassSidebarProps> = ({ mass, cost, shipDesign, activ
   const customItemsMass = sumMass(shipDesign.custom_items);
   const berthsMass = sumMassWithQuantity(shipDesign.berths);
 
-  // Calculate fuel mass
-  const jumpDrive = shipDesign.engines.find(e => e.engine_type === 'jump_drive');
-  const maneuverDrive = shipDesign.engines.find(e => e.engine_type === 'maneuver_drive');
-  const jumpPerformance = jumpDrive?.performance || 0;
-  const maneuverPerformance = maneuverDrive?.performance || 0;
-  const useAntimatter = activeRules.has('antimatter');
-  const fuelMass = calculateTotalFuelMass(shipDesign.ship.tonnage, jumpPerformance, maneuverPerformance, shipDesign.ship.fuel_weeks, useAntimatter);
+  // Control center: auto-calculated, not stored in fittings
+  const controlCenterMass = calculateControlCenterMass(shipDesign.ship.tonnage);
 
-  // Calculate reload masses
+  // Maneuver fuel only — no jump drives on megastructures
+  const maneuverDrive = shipDesign.engines.find(e => e.engine_type === 'maneuver_drive');
+  const maneuverPerformance = maneuverDrive?.performance || 0;
+  const maneuverFuelMass = maneuverPerformance > 0
+    ? calculateManeuverFuel(shipDesign.ship.tonnage, maneuverPerformance, shipDesign.ship.fuel_weeks)
+    : 0;
+
+  // Fuel systems mass (scoops=0 tons, plant from scoops, processors, tanks, am plant)
+  const fuelSystems = shipDesign.fuel_systems || [];
+  const scoopQty = fuelSystems.find(f => f.system_type === 'fuel_scoop')?.quantity ?? 0;
+  const plantMass = scoopQty * PLANT_PER_SCOOP.mass;
+  const fuelSystemsMass = fuelSystems.reduce((sum, f) => sum + f.mass, 0) + plantMass;
+
+  // Zone sections mass
+  const zoneSections = shipDesign.zone_sections || [];
+  const zoneSectionsMass = zoneSections.reduce((sum, z) => sum + z.mass, 0);
+
   const missileReloadMass = shipDesign.ship.missile_reloads;
   const sandReloadMass = shipDesign.ship.sand_reloads;
 
-  // Calculate armor mass
-  const armorMass = shipDesign.ship.armor_percentage
-    ? calculateArmorMass(shipDesign.ship.tonnage, shipDesign.ship.armor_percentage)
-    : 0;
-
-  // Categories with their masses and visibility logic
   const categories = [
+    {
+      name: 'Control Center',
+      mass: controlCenterMass,
+      alwaysVisible: true,
+      items: [{ name: `${shipDesign.ship.sections ?? 1} section(s) × 100 tons`, mass: controlCenterMass }]
+    },
     {
       name: 'Engines',
       mass: enginesMass,
       alwaysVisible: true,
       items: shipDesign.engines.map(engine => ({
-        name: `${engine.drive_code} ${engine.engine_type.replace('_', ' ')}`,
+        name: `${engine.drive_code} ${engine.engine_type.replace(/_/g, ' ')}`,
         mass: engine.mass
       }))
     },
@@ -68,7 +80,7 @@ const MassSidebar: React.FC<MassSidebarProps> = ({ mass, cost, shipDesign, activ
       mass: fittingsMass,
       alwaysVisible: true,
       items: shipDesign.fittings.map(fitting => ({
-        name: fitting.fitting_type.replace('_', ' '),
+        name: fitting.fitting_type.replace(/_/g, ' '),
         mass: fitting.mass
       }))
     },
@@ -86,25 +98,16 @@ const MassSidebar: React.FC<MassSidebarProps> = ({ mass, cost, shipDesign, activ
       mass: defensesMass,
       alwaysVisible: false,
       items: shipDesign.defenses.filter(d => d.quantity > 0).map(defense => ({
-        name: `${defense.defense_type.replace('_', ' ')} (${defense.quantity})`,
+        name: `${defense.defense_type.replace(/_/g, ' ')} (${defense.quantity})`,
         mass: defense.mass * defense.quantity
       }))
-    },
-    {
-      name: 'Armor',
-      mass: armorMass,
-      alwaysVisible: false,
-      items: armorMass > 0 ? [{
-        name: `${shipDesign.ship.armor_percentage}% Coverage`,
-        mass: armorMass
-      }] : []
     },
     {
       name: 'Rec/Health',
       mass: facilitiesMass,
       alwaysVisible: false,
       items: shipDesign.facilities.filter(f => f.quantity > 0).map(facility => ({
-        name: `${facility.facility_type.replace('_', ' ')} (${facility.quantity})`,
+        name: `${facility.facility_type.replace(/_/g, ' ')} (${facility.quantity})`,
         mass: facility.mass * facility.quantity
       }))
     },
@@ -113,7 +116,7 @@ const MassSidebar: React.FC<MassSidebarProps> = ({ mass, cost, shipDesign, activ
       mass: cargoMass,
       alwaysVisible: false,
       items: shipDesign.cargo.map(cargo => ({
-        name: cargo.cargo_type.replace('_', ' '),
+        name: cargo.cargo_type.replace(/_/g, ' '),
         mass: cargo.tonnage
       }))
     },
@@ -122,7 +125,7 @@ const MassSidebar: React.FC<MassSidebarProps> = ({ mass, cost, shipDesign, activ
       mass: vehiclesMass,
       alwaysVisible: false,
       items: shipDesign.vehicles.filter(v => v.quantity > 0).map(vehicle => ({
-        name: `${vehicle.vehicle_type.replace('_', ' ')} (${vehicle.quantity})`,
+        name: `${vehicle.vehicle_type.replace(/_/g, ' ')} (${vehicle.quantity})`,
         mass: vehicle.mass * vehicle.quantity
       }))
     },
@@ -131,42 +134,60 @@ const MassSidebar: React.FC<MassSidebarProps> = ({ mass, cost, shipDesign, activ
       mass: dronesMass,
       alwaysVisible: false,
       items: shipDesign.drones.filter(d => d.quantity > 0).map(drone => ({
-        name: `${drone.drone_type.replace('_', ' ')} (${drone.quantity})`,
+        name: `${drone.drone_type.replace(/_/g, ' ')} (${drone.quantity})`,
         mass: drone.mass * drone.quantity
+      }))
+    },
+    {
+      name: 'Berths',
+      mass: berthsMass,
+      alwaysVisible: false,
+      items: shipDesign.berths.filter(b => b.quantity > 0).map(berth => ({
+        name: `${berth.berth_type.replace(/_/g, ' ')} (${berth.quantity})`,
+        mass: berth.mass * berth.quantity
       }))
     },
     {
       name: 'Custom',
       mass: customItemsMass,
       alwaysVisible: false,
-      items: shipDesign.custom_items.map(item => ({
-        name: item.name,
-        mass: item.mass
-      }))
-    },
-    {
-      name: 'Berths',
-      mass: berthsMass,
-      alwaysVisible: true,
-      items: shipDesign.berths.filter(b => b.quantity > 0).map(berth => ({
-        name: `${berth.berth_type.replace('_', ' ')} (${berth.quantity})`,
-        mass: berth.mass * berth.quantity
-      }))
+      items: shipDesign.custom_items.map(item => ({ name: item.name, mass: item.mass }))
     }
   ];
 
-  // Add fuel and reload categories if they have mass
-  if (fuelMass > 0) {
+  if (maneuverFuelMass > 0) {
     categories.push({
-      name: 'Fuel',
-      mass: fuelMass,
+      name: 'Maneuver Fuel',
+      mass: maneuverFuelMass,
       alwaysVisible: false,
-      items: [
-        {
-          name: `Jump & Maneuver Fuel${useAntimatter ? ' (Antimatter)' : ''} (${shipDesign.ship.fuel_weeks} weeks)`,
-          mass: fuelMass
-        }
-      ]
+      items: [{ name: `M-${maneuverPerformance} (${shipDesign.ship.fuel_weeks} weeks)`, mass: maneuverFuelMass }]
+    });
+  }
+
+  if (fuelSystemsMass > 0) {
+    const fuelItems = fuelSystems
+      .filter(f => f.system_type !== 'fuel_scoop')
+      .map(f => ({ name: f.system_type.replace(/_/g, ' '), mass: f.mass }));
+    if (plantMass > 0) {
+      fuelItems.push({ name: `Plant (${scoopQty} scoops × 100 tons)`, mass: plantMass });
+    }
+    categories.push({
+      name: 'Fuel Systems',
+      mass: fuelSystemsMass,
+      alwaysVisible: false,
+      items: fuelItems
+    });
+  }
+
+  if (zoneSectionsMass > 0) {
+    categories.push({
+      name: 'Zone Sections',
+      mass: zoneSectionsMass,
+      alwaysVisible: false,
+      items: zoneSections.filter(z => z.units > 0).map(zone => ({
+        name: `${zone.zone_type.replace(/_/g, ' ')} (${zone.units} units)`,
+        mass: zone.mass
+      }))
     });
   }
 
@@ -175,12 +196,7 @@ const MassSidebar: React.FC<MassSidebarProps> = ({ mass, cost, shipDesign, activ
       name: 'Missile Reloads',
       mass: missileReloadMass,
       alwaysVisible: false,
-      items: [
-        {
-          name: 'Missile Reloads',
-          mass: missileReloadMass
-        }
-      ]
+      items: [{ name: 'Missile Reloads', mass: missileReloadMass }]
     });
   }
 
@@ -189,12 +205,7 @@ const MassSidebar: React.FC<MassSidebarProps> = ({ mass, cost, shipDesign, activ
       name: 'Sand Reloads',
       mass: sandReloadMass,
       alwaysVisible: false,
-      items: [
-        {
-          name: 'Sand Reloads',
-          mass: sandReloadMass
-        }
-      ]
+      items: [{ name: 'Sand Reloads', mass: sandReloadMass }]
     });
   }
 
@@ -202,17 +213,16 @@ const MassSidebar: React.FC<MassSidebarProps> = ({ mass, cost, shipDesign, activ
     <aside className="mass-sidebar">
       <div className="mass-tracker">
         <h3>Mass Tracker</h3>
-        
-        {/* Category breakdowns */}
+
         {categories.map(category => {
           const shouldShow = category.alwaysVisible || category.mass > 0;
           if (!shouldShow) return null;
-          
+
           const isExpanded = expandedSections.has(category.name);
-          
+
           return (
             <div key={category.name} className="mass-category">
-              <div 
+              <div
                 className="mass-category-header"
                 onClick={() => toggleSection(category.name)}
                 style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}
@@ -223,7 +233,7 @@ const MassSidebar: React.FC<MassSidebarProps> = ({ mass, cost, shipDesign, activ
                 <span>{category.name}:</span>
                 <span>{category.mass.toFixed(1)} tons</span>
               </div>
-              
+
               {isExpanded && category.items.length > 0 && (
                 <div className="mass-category-details" style={{ marginLeft: '20px', fontSize: '0.9em' }}>
                   {category.items.map((item, index) => (
@@ -238,25 +248,24 @@ const MassSidebar: React.FC<MassSidebarProps> = ({ mass, cost, shipDesign, activ
           );
         })}
 
-        {/* Total section */}
         <div className="mass-totals" style={{ borderTop: '1px solid #ccc', paddingTop: '10px', marginTop: '10px' }}>
           <div className="mass-item">
             <span>Total:</span>
-            <span>{mass.total.toFixed(1)} tons</span>
+            <span>{mass.total.toLocaleString()} tons</span>
           </div>
           <div className="mass-item">
             <span>Used:</span>
-            <span>{mass.used.toFixed(1)} tons</span>
+            <span>{mass.used.toLocaleString()} tons</span>
           </div>
           <div className={`mass-item ${mass.isOverweight ? 'overweight' : ''}`}>
             <span>Remaining:</span>
-            <span>{mass.remaining.toFixed(1)} tons</span>
+            <span>{mass.remaining.toLocaleString()} tons</span>
           </div>
         </div>
-        
+
         {mass.isOverweight && (
           <div className="warning">
-            ⚠️ Ship is overweight! Remove components.
+            ⚠ Megastructure is overweight! Remove components.
           </div>
         )}
       </div>
@@ -265,7 +274,7 @@ const MassSidebar: React.FC<MassSidebarProps> = ({ mass, cost, shipDesign, activ
         <h3>Cost Tracker</h3>
         <div className="cost-item">
           <span>Total Cost:</span>
-          <span>{Math.round(cost.total)} MCr</span>
+          <span>{Math.round(cost.total).toLocaleString()} MCr</span>
         </div>
       </div>
     </aside>

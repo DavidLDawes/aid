@@ -1,5 +1,5 @@
 import type { ShipDesign, Ship } from '../types/ship';
-import { getNumberOfSections } from '../data/constants';
+import { getMegastructureSections } from '../data/constants';
 
 export const createEmptyShipDesign = (shipInfo: Ship): ShipDesign => {
   return {
@@ -20,14 +20,16 @@ export const createEmptyShipDesign = (shipInfo: Ship): ShipDesign => {
     cargo: [],
     vehicles: [],
     drones: [],
-    custom_items: []
+    custom_items: [],
+    fuel_systems: [],
+    zone_sections: []
   };
 };
 
 export const createDefaultShip = (
   name: string,
   techLevel: string = 'A',
-  tonnage: number = 5000,
+  tonnage: number = 1_000_000,
   configuration: 'standard' | 'streamlined' | 'distributed' = 'standard'
 ): Ship => {
   return {
@@ -38,7 +40,7 @@ export const createDefaultShip = (
     fuel_weeks: 2,
     missile_reloads: 0,
     sand_reloads: 0,
-    sections: getNumberOfSections(tonnage) ?? undefined,
+    sections: getMegastructureSections(tonnage),
     description: ''
   };
 };

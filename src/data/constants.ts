@@ -707,6 +707,72 @@ export function calculateDroneServiceStaff(drones: { drone_type: string; quantit
   return heavyDroneStaff + lightDroneStaff;
 }
 
+// ── Megastructure helpers ────────────────────────────────────────────────────
+
+// Hull sizes for megastructures: 1M–100M tons in 1M-ton steps
+export const MEGASTRUCTURE_HULL_SIZES = Array.from({ length: 100 }, (_, i) => {
+  const tonnage = (i + 1) * 1_000_000;
+  return { tonnage, code: `${i + 1}M`, cost: tonnage / 10 };
+});
+
+export function getMegastructureSections(tonnage: number): number {
+  return Math.ceil(tonnage / 1_000_000);
+}
+
+// Control center: 100 tons per million-ton section, 0.5 MCr/ton
+export function calculateControlCenterMass(tonnage: number): number {
+  return getMegastructureSections(tonnage) * 100;
+}
+
+export function calculateControlCenterCost(tonnage: number): number {
+  return calculateControlCenterMass(tonnage) * 0.5;
+}
+
+// Sensors: 10× base mass and cost per million-ton section
+export function getMegastructureSensorMassAndCost(
+  baseMass: number,
+  baseCost: number,
+  tonnage: number
+): { mass: number; cost: number } {
+  const sections = getMegastructureSections(tonnage);
+  return { mass: baseMass * 10 * sections, cost: baseCost * 10 * sections };
+}
+
+// Computers: 4× base cost per million-ton section (redundant computers)
+export function getMegastructureComputerCost(baseCost: number, tonnage: number): number {
+  return baseCost * 4 * getMegastructureSections(tonnage);
+}
+
+// Fuel system specs
+export const FUEL_SYSTEM_TYPES = [
+  { type: 'fuel_scoop',       name: 'Fuel Scoop',         massPerUnit: 0,       costPerUnit: 1,    unit: 'scoop',              note: 'Max 1,000 per million-ton section' },
+  { type: 'fuel_processor',   name: 'Fuel Processor',     massPerUnit: 1000,    costPerUnit: 50,   unit: '1,000-ton unit',     note: '20,000 tons/day of fuel processing' },
+  { type: 'fuel_tank',        name: 'Fuel Tank',          massPerUnit: 1000,    costPerUnit: 1,    unit: '1,000-ton unit',     note: 'Stores refined fuel' },
+  { type: 'antimatter_plant', name: 'Antimatter Plant',   massPerUnit: 100000,  costPerUnit: 1000, unit: '100,000-ton unit',   note: '1,200 tons AM fuel/day; requires P-10 power plant' },
+] as const;
+
+// Plant support infrastructure auto-calculated from scoop count: 100 tons, 1 MCr per scoop
+export const PLANT_PER_SCOOP = { mass: 100, cost: 1 };
+
+// Zone section types: 1,000-ton increments
+export const ZONE_SECTION_TYPES = [
+  { type: 'residential',        name: 'Residential',              costPerUnit: 40,   note: '8,000 homes per 1,000 tons' },
+  { type: 'commercial',         name: 'Commercial',               costPerUnit: 200,  note: '' },
+  { type: 'industrial',         name: 'Industrial',               costPerUnit: 80,   note: '' },
+  { type: 'heavy_industrial',   name: 'Heavy Industrial',         costPerUnit: 120,  note: '' },
+  { type: 'farm',               name: 'Farm',                     costPerUnit: 30,   note: '' },
+  { type: 'research_university',name: 'Research Center/University', costPerUnit: 150, note: '' },
+  { type: 'park',               name: 'Park',                     costPerUnit: 60,   note: '' },
+  { type: 'lake',               name: 'Lake',                     costPerUnit: 50,   note: '' },
+  { type: 'cargo',              name: 'Cargo',                    costPerUnit: 0.1,  note: '' },
+  { type: 'secure_storage',     name: 'Secure Storage',           costPerUnit: 90,   note: '' },
+  { type: 'cold_storage',       name: 'Cold Storage',             costPerUnit: 10,   note: '' },
+  { type: 'garden',             name: 'Garden',                   costPerUnit: 5,    note: '' },
+  { type: 'livestock',          name: 'Livestock',                costPerUnit: 25,   note: '' },
+] as const;
+
+// ── End megastructure helpers ─────────────────────────────────────────────────
+
 export function calculateMedicalStaff(facilities: { facility_type: string; quantity: number }[]): { nurses: number; surgeons: number; techs: number } {
   let nurses = 0;
   let surgeons = 0;
