@@ -23,7 +23,7 @@ class NodeDatabaseService {
   constructor() {
     this.db = null;
     this.dbName = 'StarshipDesignerDB';
-    this.version = 2;
+    this.version = 3;
   }
 
   async initialize() {
@@ -51,12 +51,23 @@ class NodeDatabaseService {
         if (oldVersion < 2) {
           const transaction = event.target.transaction;
           const shipStore = transaction.objectStore('ships');
-          
+
           if (shipStore.indexNames.contains('name')) {
             shipStore.deleteIndex('name');
           }
-          
+
           shipStore.createIndex('name', 'ship.name', { unique: true });
+        }
+
+        if (oldVersion < 3) {
+          if (!db.objectStoreNames.contains('ship_ships')) {
+            const newStore = db.createObjectStore('ship_ships', { keyPath: 'id', autoIncrement: true });
+            newStore.createIndex('name', 'ship.name', { unique: true });
+            newStore.createIndex('createdAt', 'createdAt', { unique: false });
+          }
+          if (db.objectStoreNames.contains('ships')) {
+            db.deleteObjectStore('ships');
+          }
         }
       };
     });
@@ -66,8 +77,8 @@ class NodeDatabaseService {
     if (!this.db) throw new Error('Database not initialized');
 
     return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction(['ships'], 'readonly');
-      const store = transaction.objectStore('ships');
+      const transaction = this.db.transaction(['ship_ships'], 'readonly');
+      const store = transaction.objectStore('ship_ships');
       const nameIndex = store.index('name');
       const request = nameIndex.get(name);
 
@@ -91,8 +102,8 @@ class NodeDatabaseService {
     if (!this.db) throw new Error('Database not initialized');
 
     return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction(['ships'], 'readwrite');
-      const store = transaction.objectStore('ships');
+      const transaction = this.db.transaction(['ship_ships'], 'readwrite');
+      const store = transaction.objectStore('ship_ships');
       const request = store.delete(id);
 
       request.onerror = () => reject(request.error);
@@ -104,8 +115,8 @@ class NodeDatabaseService {
     if (!this.db) throw new Error('Database not initialized');
 
     return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction(['ships'], 'readwrite');
-      const store = transaction.objectStore('ships');
+      const transaction = this.db.transaction(['ship_ships'], 'readwrite');
+      const store = transaction.objectStore('ship_ships');
       
       const now = new Date();
       const shipToSave = {

@@ -34,7 +34,10 @@
       "Bash(Get-ChildItem *)",
       "Bash(node_modules\\\\.bin\\\\tsc.cmd --noEmit)",
       "PowerShell(node_modules\\\\.bin\\\\tsc.cmd --noEmit 2>&1 | Select-Object -First 60)",
-      "PowerShell(node_modules\\\\.bin\\\\jest.cmd --no-coverage 2>&1 | Select-Object -Last 30)"
+      "PowerShell(node_modules\\\\.bin\\\\jest.cmd --no-coverage 2>&1 | Select-Object -Last 30)",
+      "Bash(node_modules\\\\.bin\\\\jest.cmd --no-coverage --testPathPattern=\"App.test|SelectShipPanel.test|BerthsPanel.test|ShipPanel.test\")",
+      "PowerShell(pnpm test:run *)",
+      "Bash(node_modules\\\\.bin\\\\jest.cmd --no-coverage --testPathPattern=\"WeaponsPanel|FittingsPanel|FacilitiesPanel|DefensesPanel|StaffPanel|CargoPanel|VehiclesPanel|DronesPanel\")"
     ],
     "deny": []
   }
