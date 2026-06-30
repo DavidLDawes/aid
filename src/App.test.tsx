@@ -195,4 +195,209 @@ describe('App', () => {
     expect(screen.getByRole('button', { name: 'Ship' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Engines' })).toBeInTheDocument();
   });
+
+  // --- handleFileSave ---
+
+  it('handleFileSave alerts when ship name is empty', async () => {
+    const alertSpy = jest.spyOn(window, 'alert').mockImplementation(() => {});
+    render(<App />);
+    await waitFor(() => expect(screen.getByRole('button', { name: /New Ship/ })).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: /New Ship/ }));
+
+    // Name is empty, fire Ctrl+S on body (not an input element)
+    fireEvent.keyDown(document.body, { ctrlKey: true, key: 's', shiftKey: false });
+
+    expect(alertSpy).toHaveBeenCalledWith(expect.stringMatching(/ship name/i));
+    alertSpy.mockRestore();
+  });
+
+  it('handleFileSave calls DB when ship has a name', async () => {
+    const { databaseService } = await import('./services/database');
+    render(<App />);
+    await waitFor(() => expect(screen.getByRole('button', { name: /New Ship/ })).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: /New Ship/ }));
+
+    fireEvent.change(screen.getByLabelText(/Ship Name/), { target: { value: 'Falcon' } });
+    fireEvent.keyDown(document.body, { ctrlKey: true, key: 's', shiftKey: false });
+
+    await waitFor(() => {
+      expect(databaseService.saveOrUpdateShipByName).toHaveBeenCalledWith(
+        expect.objectContaining({ ship: expect.objectContaining({ name: 'Falcon' }) })
+      );
+    });
+  });
+
+  it('handleFileSave alerts when DB throws', async () => {
+    const { databaseService } = await import('./services/database');
+    (databaseService.saveOrUpdateShipByName as ReturnType<typeof jest.fn>)
+      .mockRejectedValueOnce(new Error('Duplicate ship name'));
+    const alertSpy = jest.spyOn(window, 'alert').mockImplementation(() => {});
+
+    render(<App />);
+    await waitFor(() => expect(screen.getByRole('button', { name: /New Ship/ })).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: /New Ship/ }));
+    fireEvent.change(screen.getByLabelText(/Ship Name/), { target: { value: 'Falcon' } });
+    fireEvent.keyDown(document.body, { ctrlKey: true, key: 's', shiftKey: false });
+
+    await waitFor(() => {
+      expect(alertSpy).toHaveBeenCalledWith(expect.stringMatching(/Duplicate ship name/));
+    });
+    alertSpy.mockRestore();
+  });
+
+  // --- handleFileSaveAs ---
+
+  it('handleFileSaveAs prompts for new name and saves', async () => {
+    const { databaseService } = await import('./services/database');
+    const promptSpy = jest.spyOn(window, 'prompt').mockReturnValue('New Falcon');
+
+    render(<App />);
+    await waitFor(() => expect(screen.getByRole('button', { name: /New Ship/ })).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: /New Ship/ }));
+    fireEvent.change(screen.getByLabelText(/Ship Name/), { target: { value: 'Falcon' } });
+
+    // Ctrl+Shift+S triggers Save As
+    fireEvent.keyDown(document.body, { ctrlKey: true, shiftKey: true, key: 'S' });
+
+    await waitFor(() => {
+      expect(promptSpy).toHaveBeenCalled();
+      expect(databaseService.saveShip).toHaveBeenCalledWith(
+        expect.objectContaining({ ship: expect.objectContaining({ name: 'New Falcon' }) })
+      );
+    });
+    promptSpy.mockRestore();
+  });
+
+  it('handleFileSaveAs does nothing when prompt is cancelled', async () => {
+    const { databaseService } = await import('./services/database');
+    jest.spyOn(window, 'prompt').mockReturnValue(null);
+
+    render(<App />);
+    await waitFor(() => expect(screen.getByRole('button', { name: /New Ship/ })).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: /New Ship/ }));
+    fireEvent.change(screen.getByLabelText(/Ship Name/), { target: { value: 'Falcon' } });
+
+    fireEvent.keyDown(document.body, { ctrlKey: true, shiftKey: true, key: 'S' });
+
+    // saveShip should NOT be called
+    expect(databaseService.saveShip).not.toHaveBeenCalled();
+  });
+
+  // --- keyboard shortcuts ignored in certain contexts ---
+
+  it('keyboard shortcuts ignored when on Select Ship screen', async () => {
+    const { databaseService } = await import('./services/database');
+    render(<App />);
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Select Ship' })).toBeInTheDocument());
+
+    // Fire Ctrl+S on the Select Ship screen — should be ignored
+    fireEvent.keyDown(document.body, { ctrlKey: true, key: 's', shiftKey: false });
+
+    expect(databaseService.saveOrUpdateShipByName).not.toHaveBeenCalled();
+  });
+
+  // --- panel navigation and validation ---
+
+  it('Next is disabled on panel 1 (Engines) when no engines configured', async () => {
+    render(<App />);
+    await waitFor(() => expect(screen.getByRole('button', { name: /New Ship/ })).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: /New Ship/ }));
+    fireEvent.change(screen.getByLabelText(/Ship Name/), { target: { value: 'Nighthawk' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Next' })); // advance to panel 1
+
+    await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'Engines' })).toBeInTheDocument());
+    expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
+  });
+
+  it('clicking a nav button jumps to that panel', async () => {
+    render(<App />);
+    await waitFor(() => expect(screen.getByRole('button', { name: /New Ship/ })).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: /New Ship/ }));
+    fireEvent.change(screen.getByLabelText(/Ship Name/), { target: { value: 'Nighthawk' } });
+
+    // Click the "Engines" nav button directly
+    fireEvent.click(screen.getByRole('button', { name: 'Engines' }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { level: 2, name: 'Engines' })).toBeInTheDocument();
+    });
+  });
+
+  // --- handleLoadShip weapon cleanup ---
+
+  it('handleLoadShip removes non-standard weapons and re-saves', async () => {
+    const { databaseService } = await import('./services/database');
+    const shipWithBadWeapon = {
+      id: 42,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      ship: { name: 'Clean Ship', tech_level: 'A', tonnage: 100, configuration: 'standard', fuel_weeks: 2, missile_reloads: 0, sand_reloads: 0, description: '' },
+      engines: [],
+      fittings: [],
+      weapons: [{ weapon_name: 'Legacy Laser', mass: 2, cost: 1, quantity: 1 }],
+      defenses: [],
+      berths: [],
+      facilities: [],
+      cargo: [],
+      vehicles: [],
+      drones: []
+    };
+    (databaseService.getAllShips as ReturnType<typeof jest.fn>).mockResolvedValueOnce([shipWithBadWeapon]);
+    (databaseService.getShipById as ReturnType<typeof jest.fn>).mockResolvedValueOnce(shipWithBadWeapon);
+
+    render(<App />);
+    await waitFor(() => expect(screen.getByRole('combobox')).toBeInTheDocument());
+
+    // Select the user ship and load it
+    const select = screen.getByRole('combobox');
+    fireEvent.change(select, { target: { value: '42' } });
+    fireEvent.click(screen.getByRole('button', { name: /Load Selected Ship/ }));
+
+    await waitFor(() => {
+      expect(databaseService.saveOrUpdateShipByName).toHaveBeenCalledWith(
+        expect.objectContaining({ weapons: [] })
+      );
+    });
+  });
+
+  // --- Print keyboard shortcut ---
+
+  it('Ctrl+P opens print window when ship has a name', async () => {
+    const mockPrintWin = {
+      document: { write: jest.fn(), close: jest.fn() },
+      focus: jest.fn(),
+      addEventListener: jest.fn(),
+      print: jest.fn(),
+      close: jest.fn()
+    };
+    const openSpy = jest.spyOn(window, 'open').mockReturnValue(mockPrintWin as unknown as Window);
+
+    render(<App />);
+    await waitFor(() => expect(screen.getByRole('button', { name: /New Ship/ })).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: /New Ship/ }));
+    fireEvent.change(screen.getByLabelText(/Ship Name/), { target: { value: 'Print Ship' } });
+
+    fireEvent.keyDown(document.body, { ctrlKey: true, key: 'p', shiftKey: false });
+
+    expect(openSpy).toHaveBeenCalledWith('', '_blank');
+    expect(mockPrintWin.document.write).toHaveBeenCalled();
+    expect(mockPrintWin.print).toHaveBeenCalled();
+    openSpy.mockRestore();
+  });
+
+  it('Ctrl+P alerts when print window is blocked', async () => {
+    const openSpy = jest.spyOn(window, 'open').mockReturnValue(null);
+    const alertSpy = jest.spyOn(window, 'alert').mockImplementation(() => {});
+
+    render(<App />);
+    await waitFor(() => expect(screen.getByRole('button', { name: /New Ship/ })).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: /New Ship/ }));
+    fireEvent.change(screen.getByLabelText(/Ship Name/), { target: { value: 'Print Ship' } });
+
+    fireEvent.keyDown(document.body, { ctrlKey: true, key: 'p', shiftKey: false });
+
+    expect(alertSpy).toHaveBeenCalledWith(expect.stringMatching(/pop-ups/i));
+    openSpy.mockRestore();
+    alertSpy.mockRestore();
+  });
 });
