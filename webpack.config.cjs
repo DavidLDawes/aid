@@ -1,6 +1,60 @@
 const path = require('path');
-const HtmlWebpackPlugin = require('html-webpack-plugin');
+const fs = require('fs');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+
+class InjectBundlesPlugin {
+  constructor(template) {
+    this.templatePath = path.resolve(__dirname, template);
+  }
+
+  apply(compiler) {
+    compiler.hooks.thisCompilation.tap('InjectBundlesPlugin', (compilation) => {
+      compilation.hooks.processAssets.tapAsync(
+        {
+          name: 'InjectBundlesPlugin',
+          stage: compiler.webpack.Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE,
+        },
+        (_, callback) => {
+          try {
+            let html = fs.readFileSync(this.templatePath, 'utf-8');
+
+            const rawPublicPath = compilation.outputOptions.publicPath;
+            const publicPath = !rawPublicPath || rawPublicPath === 'auto' ? '' : String(rawPublicPath);
+
+            const entry = compilation.entrypoints.get('main');
+            const allFiles = entry ? entry.getFiles().filter(f => !f.endsWith('.map')) : [];
+
+            const cssFiles = allFiles.filter(f => f.endsWith('.css'));
+            const jsFiles = allFiles.filter(f => f.endsWith('.js'));
+
+            const links = cssFiles
+              .map(f => `<link rel="stylesheet" href="${publicPath}${f}">`)
+              .join('\n    ');
+
+            const scripts = jsFiles
+              .map(f => `<script src="${publicPath}${f}"></script>`)
+              .join('\n    ');
+
+            if (links) {
+              html = html.replace('</head>', `    ${links}\n  </head>`);
+            }
+
+            html = html.replace(
+              /<script\b[^>]*\bsrc="[^"]*main\.tsx"[^>]*><\/script>/,
+              scripts
+            );
+
+            const { RawSource } = compiler.webpack.sources;
+            compilation.emitAsset('index.html', new RawSource(html));
+            callback();
+          } catch (err) {
+            callback(err);
+          }
+        }
+      );
+    });
+  }
+}
 
 module.exports = (env, argv) => {
   const isProduction = argv.mode === 'production';
@@ -37,9 +91,7 @@ module.exports = (env, argv) => {
       ],
     },
     plugins: [
-      new HtmlWebpackPlugin({
-        template: './index.html',
-      }),
+      new InjectBundlesPlugin('./index.html'),
       ...(isProduction ? [new MiniCssExtractPlugin({ filename: '[name].[contenthash].css' })] : []),
     ],
     devServer: {
@@ -53,8 +105,6 @@ module.exports = (env, argv) => {
     },
     devtool: isProduction ? 'source-map' : 'eval-source-map',
     performance: {
-      // react-dom alone is ~178 KiB minified; the webpack default (244 KiB) predates React 19.
-      // Gzipped the full entrypoint is ~85 KiB, which is fine.
       maxAssetSize: 250 * 1024,
       maxEntrypointSize: 350 * 1024,
     },
