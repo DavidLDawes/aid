@@ -62,19 +62,29 @@ const BerthsPanel: React.FC<BerthsPanelProps> = ({ berths, staffRequirements, ad
 
   // Ensure minimum staterooms match crew requirements
   useEffect(() => {
-    const totalStaterooms = getTotalStaterooms();
-    const crewCount = getEffectiveCrewCount();
-    
+    const stateroomBerth = berths.find(b => b.berth_type === 'staterooms');
+    const luxuryBerth = berths.find(b => b.berth_type === 'luxury_staterooms');
+    const totalStaterooms = (stateroomBerth?.quantity ?? 0) + (luxuryBerth?.quantity ?? 0);
+    const crewCount = adjustedCrewCount !== undefined ? adjustedCrewCount : staffRequirements.total;
+
     if (totalStaterooms < crewCount && crewCount > 0) {
       const shortfall = crewCount - totalStaterooms;
-      const currentStaterooms = getBerthQuantity('staterooms');
-      
-      updateBerthQuantity(
-        BERTH_TYPES.find(bt => bt.type === 'staterooms')!,
-        currentStaterooms + shortfall
-      );
+      const currentStaterooms = stateroomBerth?.quantity ?? 0;
+      const stateroomType = BERTH_TYPES.find(bt => bt.type === 'staterooms')!;
+      const newQuantity = currentStaterooms + shortfall;
+
+      const newBerths = [...berths];
+      const existingIndex = newBerths.findIndex(b => b.berth_type === 'staterooms');
+      const berthData = { berth_type: 'staterooms' as const, quantity: newQuantity, mass: stateroomType.mass, cost: stateroomType.cost };
+
+      if (existingIndex >= 0) {
+        newBerths[existingIndex] = berthData;
+      } else {
+        newBerths.push(berthData);
+      }
+      onUpdate(newBerths);
     }
-  }, [staffRequirements.total, adjustedCrewCount]);
+  }, [berths, staffRequirements.total, adjustedCrewCount, onUpdate]);
 
   return (
     <div className="panel-content">

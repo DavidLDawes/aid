@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { databaseService, type StoredShipDesign } from '../services/database';
 import { initialDataService } from '../services/initialDataService';
 import type { ShipDesign } from '../types/ship';
@@ -9,117 +9,118 @@ interface SelectShipPanelProps {
   onLoadShip: (shipDesign: ShipDesign) => void;
 }
 
+function createDefaultShips(): StoredShipDesign[] {
+  const defaultFreeTrader: StoredShipDesign = {
+    id: -1,
+    ship: {
+      name: 'Free Trader',
+      tech_level: 'C',
+      tonnage: 400,
+      configuration: 'standard',
+      fuel_weeks: 4,
+      missile_reloads: 0,
+      sand_reloads: 0,
+      description: 'Merchant vessel'
+    },
+    engines: [
+      { engine_type: 'power_plant', drive_code: 'D', performance: 2, mass: 13, cost: 32 },
+      { engine_type: 'jump_drive', drive_code: 'D', performance: 2, mass: 25, cost: 40 },
+      { engine_type: 'maneuver_drive', drive_code: 'D', performance: 2, mass: 7, cost: 16 }
+    ],
+    fittings: [
+      { fitting_type: 'bridge', mass: 10, cost: 2 },
+      { fitting_type: 'comms_sensors', comms_sensors_type: 'standard', mass: 0, cost: 0 }
+    ],
+    weapons: [{ weapon_name: 'Hard Point', mass: 1, cost: 1, quantity: 4 }],
+    defenses: [],
+    berths: [],
+    facilities: [{ facility_type: 'commissary', quantity: 1, mass: 2, cost: 0.2 }],
+    cargo: [
+      { cargo_type: 'cargo_bay', tonnage: 132, cost: 0 },
+      { cargo_type: 'spares', tonnage: 4, cost: 2 },
+      { cargo_type: 'cold_storage_bay', tonnage: 2, cost: 0.4 },
+      { cargo_type: 'secure_storage_bay', tonnage: 1, cost: 0.7 }
+    ],
+    vehicles: [{ vehicle_type: 'air_raft_truck', quantity: 1, mass: 5, cost: 0.55 }],
+    drones: [],
+    createdAt: new Date(),
+    updatedAt: new Date()
+  };
+
+  const defaultScout: StoredShipDesign = {
+    id: -2,
+    ship: {
+      name: 'Scout',
+      tech_level: 'E',
+      tonnage: 100,
+      configuration: 'standard',
+      fuel_weeks: 4,
+      missile_reloads: 0,
+      sand_reloads: 0,
+      description: 'Fast long ranged ship, low crew overhead'
+    },
+    engines: [
+      { engine_type: 'power_plant', drive_code: 'B', performance: 4, mass: 7, cost: 16 },
+      { engine_type: 'jump_drive', drive_code: 'B', performance: 4, mass: 15, cost: 20 },
+      { engine_type: 'maneuver_drive', drive_code: 'B', performance: 4, mass: 3, cost: 8 }
+    ],
+    fittings: [
+      { fitting_type: 'bridge', mass: 10, cost: 2 },
+      { fitting_type: 'comms_sensors', comms_sensors_type: 'standard', mass: 0, cost: 0 }
+    ],
+    weapons: [],
+    defenses: [],
+    berths: [],
+    facilities: [],
+    cargo: [{ cargo_type: 'cargo_bay', tonnage: 3, cost: 0 }],
+    vehicles: [],
+    drones: [],
+    createdAt: new Date(),
+    updatedAt: new Date()
+  };
+
+  const defaultFatTrader: StoredShipDesign = {
+    id: -3,
+    ship: {
+      name: 'Fat Trader',
+      tech_level: 'C',
+      tonnage: 600,
+      configuration: 'standard',
+      fuel_weeks: 4,
+      missile_reloads: 0,
+      sand_reloads: 0,
+      description: 'A larger merchant vessel'
+    },
+    engines: [
+      { engine_type: 'power_plant', drive_code: 'D', performance: 2, mass: 13, cost: 32 },
+      { engine_type: 'jump_drive', drive_code: 'D', performance: 2, mass: 25, cost: 40 },
+      { engine_type: 'maneuver_drive', drive_code: 'D', performance: 2, mass: 7, cost: 16 }
+    ],
+    fittings: [
+      { fitting_type: 'bridge', mass: 10, cost: 2 },
+      { fitting_type: 'comms_sensors', comms_sensors_type: 'standard', mass: 0, cost: 0 }
+    ],
+    weapons: [{ weapon_name: 'Hard Point', mass: 1, cost: 1, quantity: 6 }],
+    defenses: [],
+    berths: [],
+    facilities: [],
+    cargo: [],
+    vehicles: [],
+    drones: [],
+    createdAt: new Date(),
+    updatedAt: new Date()
+  };
+
+  return [defaultScout, defaultFreeTrader, defaultFatTrader];
+}
+
 export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPanelProps) {
   const [ships, setShips] = useState<StoredShipDesign[]>([]);
   const [selectedShipId, setSelectedShipId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadShips();
-  }, []);
-
-  const createDefaultShips = () => {
-    // Fallback: create default ships in memory if all loading fails
-    const defaultFreeTrader = {
-      id: -1, // Temporary ID
-      ship: {
-        name:'Free Trader',
-        tech_level: 'C' as const,
-        tonnage: 400,
-        configuration: 'standard' as const,
-        fuel_weeks: 4,
-        missile_reloads: 0,
-        sand_reloads: 0,
-        description:'Merchant vessel' as const
-      },
-      engines: [
-        {engine_type: 'power_plant' as const, drive_code: 'D', performance: 2, mass: 13, cost: 32},
-        {engine_type: 'jump_drive' as const, drive_code: 'D', performance: 2, mass: 25, cost: 40},
-        {engine_type: 'maneuver_drive' as const, drive_code: 'D', performance: 2, mass: 7, cost: 16}
-      ],
-      fittings: [
-        { fitting_type: 'bridge' as const, mass: 10, cost: 2 },
-        { fitting_type: 'comms_sensors' as const, comms_sensors_type: 'standard' as const, mass: 0, cost: 0 }
-      ],
-      weapons: [{weapon_name: 'Hard Point' as const, mass: 1, cost: 1, quantity: 4}],
-      defenses: [],
-      berths: [],
-      facilities: [{facility_type:'commissary' as const, quantity: 1, mass: 2, cost: 0.2}],
-      cargo: [
-        {cargo_type: 'cargo_bay' as const, tonnage:132, cost: 0},
-        {cargo_type: 'spares' as const, tonnage: 4,'cost': 2},
-        {cargo_type: 'cold_storage_bay' as const, tonnage: 2, cost: 0.4},
-        {cargo_type: 'secure_storage_bay' as const, tonnage: 1, cost: 0.7}
-      ],
-      vehicles: [{vehicle_type:'air_raft_truck' as const, quantity:1, mass: 5, cost: 0.55}],
-      drones: [],
-      createdAt: new Date(),
-      updatedAt: new Date()
-    }
-
-    const defaultScout = {
-      id: -2, // Temporary ID
-      ship: {
-        name: 'Scout',
-        tech_level: 'E' as const,
-        tonnage: 100,
-        configuration: 'standard' as const,
-        fuel_weeks: 4,
-        missile_reloads: 0,
-        sand_reloads: 0,
-        description: 'Fast long ranged ship, low crew overhead'
-      },
-      engines: [
-        {engine_type: 'power_plant' as const, drive_code: 'B', performance: 4, mass: 7, cost: 16 },
-        {engine_type: 'jump_drive' as const, drive_code: 'B', performance: 4, mass: 15, cost: 20 },
-        {engine_type: 'maneuver_drive' as const, drive_code: 'B', performance: 4, mass: 3, cost: 8 }
-      ],
-      fittings: [
-        { fitting_type: 'bridge' as const, mass: 10, cost: 2 },
-        { fitting_type: 'comms_sensors' as const, comms_sensors_type: 'standard' as const, mass: 0, cost: 0 }
-      ],
-      weapons: [],
-      defenses: [],
-      berths: [],
-      facilities: [],
-      cargo: [{ cargo_type: 'cargo_bay' as const, tonnage: 3, cost: 0 }],
-      vehicles: [],
-      drones: [],
-      createdAt: new Date(),
-      updatedAt: new Date()
-    }
-  
-    const defaultFatTrader = {
-      id: -3, // Temporary ID
-      ship: {name: 'Fat Trader', tech_level: 'C', tonnage: 600, configuration:'standard' as const, fuel_weeks: 4,
-        missile_reloads: 0, sand_reloads: 0, description:'A larger merchant vessel'},
-      engines:[
-        {engine_type: 'power_plant' as const, drive_code: 'D', performance:2, mass: 13, cost: 32},
-        {engine_type: 'jump_drive' as const, drive_code: 'D', performance: 2, mass: 25, cost: 40},
-        {engine_type: 'maneuver_drive' as const, drive_code: 'D', performance: 2, mass: 7, cost: 16}
-      ],
-      fittings: [
-        { fitting_type: 'bridge' as const, mass: 10, cost: 2 },
-        { fitting_type: 'comms_sensors' as const, comms_sensors_type: 'standard' as const, mass: 0, cost: 0 }
-      ],
-      weapons: [
-        {weapon_name: 'Hard Point', mass: 1, cost: 1, quantity:6}
-      ],
-      defenses: [],
-      berths: [],
-      facilities: [],
-      cargo: [],
-      vehicles: [],
-      drones: [],
-      createdAt: new Date(),
-      updatedAt: new Date()
-    }
-    
-    return [defaultScout, defaultFreeTrader, defaultFatTrader];
-  };
-
-  const loadShips = async () => {
+  const loadShips = useCallback(async () => {
     logger.info('Loading ships from database');
     try {
       setLoading(true);
@@ -154,7 +155,11 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPan
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadShips();
+  }, [loadShips]);
 
   const handleLoadSelectedShip = async () => {
     if (!selectedShipId) return;
@@ -248,7 +253,7 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPan
           {(() => {
             const selectedShip = ships.find(s => s.id === selectedShipId);
             if (!selectedShip) return null;
-            
+
             return (
               <div className="ship-details">
                 <p><strong>Name:</strong> {selectedShip.ship.name}</p>
@@ -267,14 +272,14 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPan
       )}
 
       <div className="panel-actions">
-        <button 
-          onClick={handleLoadSelectedShip} 
+        <button
+          onClick={handleLoadSelectedShip}
           disabled={!selectedShipId}
           className="load-ship-button"
         >
           Load Selected Ship
         </button>
-        
+
         <button onClick={onNewShip} className="new-ship-button">
           New Ship
         </button>
