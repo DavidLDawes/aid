@@ -161,6 +161,22 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPan
     loadShips();
   }, [loadShips]);
 
+  const handleDeleteSelectedShip = async () => {
+    if (!selectedShipId || selectedShipId < 0) return;
+    const ship = ships.find(s => s.id === selectedShipId);
+    if (!ship) return;
+    if (!window.confirm(`Delete "${ship.ship.name}"? This cannot be undone.`)) return;
+    try {
+      await databaseService.deleteShip(selectedShipId);
+      logger.info(`Deleted ship "${ship.ship.name}"`);
+      setSelectedShipId(null);
+      await loadShips();
+    } catch (err) {
+      logger.error(`Failed to delete ship id=${selectedShipId}`, err);
+      setError('Failed to delete ship');
+    }
+  };
+
   const handleLoadSelectedShip = async () => {
     if (!selectedShipId) return;
 
@@ -278,6 +294,14 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPan
           className="load-ship-button"
         >
           Load Selected Ship
+        </button>
+
+        <button
+          onClick={handleDeleteSelectedShip}
+          disabled={!selectedShipId || (selectedShipId !== null && selectedShipId < 0)}
+          className="delete-ship-button"
+        >
+          Delete Selected Ship
         </button>
 
         <button onClick={onNewShip} className="new-ship-button">

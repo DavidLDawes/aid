@@ -28,31 +28,26 @@ const PANELS = [
   'Staff', 'Ship Design'
 ];
 
+const EMPTY_SHIP_DESIGN: ShipDesign = {
+  ship: { name: '', tech_level: 'A', tonnage: 100, configuration: 'standard', fuel_weeks: 2, missile_reloads: 0, sand_reloads: 0, description: '' },
+  engines: [],
+  fittings: [],
+  weapons: [],
+  defenses: [],
+  berths: [],
+  facilities: [],
+  cargo: [],
+  vehicles: [],
+  drones: []
+};
+
 function App() {
   const [showSelectShip, setShowSelectShip] = useState(true);
   const [currentPanel, setCurrentPanel] = useState(0);
   const [combinePilotNavigator, setCombinePilotNavigator] = useState(false);
   const [noStewards, setNoStewards] = useState(false);
   const [activeRules, setActiveRules] = useState<Set<string>>(new Set(['spacecraft_design_srd']));
-  const [shipDesign, setShipDesign] = useState<ShipDesign>({
-    ship: { name: '', tech_level: 'A', tonnage: 100, configuration: 'standard', fuel_weeks: 2, missile_reloads: 0, sand_reloads: 0, description: '' },
-    engines: [],
-    fittings: [
-      {
-        fitting_type: 'comms_sensors',
-        comms_sensors_type: 'standard',
-        mass: 0,
-        cost: 0
-      }
-    ],
-    weapons: [],
-    defenses: [],
-    berths: [],
-    facilities: [],
-    cargo: [],
-    vehicles: [],
-    drones: []
-  });
+  const [shipDesign, setShipDesign] = useState<ShipDesign>(EMPTY_SHIP_DESIGN);
 
   useEffect(() => {
     checkExistingShips();
@@ -314,6 +309,9 @@ function App() {
 
   const handleNewShip = () => {
     logger.info('Starting new ship design');
+    setShipDesign(EMPTY_SHIP_DESIGN);
+    setCombinePilotNavigator(false);
+    setNoStewards(false);
     setShowSelectShip(false);
     setCurrentPanel(0);
   };
