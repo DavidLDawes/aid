@@ -131,7 +131,7 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPan
   if (loading) {
     return (
       <div className="select-ship-panel">
-        <p>Loading ships...</p>
+        <p>Loading structures...</p>
       </div>
     );
   }
@@ -145,7 +145,7 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPan
         </div>
         <div className="panel-actions">
           <button onClick={onNewShip} className="new-ship-button">
-            New Ship
+            New Structure
           </button>
         </div>
       </div>
@@ -155,10 +155,10 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPan
   if (ships.length === 0) {
     return (
       <div className="select-ship-panel">
-        <p>No saved ships found. Create your first ship design!</p>
+        <p>No saved structures found. Create your first megastructure design!</p>
         <div className="panel-actions">
           <button onClick={onNewShip} className="new-ship-button">
-            New Ship
+            New Structure
           </button>
         </div>
       </div>
@@ -168,17 +168,17 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPan
   return (
     <div className="select-ship-panel">
       <div className="ship-selection">
-        <label htmlFor="ship-select">Select a ship to load:</label>
+        <label htmlFor="ship-select">Select a structure to load:</label>
         <select
           id="ship-select"
           value={selectedShipId || ''}
           onChange={(e) => setSelectedShipId(e.target.value ? Number(e.target.value) : null)}
           className="ship-dropdown"
         >
-          <option value="">-- Select a ship --</option>
+          <option value="">-- Select a structure --</option>
           {ships.map((ship) => (
             <option key={ship.id} value={ship.id}>
-              {ship.ship.name} ({ship.ship.tonnage} tons, TL{ship.ship.tech_level})
+              {ship.ship.name} ({ship.ship.tonnage.toLocaleString()} tons, TL{ship.ship.tech_level})
             </option>
           ))}
         </select>
@@ -186,17 +186,16 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPan
 
       {selectedShipId && (
         <div className="ship-preview">
-          <h3>Ship Details</h3>
+          <h3>Structure Details</h3>
           {(() => {
             const selectedShip = ships.find(s => s.id === selectedShipId);
             if (!selectedShip) return null;
-            
+
             return (
               <div className="ship-details">
                 <p><strong>Name:</strong> {selectedShip.ship.name}</p>
                 <p><strong>Tech Level:</strong> {selectedShip.ship.tech_level}</p>
-                <p><strong>Tonnage:</strong> {selectedShip.ship.tonnage}</p>
-                <p><strong>Configuration:</strong> {selectedShip.ship.configuration}</p>
+                <p><strong>Tonnage:</strong> {selectedShip.ship.tonnage.toLocaleString()}</p>
                 <p><strong>Created:</strong> {selectedShip.createdAt.toLocaleDateString()}</p>
                 <p><strong>Last Modified:</strong> {selectedShip.updatedAt.toLocaleDateString()}</p>
                 {selectedShip.ship.description && (
@@ -209,16 +208,16 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPan
       )}
 
       <div className="panel-actions">
-        <button 
-          onClick={handleLoadSelectedShip} 
+        <button
+          onClick={handleLoadSelectedShip}
           disabled={!selectedShipId}
           className="load-ship-button"
         >
-          Load Selected Ship
+          Load Selected Structure
         </button>
-        
+
         <button onClick={onNewShip} className="new-ship-button">
-          New Ship
+          New Structure
         </button>
       </div>
     </div>
