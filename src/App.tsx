@@ -28,31 +28,26 @@ const PANELS = [
   'Staff', 'Ship Design'
 ];
 
+const EMPTY_SHIP_DESIGN: ShipDesign = {
+  ship: { name: '', tech_level: 'A', tonnage: 100, configuration: 'standard', fuel_weeks: 2, missile_reloads: 0, sand_reloads: 0, description: '' },
+  engines: [],
+  fittings: [],
+  weapons: [],
+  defenses: [],
+  berths: [],
+  facilities: [],
+  cargo: [],
+  vehicles: [],
+  drones: []
+};
+
 function App() {
   const [showSelectShip, setShowSelectShip] = useState(true);
   const [currentPanel, setCurrentPanel] = useState(0);
   const [combinePilotNavigator, setCombinePilotNavigator] = useState(false);
   const [noStewards, setNoStewards] = useState(false);
   const [activeRules, setActiveRules] = useState<Set<string>>(new Set(['spacecraft_design_srd']));
-  const [shipDesign, setShipDesign] = useState<ShipDesign>({
-    ship: { name: '', tech_level: 'A', tonnage: 100, configuration: 'standard', fuel_weeks: 2, missile_reloads: 0, sand_reloads: 0, description: '' },
-    engines: [],
-    fittings: [
-      {
-        fitting_type: 'comms_sensors',
-        comms_sensors_type: 'standard',
-        mass: 0,
-        cost: 0
-      }
-    ],
-    weapons: [],
-    defenses: [],
-    berths: [],
-    facilities: [],
-    cargo: [],
-    vehicles: [],
-    drones: []
-  });
+  const [shipDesign, setShipDesign] = useState<ShipDesign>(EMPTY_SHIP_DESIGN);
 
   useEffect(() => {
     checkExistingShips();
@@ -106,6 +101,88 @@ function App() {
     }
   }, [shipDesign.ship.name, handleFileSaveWithName]);
 
+  const calculateMass = useCallback((): MassCalculation => {
+    let used = 0;
+    used += shipDesign.engines.reduce((sum, engine) => sum + engine.mass, 0);
+    used += shipDesign.fittings.reduce((sum, fitting) => sum + fitting.mass, 0);
+    used += shipDesign.weapons.reduce((sum, weapon) => sum + (weapon.mass * weapon.quantity), 0);
+    used += shipDesign.defenses.reduce((sum, defense) => sum + (defense.mass * defense.quantity), 0);
+    used += shipDesign.berths.reduce((sum, berth) => sum + (berth.mass * berth.quantity), 0);
+    used += shipDesign.facilities.reduce((sum, facility) => sum + (facility.mass * facility.quantity), 0);
+    used += shipDesign.cargo.reduce((sum, cargo) => sum + cargo.tonnage, 0);
+    used += shipDesign.vehicles.reduce((sum, vehicle) => sum + (vehicle.mass * vehicle.quantity), 0);
+    used += shipDesign.drones.reduce((sum, drone) => sum + (drone.mass * drone.quantity), 0);
+    const jumpDrive = shipDesign.engines.find(e => e.engine_type === 'jump_drive');
+    const maneuverDrive = shipDesign.engines.find(e => e.engine_type === 'maneuver_drive');
+    const jumpPerformance = jumpDrive?.performance || 0;
+    const maneuverPerformance = maneuverDrive?.performance || 0;
+    const useAntimatter = activeRules.has('antimatter');
+    const fuelMass = calculateTotalFuelMass(shipDesign.ship.tonnage, jumpPerformance, maneuverPerformance, shipDesign.ship.fuel_weeks, useAntimatter);
+    used += fuelMass;
+    used += shipDesign.ship.missile_reloads;
+    used += shipDesign.ship.sand_reloads;
+    const total = shipDesign.ship.tonnage;
+    const remaining = total - used;
+    return { total, used, remaining, isOverweight: remaining < 0, fuelMass };
+  }, [shipDesign, activeRules]);
+
+  const calculateCost = useCallback((): CostCalculation => {
+    let total = 0;
+    total += shipDesign.engines.reduce((sum, engine) => sum + engine.cost, 0);
+    total += shipDesign.fittings.reduce((sum, fitting) => sum + fitting.cost, 0);
+    total += shipDesign.weapons.reduce((sum, weapon) => sum + (weapon.cost * weapon.quantity), 0);
+    total += shipDesign.defenses.reduce((sum, defense) => sum + (defense.cost * defense.quantity), 0);
+    total += shipDesign.berths.reduce((sum, berth) => sum + (berth.cost * berth.quantity), 0);
+    total += shipDesign.facilities.reduce((sum, facility) => sum + (facility.cost * facility.quantity), 0);
+    total += shipDesign.cargo.reduce((sum, cargo) => sum + cargo.cost, 0);
+    total += shipDesign.vehicles.reduce((sum, vehicle) => sum + (vehicle.cost * vehicle.quantity), 0);
+    total += shipDesign.drones.reduce((sum, drone) => sum + (drone.cost * drone.quantity), 0);
+    total += shipDesign.ship.missile_reloads;
+    total += shipDesign.ship.sand_reloads * 0.1;
+    return { total };
+  }, [shipDesign]);
+
+  const calculateStaffRequirements = useCallback((): StaffRequirements => {
+    const pilot = 1;
+    const navigator = 1;
+    let engineers = 0;
+    const shipTonnage = shipDesign.ship.tonnage;
+    if (shipTonnage === 100) {
+      engineers = 1;
+    } else if (shipTonnage === 200 || shipTonnage === 300) {
+      engineers = 2;
+    } else if (shipTonnage >= 400) {
+      const engineCount = shipDesign.engines.length;
+      engineers = Math.max(engineCount, 1);
+      for (const engine of shipDesign.engines) {
+        if (engine.mass > 100) {
+          engineers += Math.ceil(engine.mass / 100) - 1;
+        }
+      }
+    } else {
+      const totalEnginesWeight = shipDesign.engines.reduce((sum, engine) => sum + engine.mass, 0);
+      engineers = Math.ceil(totalEnginesWeight / 100);
+    }
+    const weaponCount = shipDesign.weapons
+      .filter(weapon => weapon.weapon_name !== 'Hard Point')
+      .reduce((sum, weapon) => sum + weapon.quantity, 0);
+    const defenseCount = shipDesign.defenses.reduce((sum, defense) => sum + defense.quantity, 0);
+    const gunners = weaponCount + defenseCount;
+    const vehicleService = calculateVehicleServiceStaff(shipDesign.vehicles);
+    const droneService = calculateDroneServiceStaff(shipDesign.drones);
+    const service = vehicleService + droneService;
+    const totalStaterooms = shipDesign.berths
+      .filter(berth => berth.berth_type === 'staterooms' || berth.berth_type === 'luxury_staterooms')
+      .reduce((sum, berth) => sum + berth.quantity, 0);
+    const stewards = Math.ceil(totalStaterooms / 8);
+    const medicalStaff = calculateMedicalStaff(shipDesign.facilities);
+    const nurses = medicalStaff.nurses;
+    const surgeons = medicalStaff.surgeons;
+    const techs = medicalStaff.techs;
+    const total = pilot + navigator + engineers + gunners + service + stewards + nurses + surgeons + techs;
+    return { pilot, navigator, engineers, gunners, service, stewards, nurses, surgeons, techs, total };
+  }, [shipDesign]);
+
   const handleFilePrint = useCallback(() => {
     logger.info(`Opening print window for ship "${shipDesign.ship.name}"`);
     const printWindow = window.open('', '_blank');
@@ -129,7 +206,7 @@ function App() {
     });
     printWindow.print();
     logger.info(`Print dialog opened for "${shipDesign.ship.name}"`);
-  }, [shipDesign, combinePilotNavigator, noStewards]);
+  }, [shipDesign, combinePilotNavigator, noStewards, calculateMass, calculateCost, calculateStaffRequirements]);
 
   // Global keyboard shortcuts for file operations
   useEffect(() => {
@@ -169,160 +246,6 @@ function App() {
       return newRules;
     });
   }, []);
-
-  const calculateMass = (): MassCalculation => {
-    let used = 0;
-    
-    // Add engine masses
-    used += shipDesign.engines.reduce((sum, engine) => sum + engine.mass, 0);
-    
-    // Add fitting masses
-    used += shipDesign.fittings.reduce((sum, fitting) => sum + fitting.mass, 0);
-    
-    // Add weapon masses
-    used += shipDesign.weapons.reduce((sum, weapon) => sum + (weapon.mass * weapon.quantity), 0);
-    
-    // Add defense masses
-    used += shipDesign.defenses.reduce((sum, defense) => sum + (defense.mass * defense.quantity), 0);
-    
-    // Add berth masses
-    used += shipDesign.berths.reduce((sum, berth) => sum + (berth.mass * berth.quantity), 0);
-    
-    // Add facility masses
-    used += shipDesign.facilities.reduce((sum, facility) => sum + (facility.mass * facility.quantity), 0);
-    
-    // Add cargo masses
-    used += shipDesign.cargo.reduce((sum, cargo) => sum + cargo.tonnage, 0);
-    
-    // Add vehicle masses
-    used += shipDesign.vehicles.reduce((sum, vehicle) => sum + (vehicle.mass * vehicle.quantity), 0);
-    
-    // Add drone masses
-    used += shipDesign.drones.reduce((sum, drone) => sum + (drone.mass * drone.quantity), 0);
-
-    // Add fuel tank mass
-    const jumpDrive = shipDesign.engines.find(e => e.engine_type === 'jump_drive');
-    const maneuverDrive = shipDesign.engines.find(e => e.engine_type === 'maneuver_drive');
-    const jumpPerformance = jumpDrive?.performance || 0;
-    const maneuverPerformance = maneuverDrive?.performance || 0;
-    const useAntimatter = activeRules.has('antimatter');
-    const fuelMass = calculateTotalFuelMass(shipDesign.ship.tonnage, jumpPerformance, maneuverPerformance, shipDesign.ship.fuel_weeks, useAntimatter);
-    used += fuelMass;
-
-    // Add missile reload mass
-    used += shipDesign.ship.missile_reloads;
-
-    // Add sand reload mass
-    used += shipDesign.ship.sand_reloads;
-
-    const total = shipDesign.ship.tonnage;
-    const remaining = total - used;
-
-    return {
-      total,
-      used,
-      remaining,
-      isOverweight: remaining < 0,
-      fuelMass
-    };
-  };
-
-  const calculateCost = (): CostCalculation => {
-    let total = 0;
-    
-    // Add engine costs
-    total += shipDesign.engines.reduce((sum, engine) => sum + engine.cost, 0);
-    
-    // Add fitting costs
-    total += shipDesign.fittings.reduce((sum, fitting) => sum + fitting.cost, 0);
-    
-    // Add weapon costs
-    total += shipDesign.weapons.reduce((sum, weapon) => sum + (weapon.cost * weapon.quantity), 0);
-    
-    // Add defense costs
-    total += shipDesign.defenses.reduce((sum, defense) => sum + (defense.cost * defense.quantity), 0);
-    
-    // Add berth costs
-    total += shipDesign.berths.reduce((sum, berth) => sum + (berth.cost * berth.quantity), 0);
-    
-    // Add facility costs
-    total += shipDesign.facilities.reduce((sum, facility) => sum + (facility.cost * facility.quantity), 0);
-    
-    // Add cargo costs
-    total += shipDesign.cargo.reduce((sum, cargo) => sum + cargo.cost, 0);
-    
-    // Add vehicle costs
-    total += shipDesign.vehicles.reduce((sum, vehicle) => sum + (vehicle.cost * vehicle.quantity), 0);
-    
-    // Add drone costs
-    total += shipDesign.drones.reduce((sum, drone) => sum + (drone.cost * drone.quantity), 0);
-
-    // Add missile reload costs (1 MCr per ton)
-    total += shipDesign.ship.missile_reloads;
-
-    // Add sand reload costs (0.1 MCr per ton)
-    total += shipDesign.ship.sand_reloads * 0.1;
-
-    return { total };
-  };
-
-  const calculateStaffRequirements = (): StaffRequirements => {
-    const pilot = 1;
-    const navigator = 1;
-    
-    // Engineers: Based on ship tonnage and engine mass
-    let engineers = 0;
-    const shipTonnage = shipDesign.ship.tonnage;
-    
-    if (shipTonnage === 100) {
-      engineers = 1;
-    } else if (shipTonnage === 200 || shipTonnage === 300) {
-      engineers = 2;
-    } else if (shipTonnage >= 400) {
-      // At least one engineer per engine
-      const engineCount = shipDesign.engines.length;
-      engineers = Math.max(engineCount, 1);
-      
-      // Additional engineers for engines larger than 100 tons
-      for (const engine of shipDesign.engines) {
-        if (engine.mass > 100) {
-          engineers += Math.ceil(engine.mass / 100) - 1; // -1 because we already counted 1 engineer per engine
-        }
-      }
-    } else {
-      // For other ship sizes, use original logic as fallback
-      const totalEnginesWeight = shipDesign.engines.reduce((sum, engine) => sum + engine.mass, 0);
-      engineers = Math.ceil(totalEnginesWeight / 100);
-    }
-    
-    // Gunners: 1 per weapon/turret mount
-    const weaponCount = shipDesign.weapons
-      .filter(weapon => weapon.weapon_name !== 'Hard Point')
-      .reduce((sum, weapon) => sum + weapon.quantity, 0);
-    const defenseCount = shipDesign.defenses.reduce((sum, defense) => sum + defense.quantity, 0);
-    const gunners = weaponCount + defenseCount;
-    
-    // Service staff: for vehicle and drone maintenance
-    const vehicleService = calculateVehicleServiceStaff(shipDesign.vehicles);
-    const droneService = calculateDroneServiceStaff(shipDesign.drones);
-    const service = vehicleService + droneService;
-    
-    // Stewards: 1 per 8 staterooms (staterooms + luxury staterooms), rounded up
-    const totalStaterooms = shipDesign.berths
-      .filter(berth => berth.berth_type === 'staterooms' || berth.berth_type === 'luxury_staterooms')
-      .reduce((sum, berth) => sum + berth.quantity, 0);
-    const stewards = Math.ceil(totalStaterooms / 8);
-    
-    // Medical staff: based on medical facilities
-    const medicalStaff = calculateMedicalStaff(shipDesign.facilities);
-    const nurses = medicalStaff.nurses;
-    const surgeons = medicalStaff.surgeons;
-    const techs = medicalStaff.techs;
-    
-    const total = pilot + navigator + engineers + gunners + service + stewards + nurses + surgeons + techs;
-    
-    return { pilot, navigator, engineers, gunners, service, stewards, nurses, surgeons, techs, total };
-  };
 
   const calculateAdjustedCrewCount = (staffRequirements: StaffRequirements): number => {
     const isSmallShip = shipDesign.ship.tonnage >= 100 && shipDesign.ship.tonnage <= 200;
@@ -386,6 +309,9 @@ function App() {
 
   const handleNewShip = () => {
     logger.info('Starting new ship design');
+    setShipDesign(EMPTY_SHIP_DESIGN);
+    setCombinePilotNavigator(false);
+    setNoStewards(false);
     setShowSelectShip(false);
     setCurrentPanel(0);
   };
