@@ -11,7 +11,7 @@ export interface StoredShipDesign extends ShipDesign {
 class DatabaseService {
   private db: IDBDatabase | null = null;
   private readonly dbName = 'StarshipDesignerDB';
-  private readonly version = 2;
+  private readonly version = 3;
 
   async initialize(): Promise<void> {
     if (this.db) {
@@ -52,17 +52,57 @@ class DatabaseService {
         // Version 2: Add unique constraint and clean up duplicates
         if (oldVersion < 2) {
           const shipStore = transaction.objectStore('ships');
-          
+
           // First, clean up duplicate "Fat Trader" ships
           await this.cleanupDuplicateFatTraders(shipStore);
-          
+
           // Delete the old non-unique index
           if (shipStore.indexNames.contains('name')) {
             shipStore.deleteIndex('name');
           }
-          
+
           // Create new unique index for ship names
           shipStore.createIndex('name', 'ship.name', { unique: true });
+        }
+
+        // Version 3: Rename 'ships' → 'ship_ships' so main and capital branch
+        // records coexist in the same IndexedDB database without collision.
+        if (oldVersion < 3) {
+          if (!db.objectStoreNames.contains('ship_ships')) {
+            const newStore = db.createObjectStore('ship_ships', { keyPath: 'id', autoIncrement: true });
+            newStore.createIndex('name', 'ship.name', { unique: true });
+            newStore.createIndex('createdAt', 'createdAt', { unique: false });
+          }
+          if (db.objectStoreNames.contains('ships')) {
+            await this.migrateShipsToShipShips(transaction);
+            db.deleteObjectStore('ships');
+          }
+        }
+      };
+    });
+  }
+
+  private async migrateShipsToShipShips(transaction: IDBTransaction): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const oldStore = transaction.objectStore('ships');
+      const newStore = transaction.objectStore('ship_ships');
+      const getAllRequest = oldStore.getAll();
+
+      getAllRequest.onerror = () => reject(getAllRequest.error);
+      getAllRequest.onsuccess = () => {
+        const records = getAllRequest.result as StoredShipDesign[];
+        if (records.length === 0) {
+          resolve();
+          return;
+        }
+        let pending = records.length;
+        for (const record of records) {
+          const addRequest = newStore.add(record);
+          addRequest.onerror = () => reject(addRequest.error);
+          addRequest.onsuccess = () => {
+            pending--;
+            if (pending === 0) resolve();
+          };
         }
       };
     });
@@ -97,8 +137,8 @@ class DatabaseService {
 
     logger.info('Loading all ships');
     return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction(['ships'], 'readonly');
-      const store = transaction.objectStore('ships');
+      const transaction = this.db!.transaction(['ship_ships'], 'readonly');
+      const store = transaction.objectStore('ship_ships');
       const request = store.getAll();
 
       request.onerror = () => {
@@ -122,8 +162,8 @@ class DatabaseService {
     if (!this.db) throw new Error('Database not initialized');
 
     return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction(['ships'], 'readonly');
-      const store = transaction.objectStore('ships');
+      const transaction = this.db!.transaction(['ship_ships'], 'readonly');
+      const store = transaction.objectStore('ship_ships');
       const request = store.get(id);
 
       request.onerror = () => reject(request.error);
@@ -148,8 +188,8 @@ class DatabaseService {
 
     logger.info(`Saving ship "${shipDesign.ship.name}"`);
     return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction(['ships'], 'readwrite');
-      const store = transaction.objectStore('ships');
+      const transaction = this.db!.transaction(['ship_ships'], 'readwrite');
+      const store = transaction.objectStore('ship_ships');
 
       // First check if a ship with this name already exists
       const nameIndex = store.index('name');
@@ -201,8 +241,8 @@ class DatabaseService {
 
     logger.info(`Updating ship id=${id} "${shipDesign.ship.name}"`);
     return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction(['ships'], 'readwrite');
-      const store = transaction.objectStore('ships');
+      const transaction = this.db!.transaction(['ship_ships'], 'readwrite');
+      const store = transaction.objectStore('ship_ships');
 
       const getRequest = store.get(id);
 
@@ -277,8 +317,8 @@ class DatabaseService {
 
     logger.info(`Deleting ship id=${id}`);
     return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction(['ships'], 'readwrite');
-      const store = transaction.objectStore('ships');
+      const transaction = this.db!.transaction(['ship_ships'], 'readwrite');
+      const store = transaction.objectStore('ship_ships');
       const request = store.delete(id);
 
       request.onerror = () => {
@@ -296,8 +336,8 @@ class DatabaseService {
     if (!this.db) throw new Error('Database not initialized');
 
     return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction(['ships'], 'readonly');
-      const store = transaction.objectStore('ships');
+      const transaction = this.db!.transaction(['ship_ships'], 'readonly');
+      const store = transaction.objectStore('ship_ships');
       const request = store.count();
 
       request.onerror = () => reject(request.error);
@@ -310,8 +350,8 @@ class DatabaseService {
 
     logger.info('Flushing all ships from database');
     return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction(['ships'], 'readwrite');
-      const store = transaction.objectStore('ships');
+      const transaction = this.db!.transaction(['ship_ships'], 'readwrite');
+      const store = transaction.objectStore('ship_ships');
       const request = store.clear();
 
       request.onerror = () => {
@@ -329,8 +369,8 @@ class DatabaseService {
     if (!this.db) throw new Error('Database not initialized');
 
     return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction(['ships'], 'readonly');
-      const store = transaction.objectStore('ships');
+      const transaction = this.db!.transaction(['ship_ships'], 'readonly');
+      const store = transaction.objectStore('ship_ships');
       const nameIndex = store.index('name');
       const request = nameIndex.get(name);
 
@@ -356,8 +396,8 @@ class DatabaseService {
     if (!name.trim()) return false;
 
     return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction(['ships'], 'readonly');
-      const store = transaction.objectStore('ships');
+      const transaction = this.db!.transaction(['ship_ships'], 'readonly');
+      const store = transaction.objectStore('ship_ships');
       const nameIndex = store.index('name');
       const request = nameIndex.get(name.trim());
 
@@ -370,8 +410,8 @@ class DatabaseService {
     if (!this.db) throw new Error('Database not initialized');
 
     return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction(['ships'], 'readwrite');
-      const store = transaction.objectStore('ships');
+      const transaction = this.db!.transaction(['ship_ships'], 'readwrite');
+      const store = transaction.objectStore('ship_ships');
       const nameIndex = store.index('name');
       const checkRequest = nameIndex.get(shipDesign.ship.name);
       
