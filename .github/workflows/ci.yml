@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: ["main", "capital"]
+    branches: ["main", "capital", "megastructure"]
   pull_request:
-    branches: ["main", "capital"]
+    branches: ["main", "capital", "megastructure"]
 
 jobs:
   ci:

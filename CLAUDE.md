@@ -18,10 +18,6 @@ pnpm install
 # Local development (build + serve on port 8080) — ~4s rebuild per change
 pnpm serve
 
-# NOTE: pnpm dev (webpack-dev-server) is intentionally broken — the uuid override
-# required to fix a security vulnerability (uuid >=11.1.1 is ESM-only) crashes
-# sockjs at startup. Use pnpm serve instead.
-
 # Build for production
 pnpm build
 
