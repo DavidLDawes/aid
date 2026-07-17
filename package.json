@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "ci": "pnpm install",
-    "dev": "webpack serve --mode development",
+    "dev": "pnpm serve",
     "build": "tsc -b && webpack --mode production",
     "lint": "eslint .",
     "preview": "http-server dist",
@@ -18,7 +18,7 @@
     "setInitialDB": "node scripts/setInitialDB.mjs",
     "flushDB": "node scripts/flushDB.mjs",
     "apply-feature": "node scripts/apply-feature.mjs",
-    "start": "pnpm run dev"
+    "start": "pnpm serve"
   },
   "dependencies": {
     "react": "^19.1.0",
@@ -58,8 +58,7 @@
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.35.1",
     "webpack": "^5.108.0",
-    "webpack-cli": "^5.1.4",
-    "webpack-dev-server": "^5.2.5"
+    "webpack-cli": "^5.1.4"
   },
   "engines": {
     "node": ">=22",
