@@ -43,6 +43,27 @@ updates:
           - minor
           - patch
 
+ # ── npm packages → megastructure ───────────────────────────────────────────────
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    target-branch: megastructure
+    open-pull-requests-limit: 10
+    groups:
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
+      dev-dependencies:
+        dependency-type: development
+        update-types:
+          - minor
+          - patch
+
   # ── GitHub Actions → main ────────────────────────────────────────────────
   - package-ecosystem: github-actions
     directory: /
@@ -58,6 +79,14 @@ updates:
       interval: weekly
       day: monday
     target-branch: capital
+
+  # ── GitHub Actions → megastructure ─────────────────────────────────────────────
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    target-branch: megastructure
 
   # ── Docker base image → main ─────────────────────────────────────────────
   - package-ecosystem: docker
@@ -77,6 +106,17 @@ updates:
       interval: weekly
       day: monday
     target-branch: capital
+    ignore:
+      - dependency-name: "node"
+        update-types: ["version-update:semver-major"]
+
+  # ── Docker base image → megastructure ───────────────────────────────────────────
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    target-branch: megastructure
     ignore:
       - dependency-name: "node"
         update-types: ["version-update:semver-major"]
