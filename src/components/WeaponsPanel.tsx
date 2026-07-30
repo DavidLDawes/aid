@@ -5,15 +5,17 @@ import { WEAPON_TYPES, getWeaponMountLimit } from '../data/constants';
 interface WeaponsPanelProps {
   weapons: Weapon[];
   shipTonnage: number;
+  defensesCount: number;
   missileReloads: number;
   remainingMass: number;
   onUpdate: (weapons: Weapon[]) => void;
   onMissileReloadsUpdate: (reloads: number) => void;
 }
 
-const WeaponsPanel: React.FC<WeaponsPanelProps> = ({ weapons, shipTonnage, missileReloads, remainingMass, onUpdate, onMissileReloadsUpdate }) => {
+const WeaponsPanel: React.FC<WeaponsPanelProps> = ({ weapons, shipTonnage, defensesCount, missileReloads, remainingMass, onUpdate, onMissileReloadsUpdate }) => {
   const mountLimit = getWeaponMountLimit(shipTonnage);
-  const usedMounts = weapons.reduce((sum, weapon) => sum + weapon.quantity, 0);
+  // Defense turrets occupy the same mounts as weapons
+  const usedMounts = weapons.reduce((sum, weapon) => sum + weapon.quantity, 0) + defensesCount;
   
   // Check if any missile launchers are installed
   const hasMissileLaunchers = weapons.some(weapon => 
@@ -53,7 +55,7 @@ const WeaponsPanel: React.FC<WeaponsPanelProps> = ({ weapons, shipTonnage, missi
 
   return (
     <div className="panel-content">
-      <p>Available weapon mounts: {mountLimit} (Used: {usedMounts}, Remaining: {mountLimit - usedMounts})</p>
+      <p>Available weapon mounts: {mountLimit} (Used: {usedMounts}{defensesCount > 0 ? ` incl. ${defensesCount} defense turret${defensesCount === 1 ? '' : 's'}` : ''}, Remaining: {mountLimit - usedMounts})</p>
       
       <div className="weapons-grouped-layout">
         {/* Pulse Laser Group */}

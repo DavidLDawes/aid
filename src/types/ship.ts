@@ -6,6 +6,9 @@ export interface Ship {
   fuel_weeks: number;
   missile_reloads: number;
   sand_reloads: number;
+  // Jump fuel supplied by external fuelers at departure; requires 1% of hull
+  // tonnage in batteries and restricts jumps to systems with fueler support.
+  external_fuel?: boolean;
   description?: string;
 }
 

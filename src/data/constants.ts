@@ -18,6 +18,22 @@ export function isTechLevelAtLeast(currentLevel: string, requiredLevel: string):
   return currentIndex >= requiredIndex;
 }
 
+// Maximum jump performance by tech level: A=J1, B=J2 ... F+=J6.
+// With the "Longer Jumps" rule active, TL G allows up to J-8 and TL H up to J-10.
+export function getMaxJumpByTechLevel(techLevel: string, longerJumps: boolean = false): number {
+  const index = getTechLevelIndex(techLevel);
+  if (index === -1) return 0;
+  if (longerJumps) {
+    if (isTechLevelAtLeast(techLevel, 'H')) return 10;
+    if (isTechLevelAtLeast(techLevel, 'G')) return 8;
+  }
+  return Math.min(index + 1, 6);
+}
+
+export function getHullCost(tonnage: number): number {
+  return HULL_SIZES.find(hull => hull.tonnage === tonnage)?.cost ?? 0;
+}
+
 export const HULL_SIZES = [
   { tonnage: 100, code: '1', cost: 2 },
   { tonnage: 200, code: '2', cost: 8 },
@@ -344,10 +360,60 @@ export const ENGINE_SPECS = {
   Z: { jump_drive: { tons: 125, cost: 240 }, maneuver_drive: { tons: 47, cost: 96 }, power_plant: { tons: 73, cost: 192 } }
 };
 
-export function getAvailableEngines(hullTonnage: number, engineType: string, powerPlantPerformance?: number) {
+export interface EngineSelectionOptions {
+  // Jump drives with performance above this are filtered out (tech level gating).
+  maxJumpPerformance?: number;
+  // When true (Longer Jumps rule), synthesize extended drives above performance 6
+  // for jump drives and power plants, up to maxJumpPerformance.
+  extendedDrives?: boolean;
+}
+
+// Synthesize drive options above performance 6 by linearly extrapolating the
+// mass/cost of the two highest performance levels reachable on this hull.
+// Only jump drives and power plants can be extended (Longer Jumps rule).
+function getExtendedDriveOptions(hullIndex: number, engineType: string, maxPerformance: number) {
+  if (engineType !== 'jump_drive' && engineType !== 'power_plant') return [];
+
+  // Cheapest (first-listed) drive for each performance level on this hull
+  const bestByPerformance = new Map<number, { tons: number; cost: number }>();
+  for (const [driveCode, hullCompatibility] of Object.entries(ENGINE_DRIVES)) {
+    const compatibility = hullCompatibility.find(h => h.hullIndex === hullIndex);
+    if (!compatibility) continue;
+    const specs = ENGINE_SPECS[driveCode as keyof typeof ENGINE_SPECS];
+    const engineSpec = specs?.[engineType as keyof typeof specs];
+    if (!engineSpec || bestByPerformance.has(compatibility.performance)) continue;
+    bestByPerformance.set(compatibility.performance, engineSpec);
+  }
+
+  const performances = [...bestByPerformance.keys()].sort((a, b) => a - b);
+  if (performances.length < 2) return [];
+  const p2 = performances[performances.length - 1];
+  const p1 = performances[performances.length - 2];
+  const s1 = bestByPerformance.get(p1)!;
+  const s2 = bestByPerformance.get(p2)!;
+  const massStep = (s2.tons - s1.tons) / (p2 - p1);
+  const costStep = (s2.cost - s1.cost) / (p2 - p1);
+
+  const performanceLabel = engineType === 'jump_drive' ? 'J' : 'P';
+  const options = [];
+  for (let perf = 7; perf <= maxPerformance; perf++) {
+    const mass = s2.tons + massStep * (perf - p2);
+    const cost = s2.cost + costStep * (perf - p2);
+    options.push({
+      code: `X${perf}`,
+      performance: perf,
+      mass,
+      cost,
+      label: `Extended Drive (${performanceLabel}-${perf}) - ${mass}t, ${cost}MCr`
+    });
+  }
+  return options;
+}
+
+export function getAvailableEngines(hullTonnage: number, engineType: string, powerPlantPerformance?: number, options?: EngineSelectionOptions) {
   const hullIndex = HULL_SIZES.findIndex(hull => hull.tonnage === hullTonnage);
   if (hullIndex === -1) return [];
-  
+
   const availableEngines = [];
   for (const [driveCode, hullCompatibility] of Object.entries(ENGINE_DRIVES)) {
     const compatibility = hullCompatibility.find(h => h.hullIndex === hullIndex);
@@ -358,7 +424,13 @@ export function getAvailableEngines(hullTonnage: number, engineType: string, pow
           continue; // Skip this drive if it requires more power than available
         }
       }
-      
+
+      // Tech level gating: jump drives above the ship's max jump are unavailable
+      if (engineType === 'jump_drive' && options?.maxJumpPerformance !== undefined &&
+          compatibility.performance > options.maxJumpPerformance) {
+        continue;
+      }
+
       const performanceLabel = engineType === 'jump_drive' ? 'J' : 
                               engineType === 'maneuver_drive' ? 'M' : 'P';
       const specs = ENGINE_SPECS[driveCode as keyof typeof ENGINE_SPECS];
@@ -386,6 +458,24 @@ export function getAvailableEngines(hullTonnage: number, engineType: string, pow
       });
     }
   }
+
+  // Longer Jumps rule: extended drives (performance 7+) for jump drives and power plants
+  if (options?.extendedDrives && options.maxJumpPerformance !== undefined && options.maxJumpPerformance > 6) {
+    for (const extended of getExtendedDriveOptions(hullIndex, engineType, options.maxJumpPerformance)) {
+      if (engineType === 'jump_drive' && powerPlantPerformance !== undefined &&
+          extended.performance > powerPlantPerformance) {
+        continue;
+      }
+      availableEngines.push({
+        code: extended.code,
+        performance: extended.performance,
+        mass: extended.mass,
+        cost: extended.cost,
+        label: extended.label
+      });
+    }
+  }
+
   return availableEngines;
 }
 
@@ -400,13 +490,22 @@ export function calculateManeuverFuel(shipTonnage: number, maneuverPerformance: 
   return shipTonnage * 0.01 * maneuverPerformance * (weeks / 2);
 }
 
-export function calculateTotalFuelMass(shipTonnage: number, jumpPerformance: number, maneuverPerformance: number, weeks: number, useAntimatter: boolean = false): number {
-  const jumpFuel = calculateJumpFuel(shipTonnage, jumpPerformance);
+// With an external fuel source the jump fuel is supplied by an external fueler,
+// but the ship needs batteries (1% of hull tonnage) to power the final seconds
+// before the jump, after the fueler disconnects.
+export function calculateJumpBatteryMass(shipTonnage: number): number {
+  return shipTonnage * 0.01;
+}
+
+export function calculateTotalFuelMass(shipTonnage: number, jumpPerformance: number, maneuverPerformance: number, weeks: number, useAntimatter: boolean = false, externalFuel: boolean = false): number {
+  const jumpFuel = (externalFuel || jumpPerformance <= 0) ? 0 : calculateJumpFuel(shipTonnage, jumpPerformance);
   const maneuverFuel = calculateManeuverFuel(shipTonnage, maneuverPerformance, weeks);
   const totalFuel = jumpFuel + maneuverFuel;
-  
-  // If antimatter is enabled, fuel takes only 10% of normal values
-  return useAntimatter ? totalFuel * 0.1 : totalFuel;
+
+  // If antimatter is enabled, fuel takes only 10% of normal values.
+  // Jump batteries are hardware, not fuel — antimatter does not shrink them.
+  const batteries = (externalFuel && jumpPerformance > 0) ? calculateJumpBatteryMass(shipTonnage) : 0;
+  return (useAntimatter ? totalFuel * 0.1 : totalFuel) + batteries;
 }
 
 export const WEAPON_TYPES = [
@@ -526,12 +625,15 @@ export function getBridgeMassAndCost(shipTonnage: number, isHalfBridge: boolean)
     bridgeMass = 60;
   }
   
+  // SRD: bridges cost MCr 0.5 per 100 tons of ship.
+  // Half bridges are half the tonnage at +50% cost per ton (net 25% cheaper).
+  const fullCost = (shipTonnage / 100) * 0.5;
+
   if (isHalfBridge) {
-    bridgeMass = bridgeMass / 2;
-    return { mass: bridgeMass, cost: bridgeMass * 1.5 };
+    return { mass: bridgeMass / 2, cost: fullCost * 0.75 };
   }
-  
-  return { mass: bridgeMass, cost: bridgeMass * 0.5 };
+
+  return { mass: bridgeMass, cost: fullCost };
 }
 
 export const COMMS_SENSORS_TYPES = [

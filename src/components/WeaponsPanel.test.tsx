@@ -8,12 +8,13 @@ const noOp = jest.fn();
 
 const renderPanel = (
   weapons: Weapon[] = [],
-  overrides: Partial<{ shipTonnage: number; missileReloads: number; remainingMass: number }> = {}
+  overrides: Partial<{ shipTonnage: number; defensesCount: number; missileReloads: number; remainingMass: number }> = {}
 ) =>
   render(
     <WeaponsPanel
       weapons={weapons}
       shipTonnage={overrides.shipTonnage ?? 400}
+      defensesCount={overrides.defensesCount ?? 0}
       missileReloads={overrides.missileReloads ?? 0}
       remainingMass={overrides.remainingMass ?? 200}
       onUpdate={noOp}
@@ -39,7 +40,7 @@ describe('WeaponsPanel', () => {
   it('adds a new weapon type on + click', () => {
     const onUpdate = jest.fn();
     render(
-      <WeaponsPanel weapons={[]} shipTonnage={400} missileReloads={0} remainingMass={200}
+      <WeaponsPanel weapons={[]} shipTonnage={400} defensesCount={0} missileReloads={0} remainingMass={200}
         onUpdate={onUpdate} onMissileReloadsUpdate={noOp} />
     );
     const plusButtons = screen.getAllByText('+');
@@ -53,7 +54,7 @@ describe('WeaponsPanel', () => {
     const onUpdate = jest.fn();
     const weapons: Weapon[] = [{ weapon_name: 'Pulse Laser Turret', mass: 2, cost: 1.5, quantity: 1 }];
     render(
-      <WeaponsPanel weapons={weapons} shipTonnage={400} missileReloads={0} remainingMass={200}
+      <WeaponsPanel weapons={weapons} shipTonnage={400} defensesCount={0} missileReloads={0} remainingMass={200}
         onUpdate={onUpdate} onMissileReloadsUpdate={noOp} />
     );
     const plusButtons = screen.getAllByText('+');
@@ -67,7 +68,7 @@ describe('WeaponsPanel', () => {
     const onUpdate = jest.fn();
     const weapons: Weapon[] = [{ weapon_name: 'Pulse Laser Turret', mass: 2, cost: 1.5, quantity: 1 }];
     render(
-      <WeaponsPanel weapons={weapons} shipTonnage={400} missileReloads={0} remainingMass={200}
+      <WeaponsPanel weapons={weapons} shipTonnage={400} defensesCount={0} missileReloads={0} remainingMass={200}
         onUpdate={onUpdate} onMissileReloadsUpdate={noOp} />
     );
     const minusButtons = screen.getAllByText('-');
@@ -80,6 +81,15 @@ describe('WeaponsPanel', () => {
     // 100-ton ship = 1 mount; already 1 used
     const weapons: Weapon[] = [{ weapon_name: 'Pulse Laser Turret', mass: 2, cost: 1.5, quantity: 1 }];
     renderPanel(weapons, { shipTonnage: 100 });
+    const plusButtons = screen.getAllByText('+');
+    plusButtons.forEach(btn => expect(btn).toBeDisabled());
+  });
+
+  it('counts defense turrets against the shared mount limit', () => {
+    // 400-ton ship = 4 mounts; 2 weapons + 2 defense turrets = full
+    const weapons: Weapon[] = [{ weapon_name: 'Pulse Laser Turret', mass: 2, cost: 1.5, quantity: 2 }];
+    renderPanel(weapons, { shipTonnage: 400, defensesCount: 2 });
+    expect(screen.getByText(/Used: 4 incl\. 2 defense turrets.*Remaining: 0/)).toBeInTheDocument();
     const plusButtons = screen.getAllByText('+');
     plusButtons.forEach(btn => expect(btn).toBeDisabled());
   });
@@ -100,7 +110,7 @@ describe('WeaponsPanel', () => {
     const onMissileReloadsUpdate = jest.fn();
     const weapons: Weapon[] = [{ weapon_name: 'Missile Launcher Turret', mass: 1, cost: 1.8, quantity: 1 }];
     render(
-      <WeaponsPanel weapons={weapons} shipTonnage={400} missileReloads={0} remainingMass={200}
+      <WeaponsPanel weapons={weapons} shipTonnage={400} defensesCount={0} missileReloads={0} remainingMass={200}
         onUpdate={noOp} onMissileReloadsUpdate={onMissileReloadsUpdate} />
     );
     fireEvent.change(screen.getByLabelText('Missile Reload Tonnage'), { target: { value: '5' } });

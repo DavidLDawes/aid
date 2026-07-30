@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { ShipDesign, MassCalculation, CostCalculation, StaffRequirements } from './types/ship';
-import { calculateTotalFuelMass, calculateVehicleServiceStaff, calculateDroneServiceStaff, calculateMedicalStaff, WEAPON_TYPES } from './data/constants';
+import type { Ship, ShipDesign, MassCalculation, CostCalculation, StaffRequirements } from './types/ship';
+import { calculateTotalFuelMass, calculateVehicleServiceStaff, calculateDroneServiceStaff, calculateMedicalStaff, convertTechLevelToNumber, getBridgeMassAndCost, getHullCost, getMaxJumpByTechLevel, VEHICLE_TYPES, WEAPON_TYPES } from './data/constants';
 import { databaseService } from './services/database';
 import { generateShipPrintContent } from './utils/printContent';
 import { logger } from './utils/logger';
@@ -28,8 +28,10 @@ const PANELS = [
   'Staff', 'Ship Design'
 ];
 
+// Default tech level is C: at TL A the smallest jump drive on a 100-ton hull
+// (J-2) already exceeds the tech level's maximum jump of J-1.
 const EMPTY_SHIP_DESIGN: ShipDesign = {
-  ship: { name: '', tech_level: 'A', tonnage: 100, configuration: 'standard', fuel_weeks: 2, missile_reloads: 0, sand_reloads: 0, description: '' },
+  ship: { name: '', tech_level: 'C', tonnage: 100, configuration: 'standard', fuel_weeks: 2, missile_reloads: 0, sand_reloads: 0, external_fuel: false, description: '' },
   engines: [],
   fittings: [],
   weapons: [],
@@ -117,7 +119,7 @@ function App() {
     const jumpPerformance = jumpDrive?.performance || 0;
     const maneuverPerformance = maneuverDrive?.performance || 0;
     const useAntimatter = activeRules.has('antimatter');
-    const fuelMass = calculateTotalFuelMass(shipDesign.ship.tonnage, jumpPerformance, maneuverPerformance, shipDesign.ship.fuel_weeks, useAntimatter);
+    const fuelMass = calculateTotalFuelMass(shipDesign.ship.tonnage, jumpPerformance, maneuverPerformance, shipDesign.ship.fuel_weeks, useAntimatter, shipDesign.ship.external_fuel ?? false);
     used += fuelMass;
     used += shipDesign.ship.missile_reloads;
     used += shipDesign.ship.sand_reloads;
@@ -127,7 +129,7 @@ function App() {
   }, [shipDesign, activeRules]);
 
   const calculateCost = useCallback((): CostCalculation => {
-    let total = 0;
+    let total = getHullCost(shipDesign.ship.tonnage);
     total += shipDesign.engines.reduce((sum, engine) => sum + engine.cost, 0);
     total += shipDesign.fittings.reduce((sum, fitting) => sum + fitting.cost, 0);
     total += shipDesign.weapons.reduce((sum, weapon) => sum + (weapon.cost * weapon.quantity), 0);
@@ -151,7 +153,7 @@ function App() {
       engineers = 1;
     } else if (shipTonnage === 200 || shipTonnage === 300) {
       engineers = 2;
-    } else if (shipTonnage >= 400) {
+    } else {
       const engineCount = shipDesign.engines.length;
       engineers = Math.max(engineCount, 1);
       for (const engine of shipDesign.engines) {
@@ -159,15 +161,14 @@ function App() {
           engineers += Math.ceil(engine.mass / 100) - 1;
         }
       }
-    } else {
-      const totalEnginesWeight = shipDesign.engines.reduce((sum, engine) => sum + engine.mass, 0);
-      engineers = Math.ceil(totalEnginesWeight / 100);
     }
-    const weaponCount = shipDesign.weapons
-      .filter(weapon => weapon.weapon_name !== 'Hard Point')
-      .reduce((sum, weapon) => sum + weapon.quantity, 0);
-    const defenseCount = shipDesign.defenses.reduce((sum, defense) => sum + defense.quantity, 0);
-    const gunners = weaponCount + defenseCount;
+    // 1 gunner per 10 turrets of a given type, rounded up per type
+    const gunners = shipDesign.weapons
+      .filter(weapon => weapon.weapon_name !== 'Hard Point' && weapon.quantity > 0)
+      .reduce((sum, weapon) => sum + Math.ceil(weapon.quantity / 10), 0) +
+      shipDesign.defenses
+        .filter(defense => defense.quantity > 0)
+        .reduce((sum, defense) => sum + Math.ceil(defense.quantity / 10), 0);
     const vehicleService = calculateVehicleServiceStaff(shipDesign.vehicles);
     const droneService = calculateDroneServiceStaff(shipDesign.drones);
     const service = vehicleService + droneService;
@@ -245,7 +246,64 @@ function App() {
       }
       return newRules;
     });
+
+    // Disabling Longer Jumps invalidates jump drives above the base tech level cap
+    if (ruleId === 'longer_jumps' && !enabled) {
+      setShipDesign(prev => {
+        const maxJump = getMaxJumpByTechLevel(prev.ship.tech_level, false);
+        if (!prev.engines.some(e => e.engine_type === 'jump_drive' && e.performance > maxJump)) {
+          return prev;
+        }
+        logger.info(`Removing jump drive above J-${maxJump} after disabling Longer Jumps`);
+        return {
+          ...prev,
+          engines: prev.engines.filter(e => !(e.engine_type === 'jump_drive' && e.performance > maxJump))
+        };
+      });
+    }
   }, []);
+
+  // Hull size changes invalidate engine and fuel selections (drive tables are
+  // per-hull) and re-tier the bridge. Tech level changes drop now-illegal jump
+  // drives and too-advanced vehicles.
+  const handleShipInfoUpdate = useCallback((newShip: Ship) => {
+    setShipDesign(prev => {
+      let next: ShipDesign = { ...prev, ship: newShip };
+
+      if (newShip.tonnage !== prev.ship.tonnage) {
+        logger.info(`Hull size changed to ${newShip.tonnage} tons: clearing engine and fuel selections`);
+        next = {
+          ...next,
+          ship: { ...newShip, fuel_weeks: 2, external_fuel: false },
+          engines: [],
+          fittings: next.fittings.map(fitting =>
+            (fitting.fitting_type === 'bridge' || fitting.fitting_type === 'half_bridge')
+              ? { ...fitting, ...getBridgeMassAndCost(newShip.tonnage, fitting.fitting_type === 'half_bridge') }
+              : fitting
+          )
+        };
+      }
+
+      if (newShip.tech_level !== prev.ship.tech_level) {
+        const maxJump = getMaxJumpByTechLevel(newShip.tech_level, activeRules.has('longer_jumps'));
+        const shipTL = convertTechLevelToNumber(newShip.tech_level);
+        const engines = next.engines.filter(e => !(e.engine_type === 'jump_drive' && e.performance > maxJump));
+        const vehicles = next.vehicles.filter(vehicle => {
+          const vehicleType = VEHICLE_TYPES.find(vt => vt.type === vehicle.vehicle_type);
+          return vehicleType !== undefined && vehicleType.techLevel <= shipTL;
+        });
+        if (engines.length !== next.engines.length) {
+          logger.info(`Tech level changed to ${newShip.tech_level}: removed jump drive above J-${maxJump}`);
+        }
+        if (vehicles.length !== next.vehicles.length) {
+          logger.info(`Tech level changed to ${newShip.tech_level}: removed vehicles above TL ${shipTL}`);
+        }
+        next = { ...next, engines, vehicles };
+      }
+
+      return next;
+    });
+  }, [activeRules]);
 
   const calculateAdjustedCrewCount = (staffRequirements: StaffRequirements): number => {
     const isSmallShip = shipDesign.ship.tonnage >= 100 && shipDesign.ship.tonnage <= 200;
@@ -367,17 +425,20 @@ function App() {
       case 0:
         return <ShipPanel
           ship={shipDesign.ship}
-          onUpdate={(ship) => updateShipDesign({ ship })}
+          onUpdate={handleShipInfoUpdate}
           onLoadExistingShip={(loadedShipDesign) => setShipDesign(loadedShipDesign)}
         />;
       case 1:
         return <EnginesPanel
           engines={shipDesign.engines}
           shipTonnage={shipDesign.ship.tonnage}
+          techLevel={shipDesign.ship.tech_level}
           fuelWeeks={shipDesign.ship.fuel_weeks}
+          externalFuel={shipDesign.ship.external_fuel ?? false}
           activeRules={activeRules}
           onUpdate={(engines) => updateShipDesign({ engines })}
           onFuelWeeksUpdate={(fuel_weeks) => updateShipDesign({ ship: { ...shipDesign.ship, fuel_weeks } })}
+          onExternalFuelUpdate={(external_fuel) => updateShipDesign({ ship: { ...shipDesign.ship, external_fuel } })}
         />;
       case 2:
         return <FittingsPanel fittings={shipDesign.fittings} shipTonnage={shipDesign.ship.tonnage} onUpdate={(fittings) => updateShipDesign({ fittings })} />;
@@ -385,6 +446,7 @@ function App() {
         return <WeaponsPanel
           weapons={shipDesign.weapons}
           shipTonnage={shipDesign.ship.tonnage}
+          defensesCount={shipDesign.defenses.reduce((sum, defense) => sum + defense.quantity, 0)}
           missileReloads={shipDesign.ship.missile_reloads}
           remainingMass={mass.remaining + shipDesign.ship.missile_reloads}
           onUpdate={(weapons) => updateShipDesign({ weapons })}

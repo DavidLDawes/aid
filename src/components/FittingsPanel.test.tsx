@@ -43,7 +43,8 @@ describe('FittingsPanel', () => {
     const [fullBridgeRadio] = screen.getAllByRole('radio');
     fireEvent.click(fullBridgeRadio);
     expect(onUpdate).toHaveBeenCalledWith(
-      expect.arrayContaining([expect.objectContaining({ fitting_type: 'bridge', mass: 10, cost: 5 })])
+      // SRD: 0.5 MCr per 100 tons of ship → 200-ton ship = 1 MCr
+      expect.arrayContaining([expect.objectContaining({ fitting_type: 'bridge', mass: 10, cost: 1 })])
     );
   });
 
@@ -78,7 +79,8 @@ describe('FittingsPanel', () => {
     render(<FittingsPanel fittings={[]} shipTonnage={200} onUpdate={onUpdate} />);
     fireEvent.click(screen.getByText('Add Launch Tube'));
     expect(onUpdate).toHaveBeenCalledWith(
-      expect.arrayContaining([expect.objectContaining({ fitting_type: 'launch_tube', mass: 25 })])
+      // 25-ton tube per 1-ton vehicle at 0.5 MCr per ton of tube = 12.5 MCr
+      expect.arrayContaining([expect.objectContaining({ fitting_type: 'launch_tube', mass: 25, cost: 12.5 })])
     );
   });
 

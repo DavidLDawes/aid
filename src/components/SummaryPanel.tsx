@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { ShipDesign, MassCalculation, CostCalculation, StaffRequirements } from '../types/ship';
-import { COMMS_SENSORS_TYPES, DEFENSE_TYPES, FACILITY_TYPES, CARGO_TYPES, VEHICLE_TYPES, DRONE_TYPES, BERTH_TYPES } from '../data/constants';
+import { COMMS_SENSORS_TYPES, DEFENSE_TYPES, FACILITY_TYPES, CARGO_TYPES, VEHICLE_TYPES, DRONE_TYPES, BERTH_TYPES, getHullCost } from '../data/constants';
 import { databaseService } from '../services/database';
 import { logger } from '../utils/logger';
 
@@ -61,8 +61,16 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
     lines.push('Category,Item,Mass,Cost');
     
     // Generate all table rows
-    const allRows: { category: string; item: string; mass: number; cost: number }[] = [];
-    
+    const allRows: { category: string; item: string; mass: number | null; cost: number }[] = [];
+
+    // Hull (cost only; hull tonnage is the total, not used mass)
+    allRows.push({
+      category: 'Hull',
+      item: `${shipDesign.ship.tonnage} tons (${shipDesign.ship.configuration})`,
+      mass: null,
+      cost: getHullCost(shipDesign.ship.tonnage)
+    });
+
     // Engines
     const validEngines = shipDesign.engines.filter(engine => 
       !(engine.engine_type === 'maneuver_drive' && engine.performance === 0)
@@ -145,7 +153,17 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
         cost: weapon.cost * weapon.quantity
       });
     });
-    
+
+    // Missile reloads (1 MCr per ton)
+    if (shipDesign.ship.missile_reloads > 0) {
+      allRows.push({
+        category: activeWeapons.length === 0 ? 'Weapons' : '',
+        item: 'Missile Reloads',
+        mass: shipDesign.ship.missile_reloads,
+        cost: shipDesign.ship.missile_reloads
+      });
+    }
+
     // Defenses
     let defenseRowIndex = 0;
     const activeDefenses = shipDesign.defenses.filter(defense => defense.quantity > 0);
@@ -171,7 +189,7 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
           category: defenseRowIndex === 0 ? 'Defenses' : '',
           item: 'Sand',
           mass: shipDesign.ship.sand_reloads,
-          cost: 0
+          cost: shipDesign.ship.sand_reloads * 0.1
         });
       }
     }
@@ -262,7 +280,7 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
     
     // Add all rows to CSV
     allRows.forEach(row => {
-      lines.push(`${row.category},${row.item},${row.mass.toFixed(1)},${row.cost.toFixed(2)}`);
+      lines.push(`${row.category},${row.item},${row.mass === null ? '' : row.mass.toFixed(1)},${row.cost.toFixed(2)}`);
     });
     
     // Add totals row
@@ -295,6 +313,14 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
             </tr>
           </thead>
           <tbody>
+            {/* Hull */}
+            <tr key="hull">
+              <td>Hull</td>
+              <td>{shipDesign.ship.tonnage} tons ({shipDesign.ship.configuration})</td>
+              <td></td>
+              <td>{getHullCost(shipDesign.ship.tonnage).toFixed(2)} MCr</td>
+            </tr>
+
             {/* Engines */}
             {(() => {
               // Filter out M-0 maneuver drives and create engine rows
@@ -392,12 +418,13 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
               const rows: React.ReactElement[] = [];
               let weaponRowIndex = 0;
               const activeWeapons = shipDesign.weapons.filter(weapon => weapon.quantity > 0);
-              
-              // Only add weapons section if there are active weapons
-              if (activeWeapons.length > 0) {
+              const missileReloads = shipDesign.ship.missile_reloads;
+
+              // Only add weapons section if there are active weapons or missile reloads
+              if (activeWeapons.length > 0 || missileReloads > 0) {
                 activeWeapons.forEach(weapon => {
                   const weaponDisplay = weapon.quantity === 1 ? weapon.weapon_name : `${weapon.weapon_name} (x${weapon.quantity})`;
-                  
+
                   rows.push(
                     <tr key={`weapon_${weapon.weapon_name}`}>
                       <td>{weaponRowIndex === 0 ? 'Weapons' : ''}</td>
@@ -408,8 +435,21 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
                   );
                   weaponRowIndex++;
                 });
+
+                // Missile reloads (1 MCr per ton)
+                if (missileReloads > 0) {
+                  rows.push(
+                    <tr key="weapon_missile_reloads">
+                      <td>{weaponRowIndex === 0 ? 'Weapons' : ''}</td>
+                      <td>Missile Reloads</td>
+                      <td>{missileReloads.toFixed(1)} tons</td>
+                      <td>{missileReloads.toFixed(2)} MCr</td>
+                    </tr>
+                  );
+                  weaponRowIndex++;
+                }
               }
-              
+
               return rows;
             })()}
             
@@ -445,7 +485,7 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
                       <td>{defenseRowIndex === 0 ? 'Defenses' : ''}</td>
                       <td>Sand</td>
                       <td>{shipDesign.ship.sand_reloads.toFixed(1)} tons</td>
-                      <td></td>
+                      <td>{(shipDesign.ship.sand_reloads * 0.1).toFixed(2)} MCr</td>
                     </tr>
                   );
                   defenseRowIndex++;
