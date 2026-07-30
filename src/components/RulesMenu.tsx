@@ -51,25 +51,40 @@ const RulesMenu: React.FC<RulesMenuProps> = ({ shipDesign, onRuleChange }) => {
     }
   ]);
   
-  // Update rules when tech level changes
+  // Keep a ref of the latest rules so the tech-level effect can see current
+  // enabled states without re-running on every rules update.
+  const rulesRef = useRef(rules);
+  rulesRef.current = rules;
+
+  // Update rules when tech level changes. Rules that get force-disabled must
+  // also be reported upward, otherwise App's activeRules keeps applying them.
   useEffect(() => {
+    const forceDisabled = rulesRef.current.filter(rule =>
+      rule.enabled && (
+        (rule.id === 'antimatter' && !canUseAntimatter) ||
+        (rule.id === 'longer_jumps' && !canUseLongerJumps)
+      )
+    );
+
     setRules(prevRules => prevRules.map(rule => {
       if (rule.id === 'antimatter') {
-        return { 
-          ...rule, 
+        return {
+          ...rule,
           disabled: !canUseAntimatter,
           enabled: rule.enabled && canUseAntimatter // Turn off if no longer available
         };
       } else if (rule.id === 'longer_jumps') {
-        return { 
-          ...rule, 
+        return {
+          ...rule,
           disabled: !canUseLongerJumps,
           enabled: rule.enabled && canUseLongerJumps // Turn off if no longer available
         };
       }
       return rule;
     }));
-  }, [canUseAntimatter, canUseLongerJumps]);
+
+    forceDisabled.forEach(rule => onRuleChange?.(rule.id, false));
+  }, [canUseAntimatter, canUseLongerJumps, onRuleChange]);
 
   const toggleRule = (ruleId: string) => {
     const rule = rules.find(r => r.id === ruleId);

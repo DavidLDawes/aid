@@ -1,24 +1,31 @@
 import React from 'react';
 import type { Engine } from '../types/ship';
-import { getAvailableEngines, calculateJumpFuel, calculateManeuverFuel } from '../data/constants';
+import { getAvailableEngines, calculateJumpFuel, calculateManeuverFuel, calculateJumpBatteryMass, calculateTotalFuelMass, getMaxJumpByTechLevel } from '../data/constants';
 
 interface EnginesPanelProps {
   engines: Engine[];
   shipTonnage: number;
+  techLevel: string;
   fuelWeeks: number;
+  externalFuel: boolean;
   activeRules: Set<string>;
   onUpdate: (engines: Engine[]) => void;
   onFuelWeeksUpdate: (weeks: number) => void;
+  onExternalFuelUpdate: (externalFuel: boolean) => void;
 }
 
-const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, fuelWeeks, activeRules, onUpdate, onFuelWeeksUpdate }) => {
+const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, techLevel, fuelWeeks, externalFuel, activeRules, onUpdate, onFuelWeeksUpdate, onExternalFuelUpdate }) => {
+  const useAntimatter = activeRules.has('antimatter');
+  const longerJumps = activeRules.has('longer_jumps');
+  const maxJump = getMaxJumpByTechLevel(techLevel, longerJumps);
+  const engineOptions = { maxJumpPerformance: maxJump, extendedDrives: longerJumps };
 
   const getEngine = (type: Engine['engine_type']): Engine => {
     const defaultEngine = engines.find(e => e.engine_type === type);
     if (defaultEngine) {
       // Validate that the stored engine data is consistent with current ENGINE_DRIVES data
       if (defaultEngine.drive_code && defaultEngine.drive_code !== '' && defaultEngine.drive_code !== 'M-0') {
-        const availableEngines = getAvailableEngines(shipTonnage, type, undefined);
+        const availableEngines = getAvailableEngines(shipTonnage, type, undefined, engineOptions);
         const expectedEngine = availableEngines.find(eng => eng.code === defaultEngine.drive_code);
         
         if (expectedEngine && expectedEngine.performance !== defaultEngine.performance) {
@@ -73,12 +80,28 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, fuelW
     onUpdate(newEngines);
   };
 
+  // An engine option is only selectable if the ship could still fit the other
+  // configured engines plus fuel for the minimum duration (1 week) — otherwise
+  // the user could reach fuel selection with no workable choice.
+  const fitsWithMinimumFuel = (type: Engine['engine_type'], option: { performance: number; mass: number }): boolean => {
+    const otherEnginesMass = engines
+      .filter(e => e.engine_type !== type)
+      .reduce((sum, e) => sum + e.mass, 0);
+    const jumpPerf = type === 'jump_drive' ? option.performance
+      : (engines.find(e => e.engine_type === 'jump_drive')?.performance || 0);
+    const maneuverPerf = type === 'maneuver_drive' ? option.performance
+      : (engines.find(e => e.engine_type === 'maneuver_drive')?.performance || 0);
+    const minimumFuel = calculateTotalFuelMass(shipTonnage, jumpPerf, maneuverPerf, 1, useAntimatter, externalFuel);
+    return otherEnginesMass + option.mass + minimumFuel <= shipTonnage;
+  };
+
   const renderEngineInput = (type: Engine['engine_type'], label: string) => {
     const engine = getEngine(type);
     const powerPlant = getEngine('power_plant');
     // Only apply power plant performance filtering if a specific power plant drive is selected
     const powerPlantPerformance = (powerPlant.drive_code && powerPlant.performance > 0) ? powerPlant.performance : undefined;
-    const availableEngines = getAvailableEngines(shipTonnage, type, powerPlantPerformance);
+    const availableEngines = getAvailableEngines(shipTonnage, type, powerPlantPerformance, engineOptions)
+      .filter(option => fitsWithMinimumFuel(type, option));
 
     return (
       <div key={type} className="engine-group">
@@ -126,6 +149,12 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, fuelW
             {(type === 'jump_drive' || type === 'maneuver_drive') && !powerPlantPerformance && (
               <small className="info">Select Power Plant first to see power-limited options</small>
             )}
+            {type === 'jump_drive' && (
+              <small className="info">Tech Level {techLevel} allows up to J-{maxJump}{longerJumps && maxJump > 6 ? ' (Longer Jumps)' : ''}</small>
+            )}
+            {type === 'jump_drive' && availableEngines.length === 0 && (
+              <small className="invalid">No jump drive fits this hull at Tech Level {techLevel} — increase tech level or hull size</small>
+            )}
           </div>
 
         </div>
@@ -147,29 +176,42 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, fuelW
     (!jumpDrive.drive_code || jumpDrive.performance <= powerPlant.performance) &&
     (!maneuverDrive.drive_code || maneuverDrive.performance <= powerPlant.performance);
   
-  // Calculate fuel requirements with antimatter consideration
-  const useAntimatter = activeRules.has('antimatter');
-  const jumpFuel = jumpDrive.performance > 0 ? calculateJumpFuel(shipTonnage, jumpDrive.performance) : 0;
+  // Calculate fuel requirements with antimatter / external fuel consideration
+  const jumpFuel = (jumpDrive.performance > 0 && !externalFuel) ? calculateJumpFuel(shipTonnage, jumpDrive.performance) : 0;
   const maneuverFuel = maneuverDrive.performance > 0 ? calculateManeuverFuel(shipTonnage, maneuverDrive.performance, fuelWeeks) : 0;
-  
-  // Apply antimatter reduction if active
+
+  // Apply antimatter reduction if active; jump batteries (external fuel) are unaffected
   const adjustedJumpFuel = useAntimatter ? jumpFuel * 0.1 : jumpFuel;
   const adjustedManeuverFuel = useAntimatter ? maneuverFuel * 0.1 : maneuverFuel;
-  const totalFuelMass = adjustedJumpFuel + adjustedManeuverFuel;
-  
+  const batteryMass = (externalFuel && jumpDrive.performance > 0) ? calculateJumpBatteryMass(shipTonnage) : 0;
+  const totalFuelMass = adjustedJumpFuel + adjustedManeuverFuel + batteryMass;
+
   // Calculate total engine mass
   const totalEngineMass = engines.reduce((sum, engine) => sum + engine.mass, 0);
-  
+
   // Calculate remaining mass available for fuel (assuming we need some buffer)
   const usedMass = totalEngineMass; // This should include other ship components in a real calculation
   const remainingMass = shipTonnage - usedMass;
   const fuelFitsInShip = totalFuelMass <= remainingMass;
-  
+
   // Calculate maximum weeks possible given remaining mass
-  const maxPossibleWeeks = maneuverDrive.performance > 0 
-    ? Math.floor(2 * (remainingMass - adjustedJumpFuel) / (shipTonnage * 0.01 * maneuverDrive.performance * (useAntimatter ? 0.1 : 1)))
+  const maxPossibleWeeks = maneuverDrive.performance > 0
+    ? Math.floor(2 * (remainingMass - adjustedJumpFuel - batteryMass) / (shipTonnage * 0.01 * maneuverDrive.performance * (useAntimatter ? 0.1 : 1)))
     : 12;
-  const effectiveMaxWeeks = Math.min(12, Math.max(2, maxPossibleWeeks));
+  const effectiveMaxWeeks = Math.min(12, Math.max(1, maxPossibleWeeks));
+
+  const handleExternalFuelToggle = (checked: boolean) => {
+    if (checked) {
+      alert(
+        'External fuel source selected:\n\n' +
+        'Jump fuel is provided by external fuelers at departure, so no jump fuel tankage is needed. ' +
+        'The ship can only jump from systems that have external fuel suppliers available. ' +
+        'An additional 1% of the ship\'s mass in batteries is required to power the final seconds ' +
+        'before the jump, after the fueler disconnects and moves clear.'
+      );
+    }
+    onExternalFuelUpdate(checked);
+  };
   
   const requiredEnginesConfigured = 
     engines.some(e => e.engine_type === 'power_plant' && e.drive_code && e.performance >= 1) &&
@@ -201,13 +243,27 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, fuelW
                 value={fuelWeeks}
                 onChange={(e) => onFuelWeeksUpdate(parseInt(e.target.value))}
               >
-                {Array.from({length: effectiveMaxWeeks - 1}, (_, i) => i + 2).map(weeks => (
+                {Array.from({length: effectiveMaxWeeks}, (_, i) => i + 1).map(weeks => (
                   <option key={weeks} value={weeks}>
-                    {weeks} weeks
+                    {weeks} {weeks === 1 ? 'week' : 'weeks'}
                   </option>
                 ))}
               </select>
               <small>Maximum {effectiveMaxWeeks} weeks based on available mass</small>
+            </div>
+            <div className="form-group">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={externalFuel}
+                  onChange={(e) => handleExternalFuelToggle(e.target.checked)}
+                />
+                External fuel source
+              </label>
+              <small>
+                Jump fuel supplied by external fuelers; requires {calculateJumpBatteryMass(shipTonnage).toFixed(1)} tons
+                of jump batteries (1% of hull). Jumps only possible from systems with fueler support.
+              </small>
             </div>
           </div>
 
@@ -218,8 +274,17 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, fuelW
                 <tr>
                   <td>Jump Fuel (per jump):</td>
                   <td>{adjustedJumpFuel.toFixed(1)} tons</td>
-                  <td><small>({jumpDrive.performance > 0 ? `J-${jumpDrive.performance}` : 'No Jump Drive'} × 0.1 × {shipTonnage}t{useAntimatter ? ' × 0.1 antimatter' : ''})</small></td>
+                  <td><small>{externalFuel && jumpDrive.performance > 0
+                    ? '(supplied by external fuelers)'
+                    : `(${jumpDrive.performance > 0 ? `J-${jumpDrive.performance}` : 'No Jump Drive'} × 0.1 × ${shipTonnage}t${useAntimatter ? ' × 0.1 antimatter' : ''})`}</small></td>
                 </tr>
+                {batteryMass > 0 && (
+                  <tr>
+                    <td>Jump Batteries:</td>
+                    <td>{batteryMass.toFixed(1)} tons</td>
+                    <td><small>(1% of hull, powers the final seconds before jump)</small></td>
+                  </tr>
+                )}
                 <tr>
                   <td>Maneuver Fuel ({fuelWeeks} weeks):</td>
                   <td>{adjustedManeuverFuel.toFixed(1)} tons</td>

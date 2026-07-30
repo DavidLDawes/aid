@@ -32,7 +32,7 @@ const FittingsPanel: React.FC<FittingsPanelProps> = ({ fittings, shipTonnage, on
     newFittings.push({
       fitting_type: 'launch_tube',
       mass: 25, // Default 1 ton vehicle = 25 tons tube
-      cost: 0.5, // 0.5 MCr per ton
+      cost: 12.5, // 0.5 MCr per ton of tube (25 tons of tube per ton of vehicle)
       launch_vehicle_mass: 1
     });
     onUpdate(newFittings);
@@ -47,7 +47,7 @@ const FittingsPanel: React.FC<FittingsPanelProps> = ({ fittings, shipTonnage, on
         ...newFittings[tubeIndex],
         launch_vehicle_mass: vehicleMass,
         mass: vehicleMass * 25,
-        cost: vehicleMass * 0.5
+        cost: vehicleMass * 12.5 // 0.5 MCr per ton of tube
       };
       onUpdate(newFittings);
     }
