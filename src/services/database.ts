@@ -34,100 +34,48 @@ class DatabaseService {
         resolve();
       };
 
-      request.onupgradeneeded = async (event) => {
+      // IMPORTANT: the versionchange transaction auto-commits once no requests
+      // are pending, so all migration work must stay in synchronous code or
+      // request callbacks — no async/await or foreign promises in here.
+      request.onupgradeneeded = (event) => {
         const db = (event.target as IDBOpenDBRequest).result;
         const transaction = (event.target as IDBOpenDBRequest).transaction!;
         const oldVersion = event.oldVersion;
         logger.info(`Upgrading database from v${oldVersion} to v${this.version}`);
 
-        // Version 1: Initial database creation
-        if (oldVersion < 1) {
-          if (!db.objectStoreNames.contains('ships')) {
-            const shipStore = db.createObjectStore('ships', { keyPath: 'id', autoIncrement: true });
-            shipStore.createIndex('name', 'ship.name', { unique: false });
-            shipStore.createIndex('createdAt', 'createdAt', { unique: false });
-          }
+        // Current schema: 'ship_ships' store (renamed from 'ships' in v3 so main
+        // and capital branch records coexist in the same IndexedDB database).
+        if (!db.objectStoreNames.contains('ship_ships')) {
+          const newStore = db.createObjectStore('ship_ships', { keyPath: 'id', autoIncrement: true });
+          newStore.createIndex('name', 'ship.name', { unique: true });
+          newStore.createIndex('createdAt', 'createdAt', { unique: false });
         }
 
-        // Version 2: Add unique constraint and clean up duplicates
-        if (oldVersion < 2) {
-          const shipStore = transaction.objectStore('ships');
+        // v1/v2 databases: migrate legacy 'ships' records (deduplicating names,
+        // keeping the oldest — v1 lacked the unique name constraint).
+        if (oldVersion >= 1 && oldVersion < 3 && db.objectStoreNames.contains('ships')) {
+          const oldStore = transaction.objectStore('ships');
+          const newStore = transaction.objectStore('ship_ships');
+          const getAllRequest = oldStore.getAll();
 
-          // First, clean up duplicate "Fat Trader" ships
-          await this.cleanupDuplicateFatTraders(shipStore);
-
-          // Delete the old non-unique index
-          if (shipStore.indexNames.contains('name')) {
-            shipStore.deleteIndex('name');
-          }
-
-          // Create new unique index for ship names
-          shipStore.createIndex('name', 'ship.name', { unique: true });
-        }
-
-        // Version 3: Rename 'ships' → 'ship_ships' so main and capital branch
-        // records coexist in the same IndexedDB database without collision.
-        if (oldVersion < 3) {
-          if (!db.objectStoreNames.contains('ship_ships')) {
-            const newStore = db.createObjectStore('ship_ships', { keyPath: 'id', autoIncrement: true });
-            newStore.createIndex('name', 'ship.name', { unique: true });
-            newStore.createIndex('createdAt', 'createdAt', { unique: false });
-          }
-          if (db.objectStoreNames.contains('ships')) {
-            await this.migrateShipsToShipShips(transaction);
+          getAllRequest.onsuccess = () => {
+            const records = getAllRequest.result as StoredShipDesign[];
+            const oldestByName = new Map<string, StoredShipDesign>();
+            for (const record of records) {
+              const name = record.ship?.name;
+              if (!name) continue;
+              const existing = oldestByName.get(name);
+              if (!existing || new Date(record.createdAt).getTime() < new Date(existing.createdAt).getTime()) {
+                oldestByName.set(name, record);
+              }
+            }
+            for (const record of oldestByName.values()) {
+              newStore.add(record);
+            }
             db.deleteObjectStore('ships');
-          }
-        }
-      };
-    });
-  }
-
-  private async migrateShipsToShipShips(transaction: IDBTransaction): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const oldStore = transaction.objectStore('ships');
-      const newStore = transaction.objectStore('ship_ships');
-      const getAllRequest = oldStore.getAll();
-
-      getAllRequest.onerror = () => reject(getAllRequest.error);
-      getAllRequest.onsuccess = () => {
-        const records = getAllRequest.result as StoredShipDesign[];
-        if (records.length === 0) {
-          resolve();
-          return;
-        }
-        let pending = records.length;
-        for (const record of records) {
-          const addRequest = newStore.add(record);
-          addRequest.onerror = () => reject(addRequest.error);
-          addRequest.onsuccess = () => {
-            pending--;
-            if (pending === 0) resolve();
+            logger.info(`Migrated ${oldestByName.size} of ${records.length} legacy ship record(s) to ship_ships`);
           };
         }
-      };
-    });
-  }
-
-  private async cleanupDuplicateFatTraders(shipStore: IDBObjectStore): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const nameIndex = shipStore.index('name');
-      const request = nameIndex.getAll('Fat Trader');
-      
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => {
-        const fatTraders = request.result;
-        
-        if (fatTraders.length > 1) {
-          // Sort by creation date and keep the oldest one
-          fatTraders.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-          
-          // Delete all but the first (oldest) one
-          for (let i = 1; i < fatTraders.length; i++) {
-            shipStore.delete(fatTraders[i].id);
-          }
-        }
-        
-        resolve();
       };
     });
   }

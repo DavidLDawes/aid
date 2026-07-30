@@ -4,13 +4,52 @@ import {
   isTechLevelAtLeast,
   calculateTotalFuelMass,
   calculateJumpFuel,
+  calculateJumpBatteryMass,
   calculateManeuverFuel,
   getAvailableEngines,
   getBridgeMassAndCost,
+  getHullCost,
+  getMaxJumpByTechLevel,
   getWeaponMountLimit,
   convertTechLevelToNumber,
   getAvailableVehicles,
 } from './constants';
+
+describe('getMaxJumpByTechLevel', () => {
+  it('caps jump at TL index + 1 up to J-6', () => {
+    expect(getMaxJumpByTechLevel('A')).toBe(1);
+    expect(getMaxJumpByTechLevel('B')).toBe(2);
+    expect(getMaxJumpByTechLevel('C')).toBe(3);
+    expect(getMaxJumpByTechLevel('F')).toBe(6);
+    expect(getMaxJumpByTechLevel('G')).toBe(6);
+    expect(getMaxJumpByTechLevel('H')).toBe(6);
+  });
+
+  it('raises the cap with Longer Jumps: TL G → J-8, TL H → J-10', () => {
+    expect(getMaxJumpByTechLevel('G', true)).toBe(8);
+    expect(getMaxJumpByTechLevel('H', true)).toBe(10);
+    // Below TL G the rule has no effect
+    expect(getMaxJumpByTechLevel('F', true)).toBe(6);
+    expect(getMaxJumpByTechLevel('A', true)).toBe(1);
+  });
+
+  it('returns 0 for invalid tech levels', () => {
+    expect(getMaxJumpByTechLevel('Z')).toBe(0);
+    expect(getMaxJumpByTechLevel('')).toBe(0);
+  });
+});
+
+describe('getHullCost', () => {
+  it('returns the hull cost for valid tonnages', () => {
+    expect(getHullCost(100)).toBe(2);
+    expect(getHullCost(400)).toBe(16);
+    expect(getHullCost(2000)).toBe(200);
+  });
+
+  it('returns 0 for unknown tonnages', () => {
+    expect(getHullCost(150)).toBe(0);
+  });
+});
 
 describe('Tech Level Functions', () => {
   describe('getTechLevelIndex', () => {
@@ -298,33 +337,98 @@ describe('getAvailableEngines', () => {
     const large = getAvailableEngines(1000, 'power_plant');
     expect(large.length).toBeGreaterThanOrEqual(small.length);
   });
+
+  it('filters jump drives above the max jump performance', () => {
+    // TL A cap is J-1; 100-ton hull's smallest jump drive is J-2 → nothing available
+    const gated = getAvailableEngines(100, 'jump_drive', undefined, { maxJumpPerformance: 1 });
+    expect(gated).toHaveLength(0);
+    // 200-ton hull has a J-1 drive (A)
+    const gated200 = getAvailableEngines(200, 'jump_drive', undefined, { maxJumpPerformance: 1 });
+    expect(gated200.every(e => e.performance <= 1)).toBe(true);
+    expect(gated200.length).toBeGreaterThan(0);
+  });
+
+  it('does not filter power plants or maneuver drives by max jump', () => {
+    const plants = getAvailableEngines(100, 'power_plant', undefined, { maxJumpPerformance: 1 });
+    expect(plants.length).toBeGreaterThan(0);
+  });
+
+  it('synthesizes extended jump drives above J-6 with Longer Jumps', () => {
+    // 100-ton hull: table steps J-2/J-4/J-6 at +5t per level → J-8 at 25t, J-10 at 30t
+    const extended = getAvailableEngines(100, 'jump_drive', undefined, { maxJumpPerformance: 10, extendedDrives: true });
+    const j8 = extended.find(e => e.performance === 8);
+    const j10 = extended.find(e => e.performance === 10);
+    expect(j8).toMatchObject({ code: 'X8', mass: 25, cost: 40 });
+    expect(j10).toMatchObject({ code: 'X10', mass: 30, cost: 50 });
+  });
+
+  it('synthesizes extended power plants so the P>=J requirement stays satisfiable', () => {
+    const plants = getAvailableEngines(100, 'power_plant', undefined, { maxJumpPerformance: 8, extendedDrives: true });
+    expect(plants.some(e => e.performance === 8)).toBe(true);
+  });
+
+  it('extended jump drives still respect the power plant limit', () => {
+    const extended = getAvailableEngines(100, 'jump_drive', 6, { maxJumpPerformance: 10, extendedDrives: true });
+    expect(extended.every(e => e.performance <= 6)).toBe(true);
+  });
+
+  it('does not synthesize extended options without the flag', () => {
+    const normal = getAvailableEngines(100, 'jump_drive', undefined, { maxJumpPerformance: 10 });
+    expect(normal.every(e => e.performance <= 6)).toBe(true);
+  });
+});
+
+describe('External fuel source', () => {
+  it('jump batteries are 1% of hull tonnage', () => {
+    expect(calculateJumpBatteryMass(100)).toBe(1);
+    expect(calculateJumpBatteryMass(2000)).toBe(20);
+  });
+
+  it('external fuel replaces jump fuel with batteries', () => {
+    // 400t J-2 M-2, 4 weeks: jump 80 + maneuver 16 = 96 normally
+    const normal = calculateTotalFuelMass(400, 2, 2, 4, false, false);
+    expect(normal).toBe(96);
+    // External: no jump fuel, maneuver 16 + batteries 4 = 20
+    const external = calculateTotalFuelMass(400, 2, 2, 4, false, true);
+    expect(external).toBe(20);
+  });
+
+  it('antimatter reduces fuel but not batteries', () => {
+    // External + antimatter: maneuver 16 × 0.1 + batteries 4 = 5.6
+    const both = calculateTotalFuelMass(400, 2, 2, 4, true, true);
+    expect(both).toBeCloseTo(5.6);
+  });
+
+  it('no batteries without a jump drive', () => {
+    expect(calculateTotalFuelMass(400, 0, 2, 4, false, true)).toBe(16);
+  });
 });
 
 describe('getBridgeMassAndCost', () => {
   it('should return 10 ton bridge for ships up to 200 tons', () => {
-    expect(getBridgeMassAndCost(100, false)).toEqual({ mass: 10, cost: 5 });
-    expect(getBridgeMassAndCost(200, false)).toEqual({ mass: 10, cost: 5 });
+    expect(getBridgeMassAndCost(100, false)).toEqual({ mass: 10, cost: 0.5 });
+    expect(getBridgeMassAndCost(200, false)).toEqual({ mass: 10, cost: 1 });
   });
 
   it('should return 20 ton bridge for ships 201–1000 tons', () => {
-    expect(getBridgeMassAndCost(300, false)).toEqual({ mass: 20, cost: 10 });
-    expect(getBridgeMassAndCost(1000, false)).toEqual({ mass: 20, cost: 10 });
+    expect(getBridgeMassAndCost(300, false)).toEqual({ mass: 20, cost: 1.5 });
+    expect(getBridgeMassAndCost(1000, false)).toEqual({ mass: 20, cost: 5 });
   });
 
   it('should return 40 ton bridge for ships 1001–2000 tons', () => {
-    expect(getBridgeMassAndCost(1001, false)).toEqual({ mass: 40, cost: 20 });
-    expect(getBridgeMassAndCost(2000, false)).toEqual({ mass: 40, cost: 20 });
+    expect(getBridgeMassAndCost(1001, false)).toEqual({ mass: 40, cost: 5.005 });
+    expect(getBridgeMassAndCost(2000, false)).toEqual({ mass: 40, cost: 10 });
   });
 
-  it('should halve mass for half bridge and price at 1.5x the halved mass', () => {
-    expect(getBridgeMassAndCost(100, true)).toEqual({ mass: 5, cost: 7.5 });
-    expect(getBridgeMassAndCost(300, true)).toEqual({ mass: 10, cost: 15 });
-    expect(getBridgeMassAndCost(2000, true)).toEqual({ mass: 20, cost: 30 });
+  it('should halve mass for half bridge and price at 75% of the full bridge cost', () => {
+    expect(getBridgeMassAndCost(100, true)).toEqual({ mass: 5, cost: 0.375 });
+    expect(getBridgeMassAndCost(300, true)).toEqual({ mass: 10, cost: 1.125 });
+    expect(getBridgeMassAndCost(2000, true)).toEqual({ mass: 20, cost: 7.5 });
   });
 
-  it('full bridge cost is 0.5x mass', () => {
-    const { mass, cost } = getBridgeMassAndCost(400, false);
-    expect(cost).toBe(mass * 0.5);
+  it('full bridge costs 0.5 MCr per 100 tons of ship (SRD)', () => {
+    const { cost } = getBridgeMassAndCost(400, false);
+    expect(cost).toBe((400 / 100) * 0.5);
   });
 });
 

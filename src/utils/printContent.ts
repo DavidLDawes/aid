@@ -7,6 +7,7 @@ import {
   VEHICLE_TYPES,
   DRONE_TYPES,
   BERTH_TYPES,
+  getHullCost,
 } from '../data/constants';
 
 function escapeHtml(text: string): string {
@@ -17,11 +18,11 @@ function escapeHtml(text: string): string {
     .replace(/"/g, '&quot;');
 }
 
-function row(category: string, item: string, mass: number, cost: number): string {
+function row(category: string, item: string, mass: number | null, cost: number): string {
   return `<tr>
     <td${category ? ' class="category-cell"' : ''}>${escapeHtml(category)}</td>
     <td>${escapeHtml(item)}</td>
-    <td>${mass.toFixed(1)} tons</td>
+    <td>${mass === null ? '' : `${mass.toFixed(1)} tons`}</td>
     <td>${cost.toFixed(2)} MCr</td>
   </tr>`;
 }
@@ -35,6 +36,9 @@ function buildTableRows(
   noStewards: boolean,
 ): string {
   const rows: string[] = [];
+
+  // Hull (cost only; hull tonnage is the total, not used mass)
+  rows.push(row('Hull', `${shipDesign.ship.tonnage} tons (${shipDesign.ship.configuration})`, null, getHullCost(shipDesign.ship.tonnage)));
 
   // Engines
   const validEngines = shipDesign.engines.filter(
@@ -72,10 +76,16 @@ function buildTableRows(
   }
 
   // Weapons
-  shipDesign.weapons.filter(w => w.quantity > 0).forEach((weapon, i) => {
+  const activeWeapons = shipDesign.weapons.filter(w => w.quantity > 0);
+  activeWeapons.forEach((weapon, i) => {
     const display = weapon.quantity === 1 ? weapon.weapon_name : `${weapon.weapon_name} (x${weapon.quantity})`;
     rows.push(row(i === 0 ? 'Weapons' : '', display, weapon.mass * weapon.quantity, weapon.cost * weapon.quantity));
   });
+
+  // Missile reloads (1 MCr per ton)
+  if (shipDesign.ship.missile_reloads > 0) {
+    rows.push(row(activeWeapons.length === 0 ? 'Weapons' : '', 'Missile Reloads', shipDesign.ship.missile_reloads, shipDesign.ship.missile_reloads));
+  }
 
   // Defenses
   const activeDefenses = shipDesign.defenses.filter(d => d.quantity > 0);
@@ -89,7 +99,7 @@ function buildTableRows(
       rows.push(row(defIdx++ === 0 ? 'Defenses' : '', display, defense.mass * defense.quantity, defense.cost * defense.quantity));
     });
     if (hasSand) {
-      rows.push(row(defIdx++ === 0 ? 'Defenses' : '', 'Sand', shipDesign.ship.sand_reloads, 0));
+      rows.push(row(defIdx++ === 0 ? 'Defenses' : '', 'Sand', shipDesign.ship.sand_reloads, shipDesign.ship.sand_reloads * 0.1));
     }
   }
 

@@ -37,7 +37,10 @@
       "PowerShell(node_modules\\\\.bin\\\\jest.cmd --no-coverage 2>&1 | Select-Object -Last 30)",
       "Bash(node_modules\\\\.bin\\\\jest.cmd --no-coverage --testPathPattern=\"App.test|SelectShipPanel.test|BerthsPanel.test|ShipPanel.test\")",
       "PowerShell(pnpm test:run *)",
-      "Bash(node_modules\\\\.bin\\\\jest.cmd --no-coverage --testPathPattern=\"WeaponsPanel|FittingsPanel|FacilitiesPanel|DefensesPanel|StaffPanel|CargoPanel|VehiclesPanel|DronesPanel\")"
+      "Bash(node_modules\\\\.bin\\\\jest.cmd --no-coverage --testPathPattern=\"WeaponsPanel|FittingsPanel|FacilitiesPanel|DefensesPanel|StaffPanel|CargoPanel|VehiclesPanel|DronesPanel\")",
+      "PowerShell(& \"node_modules\\\\.bin\\\\jest.cmd\" --no-coverage --silent 2>&1 | Select-Object -Last 25)",
+      "Bash(python -m json.tool --indent 1)",
+      "Bash(python -c ' *)"
     ],
     "deny": []
   }

@@ -105,17 +105,8 @@ const VehiclesPanel: React.FC<VehiclesPanelProps> = ({ vehicles, shipTechLevel, 
             <tbody>
               {vehicles.map(vehicle => {
                 const vehicleType = availableVehicles.find(vt => vt.type === vehicle.vehicle_type);
-                let serviceStaff = 0;
-                if (vehicleType) {
-                  if (vehicleType.serviceStaff === 0.25) {
-                    serviceStaff = Math.ceil(vehicle.quantity * vehicleType.serviceStaff);
-                  } else if (vehicleType.serviceStaff === 0.5) {
-                    serviceStaff = Math.ceil(vehicle.quantity * vehicleType.serviceStaff);
-                  } else {
-                    serviceStaff = vehicle.quantity * vehicleType.serviceStaff;
-                  }
-                }
-                
+                const serviceStaff = vehicleType ? vehicle.quantity * vehicleType.serviceStaff : 0;
+
                 return (
                   <tr key={vehicle.vehicle_type}>
                     <td>{vehicleType?.name || vehicle.vehicle_type}</td>
@@ -138,7 +129,7 @@ const VehiclesPanel: React.FC<VehiclesPanelProps> = ({ vehicles, shipTechLevel, 
             target="_blank" 
             rel="noopener noreferrer"
           >
-            Vehicles from the MgT2 collection, jut used their data.
+            Vehicles from the MgT2 collection, just used their data.
           </a>
         </p>
       </div>

@@ -16,13 +16,16 @@ When you spend time searching for commands to typecheck, lint, build, or test, y
 # Install dependencies
 pnpm install
 
-# Local development (build + serve on port 8080) — ~3s rebuild per change
-pnpm serve
+# Local development (Vite dev server, port 5173)
+pnpm dev
 
-# Build for production
+# Build for production (tsc + vite build)
 pnpm build
 
-# Preview production build (http-server on port 8080)
+# Build then preview production build (vite preview, port 4173)
+pnpm serve
+
+# Preview an existing production build
 pnpm preview
 
 # Linting
@@ -47,8 +50,8 @@ pnpm apply-feature      # Apply feature branches to ships
 
 ```
 aid/
+├── index.html                   # HTML template (Vite entry)
 ├── public/                      # Static assets
-│   ├── index.html              # HTML template
 │   └── initial-ships.json      # Default ships loaded on first run
 ├── src/                        # Source code
 │   ├── components/             # React UI components
@@ -83,7 +86,7 @@ aid/
 │   └── main.tsx                # React entry point
 ├── dist/                       # Production build output (generated)
 ├── package.json                # Dependencies and scripts
-├── webpack.config.cjs          # Webpack configuration
+├── vite.config.js              # Vite configuration
 ├── tsconfig.json               # TypeScript configuration
 ├── tsconfig.app.json           # TypeScript configuration for app
 ├── jest.config.cjs             # Jest configuration
@@ -97,13 +100,13 @@ Test files are co-located with source files using .test.ts/.test.tsx extension
 
 ## Build System & Technology Stack
 
-- **Build Tool**: Webpack 5 with webpack-dev-server
+- **Build Tool**: Vite (with @vitejs/plugin-react)
 - **Frontend**: React 19 with TypeScript
 - **Testing**: Jest with Testing Library
 - **Database**: IndexedDB (via fake-indexeddb for tests) — browser-based local storage
-- **Bundler Config**: `webpack.config.cjs` — entry point is `src/main.tsx`
-- **Dev Server**: Runs on port 8080 (configured in webpack.config.cjs)
-- **Node Version**: 22.x (specified in package.json engines)
+- **Bundler Config**: `vite.config.js` — entry point is `index.html` → `src/main.tsx`
+- **Dev Server**: Vite defaults (dev 5173, preview 4173)
+- **Node Version**: >=22 (specified in package.json engines)
 
 ## Architecture Overview
 
@@ -185,13 +188,13 @@ const [totalMass, setTotalMass] = useState(0);
 
 ### Database Persistence
 
-**IndexedDB Schema** (version 2):
-- **Object Store**: `ships`
+**IndexedDB Schema** (version 3):
+- **Object Store**: `ship_ships` (renamed from `ships` in v3 so main and capital branch records coexist in the same `StarshipDesignerDB` database)
 - **Key Path**: `id` (auto-increment)
 - **Indexes**:
   - `name` (unique) on `ship.name` — enforces unique ship names
   - `createdAt` on `createdAt` — for sorting
-- **Migration Logic**: Version 2 upgrade cleaned up duplicate "Fat Trader" entries and added unique constraint
+- **Migration Logic**: v3 migrates legacy `ships` records into `ship_ships`, deduplicating names (keeps oldest). Migration code must stay callback-based — no async/await inside `onupgradeneeded` (the versionchange transaction auto-commits when no requests are pending)
 
 **Initial Data**: On first load, if DB is empty, loads ships from `public/initial-ships.json` via `initialDataService.ts`
 
@@ -220,7 +223,7 @@ The `calculateMass()` function in App.tsx handles:
 
 `calculateStaffRequirements()` in App.tsx:
 - **Engineers**: Based on ship tonnage tiers and engine mass (1 per 100 tons)
-- **Gunners**: 1 per 10 turrets/barbettes (rounded up), 1 per 10 defense turrets (rounded up)
+- **Gunners**: 1 per 10 turrets of a given type, rounded up per type (Hard Points excluded). Example: 3 missile turrets + 4 pulse laser turrets = 2 gunners
 - **Stewards**: 1 per 8 staterooms (rounded up)
 - **Medical**: Calculated by `calculateMedicalStaff()` based on medical facilities
 - **Service**: For vehicle/drone maintenance
@@ -230,8 +233,11 @@ Small ships (100–200 tons) can combine pilot/navigator roles and skip stewards
 ### Tech Level Dependencies
 
 Many features are tech-level gated:
-- Maximum jump performance: TL A=J1, TL B=J2, … TL F+=J6
-- Vehicle availability: Most vehicles have minimum TL requirements
+- Maximum jump performance: TL A=J1, TL B=J2, … TL F+=J6. With the "Longer Jumps" rule: TL G up to J-8, TL H up to J-10
+- Jump drive options in EnginesPanel are filtered by `getMaxJumpByTechLevel()`; lowering the tech level (or disabling Longer Jumps) removes a now-illegal jump drive from the design
+- Vehicle availability: Most vehicles have minimum TL requirements; lowering the tech level drops too-advanced vehicles from the design
+- Changing hull size clears engine and fuel selections (drive tables are per-hull) and re-tiers the bridge mass/cost
+- Default new-ship tech level is C (at TL A the smallest jump drive on a 100-ton hull already exceeds J-1)
 
 Use helper functions: `isTechLevelAtLeast()`, `getMaxJumpByTechLevel()`, `getTechLevelIndex()`
 
@@ -239,13 +245,22 @@ Use helper functions: `isTechLevelAtLeast()`, `getMaxJumpByTechLevel()`, `getTec
 
 `activeRules` state (Set<string>) enables optional rule sets:
 - `'spacecraft_design_srd'`: Always enabled (base rules)
-- `'antimatter'`: Antimatter drives (TL-H, 1% of ship tons per Jump performance)
+- `'antimatter'`: Antimatter drives (TL-H; fuel takes 10% of normal tonnage)
+- `'longer_jumps'`: Extended jumps (TL-G+): raises the jump cap to J-8 (TL G) / J-10 (TL H) and synthesizes "Extended Drive" options (codes `X7`–`X10`) for jump drives and power plants by extrapolating drive mass/cost
 
-Rules affect calculations (e.g., fuel mass with antimatter) — check `activeRules.has('rule_id')` before applying rule-specific logic.
+Rules affect calculations (e.g., fuel mass with antimatter) — check `activeRules.has('rule_id')` before applying rule-specific logic. RulesMenu must notify App via `onRuleChange` when a rule is force-disabled by a tech level change, or `activeRules` desyncs.
+
+### External Fuel Source
+
+`ship.external_fuel` (optional boolean, chosen on the Engines panel): jump fuel is supplied by external fuelers at departure, so no jump fuel tankage is carried. Requires 1% of hull tonnage in jump batteries (`calculateJumpBatteryMass()`), which antimatter does not reduce, and restricts jumps to systems with fueler support. Hull size changes reset it.
 
 ### Print Functionality
 
-`handleFilePrint()` in App.tsx opens a new window and calls `generatePrintContent()` (defined in App.tsx) to produce a standalone HTML document. The implementation is currently simplified; for a more complete print view, SummaryPanel's display logic can serve as a reference.
+`handleFilePrint()` in App.tsx opens a new window and calls `generateShipPrintContent()` (in `src/utils/printContent.ts`) to produce a standalone HTML document mirroring SummaryPanel's table (hull, components, fuel, reloads, crew).
+
+### Cost Calculation
+
+`calculateCost()` in App.tsx includes the hull cost (`getHullCost()` from HULL_SIZES), all component costs, missile reloads (1 MCr/ton), and sand reloads (0.1 MCr/ton). Bridges follow the SRD: 0.5 MCr per 100 tons of ship; half bridges are half tonnage at 75% of the full bridge cost. Launch tubes cost 0.5 MCr per ton of tube (12.5 MCr per ton of vehicle capacity). The Summary/CSV/print line items must stay in sync with `calculateCost()` so the totals row equals the sum of rows.
 
 ## Testing Approach
 
@@ -311,7 +326,6 @@ The Docker image runs the production build served via http-server.
 ## Known Issues & Quirks
 
 - Ship names in DB are stored as `ship.name` (nested property) for indexing
-- Port 8080 is hardcoded in webpack config and Docker setup
 - `public/initial-ships.json` is loaded once on first DB initialization — subsequent changes require DB flush
 - TESTING.md incorrectly mentions Vitest, but project uses Jest
-- Print output (`generatePrintContent` in App.tsx) is currently a simplified stub; the full ship details are only shown in SummaryPanel's on-screen display
+- Weapon and defense turrets share the same mount pool (hull tonnage / 100); both panels must count each other's turrets when enforcing the limit
