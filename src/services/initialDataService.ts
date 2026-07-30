@@ -10,7 +10,7 @@ interface InitialDataExport {
 }
 
 class InitialDataService {
-  private static readonly INITIAL_DATA_PATH = '/initial-ships.json';
+  private static readonly INITIAL_DATA_PATH = 'initial-ships.json';
 
   async loadInitialDataIfNeeded(): Promise<boolean> {
     logger.info('Checking whether initial data needs to be loaded');
