@@ -299,28 +299,32 @@ describe('getAvailableEngines', () => {
 
 describe('getBridgeMassAndCost', () => {
   it('should return 10t mass for ships ≤200 tons', () => {
-    expect(getBridgeMassAndCost(200, false)).toEqual({ mass: 10, cost: 5 });
-    expect(getBridgeMassAndCost(100, false)).toEqual({ mass: 10, cost: 5 });
+    expect(getBridgeMassAndCost(200, false)).toEqual({ mass: 10, cost: 1 });
+    expect(getBridgeMassAndCost(100, false)).toEqual({ mass: 10, cost: 0.5 });
   });
 
   it('should return 20t mass for ships 201–1000 tons', () => {
-    expect(getBridgeMassAndCost(1000, false)).toEqual({ mass: 20, cost: 10 });
-    expect(getBridgeMassAndCost(500, false)).toEqual({ mass: 20, cost: 10 });
+    expect(getBridgeMassAndCost(1000, false)).toEqual({ mass: 20, cost: 5 });
+    expect(getBridgeMassAndCost(500, false)).toEqual({ mass: 20, cost: 2.5 });
   });
 
   it('should return 40t mass for ships 1001–2000 tons', () => {
-    expect(getBridgeMassAndCost(2000, false)).toEqual({ mass: 40, cost: 20 });
-    expect(getBridgeMassAndCost(1500, false)).toEqual({ mass: 40, cost: 20 });
+    expect(getBridgeMassAndCost(2000, false)).toEqual({ mass: 40, cost: 10 });
+    expect(getBridgeMassAndCost(1500, false)).toEqual({ mass: 40, cost: 7.5 });
   });
 
   it('should return 60t mass for ships >2000 tons', () => {
-    expect(getBridgeMassAndCost(2001, false)).toEqual({ mass: 60, cost: 30 });
-    expect(getBridgeMassAndCost(5000, false)).toEqual({ mass: 60, cost: 30 });
+    expect(getBridgeMassAndCost(2001, false)).toEqual({ mass: 60, cost: 10.005 });
+    expect(getBridgeMassAndCost(5000, false)).toEqual({ mass: 60, cost: 25 });
   });
 
-  it('should halve mass and use cost = halvedMass * 1.5 for half bridge', () => {
-    expect(getBridgeMassAndCost(200, true)).toEqual({ mass: 5, cost: 7.5 });
-    expect(getBridgeMassAndCost(1000, true)).toEqual({ mass: 10, cost: 15 });
+  it('full bridge costs 0.5 MCr per 100 tons of ship (SRD)', () => {
+    expect(getBridgeMassAndCost(28000, false)).toEqual({ mass: 60, cost: 140 });
+  });
+
+  it('should halve mass and price half bridge at 75% of the full bridge cost', () => {
+    expect(getBridgeMassAndCost(200, true)).toEqual({ mass: 5, cost: 0.75 });
+    expect(getBridgeMassAndCost(1000, true)).toEqual({ mass: 10, cost: 3.75 });
   });
 });
 

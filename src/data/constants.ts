@@ -122,6 +122,12 @@ export const HULL_SIZES = Array.from({ length: 10000 }, (_, i) => {
   return { tonnage, code, cost };
 });
 
+// Matches the HULL_SIZES cost formula (tonnage / 10 MCr) without scanning
+// the 10,000-entry array on every calculateCost() call.
+export function getHullCost(tonnage: number): number {
+  return tonnage > 0 ? tonnage / 10 : 0;
+}
+
 // Engine performance percentages as a function of ship displacement.
 // Levels 1-6 are from the Traveller SRD. Levels 7-10 are extensions used
 // by the Longer Jumps optional rule (TL-G allows J-8, TL-H allows J-10).
@@ -574,12 +580,15 @@ export function getBridgeMassAndCost(shipTonnage: number, isHalfBridge: boolean)
     bridgeMass = 60;
   }
   
+  // SRD: bridges cost MCr 0.5 per 100 tons of ship.
+  // Half bridges are half the tonnage at +50% cost per ton (net 25% cheaper).
+  const fullCost = (shipTonnage / 100) * 0.5;
+
   if (isHalfBridge) {
-    bridgeMass = bridgeMass / 2;
-    return { mass: bridgeMass, cost: bridgeMass * 1.5 };
+    return { mass: bridgeMass / 2, cost: fullCost * 0.75 };
   }
-  
-  return { mass: bridgeMass, cost: bridgeMass * 0.5 };
+
+  return { mass: bridgeMass, cost: fullCost };
 }
 
 export const COMMS_SENSORS_TYPES = [

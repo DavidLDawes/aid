@@ -60,21 +60,26 @@ const BerthsPanel: React.FC<BerthsPanelProps> = ({ berths, staffRequirements, ad
     return Math.max(0, totalStaterooms - crewCount);
   };
 
-  // Ensure minimum staterooms match crew requirements
+  // Ensure minimum staterooms match crew requirements. Deliberately depends on
+  // the reactive values (berths, crew count) rather than the helper functions
+  // above, which are recreated every render but only ever read those same
+  // values — listing them too would just make the effect re-fire on every
+  // render without changing what it computes.
   useEffect(() => {
     const totalStaterooms = getTotalStaterooms();
     const crewCount = getEffectiveCrewCount();
-    
+
     if (totalStaterooms < crewCount && crewCount > 0) {
       const shortfall = crewCount - totalStaterooms;
       const currentStaterooms = getBerthQuantity('staterooms');
-      
+
       updateBerthQuantity(
         BERTH_TYPES.find(bt => bt.type === 'staterooms')!,
         currentStaterooms + shortfall
       );
     }
-  }, [staffRequirements.total, adjustedCrewCount]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [berths, staffRequirements.total, adjustedCrewCount, onUpdate]);
 
   return (
     <div className="panel-content">

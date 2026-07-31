@@ -2,7 +2,7 @@ import type { ShipDesign, MassCalculation, CostCalculation, StaffRequirements } 
 import {
   COMMS_SENSORS_TYPES, DEFENSE_TYPES, FACILITY_TYPES, CARGO_TYPES,
   VEHICLE_TYPES, DRONE_TYPES, BERTH_TYPES,
-  getTonnageCode, getNumberOfSections, calculateTotalFuelMass
+  getTonnageCode, getNumberOfSections, calculateTotalFuelMass, getHullCost, getAvailableSpinalWeapons
 } from '../data/constants';
 
 function escapeHtml(str: string): string {
@@ -34,10 +34,14 @@ export function generateShipPrintContent(
 
   const rows: string[] = [];
 
-  const addRow = (category: string, item: string, rowMass: number, rowCost: number) => {
+  const addRow = (category: string, item: string, rowMass: number | null, rowCost: number) => {
     const cat = category ? `<td class="category-cell">${escapeHtml(category)}</td>` : '<td></td>';
-    rows.push(`<tr>${cat}<td>${escapeHtml(item)}</td><td>${rowMass.toFixed(1)} tons</td><td>${rowCost.toFixed(2)} MCr</td></tr>`);
+    const massCell = rowMass === null ? '' : `${rowMass.toFixed(1)} tons`;
+    rows.push(`<tr>${cat}<td>${escapeHtml(item)}</td><td>${massCell}</td><td>${rowCost.toFixed(2)} MCr</td></tr>`);
   };
+
+  // Hull (cost only; hull tonnage is the total, not used mass)
+  addRow('Hull', `${shipDesign.ship.tonnage.toLocaleString()} tons (${shipDesign.ship.configuration})`, null, getHullCost(shipDesign.ship.tonnage));
 
   // Engines
   const validEngines = shipDesign.engines.filter(e =>
@@ -80,10 +84,26 @@ export function generateShipPrintContent(
   }
 
   // Weapons
-  shipDesign.weapons.filter(w => w.quantity > 0).forEach((weapon, index) => {
+  const activeWeapons = shipDesign.weapons.filter(w => w.quantity > 0);
+  activeWeapons.forEach((weapon, index) => {
     const display = weapon.quantity === 1 ? weapon.weapon_name : `${weapon.weapon_name} (x${weapon.quantity})`;
     addRow(index === 0 ? 'Weapons' : '', display, weapon.mass * weapon.quantity, weapon.cost * weapon.quantity);
   });
+
+  // Missile reloads (1 MCr per ton)
+  if (shipDesign.ship.missile_reloads > 0) {
+    addRow(activeWeapons.length === 0 ? 'Weapons' : '', 'Missile Reloads', shipDesign.ship.missile_reloads, shipDesign.ship.missile_reloads);
+  }
+
+  // Spinal Weapon
+  if (shipDesign.ship.spinal_weapon) {
+    const powerPlant = shipDesign.engines.find(e => e.engine_type === 'power_plant');
+    const spinalWeaponData = getAvailableSpinalWeapons(shipDesign.ship.tech_level, powerPlant?.performance || 0)
+      .find(w => w.name === shipDesign.ship.spinal_weapon);
+    if (spinalWeaponData) {
+      addRow('Spinal Weapon', `${spinalWeaponData.name} (Damage ${spinalWeaponData.damage})`, spinalWeaponData.mass, spinalWeaponData.cost);
+    }
+  }
 
   // Defenses
   let defenseIdx = 0;
@@ -96,7 +116,7 @@ export function generateShipPrintContent(
       addRow(defenseIdx++ === 0 ? 'Defenses' : '', display, defense.mass * defense.quantity, defense.cost * defense.quantity);
     });
     if (shipDesign.ship.sand_reloads > 0) {
-      addRow(defenseIdx++ === 0 ? 'Defenses' : '', 'Sand', shipDesign.ship.sand_reloads, 0);
+      addRow(defenseIdx++ === 0 ? 'Defenses' : '', 'Sand', shipDesign.ship.sand_reloads, shipDesign.ship.sand_reloads * 0.1);
     }
   }
 

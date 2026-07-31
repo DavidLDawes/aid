@@ -43,8 +43,11 @@ const DefensesPanel: React.FC<DefensesPanelProps> = ({
   const maxSandReloads = Math.floor(remainingMass - sandReloads);
 
   const updateDefenseQuantity = (defenseType: typeof DEFENSE_TYPES[0], quantity: number) => {
-    const validQuantity = Math.max(0, Math.floor(quantity));
     const existingDefense = defenses.find(d => d.defense_type === defenseType.type);
+    // Turret defenses (sandcasters, point defense) share the weapon mount pool;
+    // cap the requested quantity to what's actually available, same as Weapons.
+    const maxForThisType = availableSlots + (existingDefense?.quantity || 0);
+    const validQuantity = Math.max(0, Math.min(maxForThisType, Math.floor(quantity)));
 
     if (validQuantity === 0) {
       // Remove the defense if quantity is 0
@@ -109,6 +112,7 @@ const DefensesPanel: React.FC<DefensesPanelProps> = ({
                     <input
                       type="number"
                       min="0"
+                      max={availableSlots + quantity}
                       value={quantity}
                       onChange={(e) => updateDefenseQuantity(defenseType, parseInt(e.target.value) || 0)}
                       style={{ width: '60px', marginLeft: '0.5rem' }}
@@ -137,6 +141,7 @@ const DefensesPanel: React.FC<DefensesPanelProps> = ({
                     <input
                       type="number"
                       min="0"
+                      max={availableSlots + quantity}
                       value={quantity}
                       onChange={(e) => updateDefenseQuantity(defenseType, parseInt(e.target.value) || 0)}
                       style={{ width: '60px', marginLeft: '0.5rem' }}

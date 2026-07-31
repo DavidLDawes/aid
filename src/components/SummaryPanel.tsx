@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { ShipDesign, MassCalculation, CostCalculation, StaffRequirements } from '../types/ship';
-import { COMMS_SENSORS_TYPES, DEFENSE_TYPES, FACILITY_TYPES, CARGO_TYPES, VEHICLE_TYPES, DRONE_TYPES, BERTH_TYPES, getTonnageCode, getNumberOfSections, calculateTotalFuelMass } from '../data/constants';
+import { COMMS_SENSORS_TYPES, DEFENSE_TYPES, FACILITY_TYPES, CARGO_TYPES, VEHICLE_TYPES, DRONE_TYPES, BERTH_TYPES, COMPUTER_TYPES, getTonnageCode, getNumberOfSections, calculateTotalFuelMass, getHullCost, getAvailableSpinalWeapons } from '../data/constants';
 import { databaseService } from '../services/database';
 
 interface SummaryPanelProps {
@@ -76,6 +76,10 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
     setSaving(false);
   };
 
+  // Quote a CSV field if it contains a comma, quote, or newline (RFC 4180).
+  const csvField = (value: string): string =>
+    /[",\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
+
   const generateCsvData = () => {
     const lines: string[] = [];
 
@@ -85,7 +89,10 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
     lines.push(`${shipDesign.ship.name}, ${shipDesign.ship.configuration} configuration, ${shipDesign.ship.tonnage} tons${hullInfo}, Tech Level ${shipDesign.ship.tech_level}`);
     lines.push('Category,Item,Mass,Cost');
 
-    const allRows: { category: string; item: string; mass: number; cost: number }[] = [];
+    const allRows: { category: string; item: string; mass: number | null; cost: number }[] = [];
+
+    // Hull (cost only; hull tonnage is the total, not used mass)
+    allRows.push({ category: 'Hull', item: `${shipDesign.ship.tonnage.toLocaleString()} tons (${shipDesign.ship.configuration})`, mass: null, cost: getHullCost(shipDesign.ship.tonnage) });
 
     // Engines
     const validEngines = shipDesign.engines.filter(engine =>
@@ -127,12 +134,33 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
       const sensorType = COMMS_SENSORS_TYPES.find(t => t.type === commsSensors.comms_sensors_type);
       allRows.push({ category: fittingRowIndex++ === 0 ? 'Fittings' : '', item: `${sensorType?.name || 'Standard'} Comms & Sensors`, mass: commsSensors.mass, cost: commsSensors.cost });
     }
+    const computer = shipDesign.fittings.find(f => f.fitting_type === 'computer');
+    if (computer && computer.computer_model) {
+      const computerType = COMPUTER_TYPES.find(c => c.model === computer.computer_model);
+      allRows.push({ category: fittingRowIndex++ === 0 ? 'Fittings' : '', item: computerType?.name || computer.computer_model, mass: computer.mass ?? 0, cost: computer.cost });
+    }
 
     // Weapons
-    shipDesign.weapons.filter(w => w.quantity > 0).forEach((weapon, index) => {
+    const activeWeapons = shipDesign.weapons.filter(w => w.quantity > 0);
+    activeWeapons.forEach((weapon, index) => {
       const display = weapon.quantity === 1 ? weapon.weapon_name : `${weapon.weapon_name} (x${weapon.quantity})`;
       allRows.push({ category: index === 0 ? 'Weapons' : '', item: display, mass: weapon.mass * weapon.quantity, cost: weapon.cost * weapon.quantity });
     });
+
+    // Missile reloads (1 MCr per ton)
+    if (shipDesign.ship.missile_reloads > 0) {
+      allRows.push({ category: activeWeapons.length === 0 ? 'Weapons' : '', item: 'Missile Reloads', mass: shipDesign.ship.missile_reloads, cost: shipDesign.ship.missile_reloads });
+    }
+
+    // Spinal Weapon
+    if (shipDesign.ship.spinal_weapon) {
+      const powerPlant = shipDesign.engines.find(e => e.engine_type === 'power_plant');
+      const spinalWeaponData = getAvailableSpinalWeapons(shipDesign.ship.tech_level, powerPlant?.performance || 0)
+        .find(w => w.name === shipDesign.ship.spinal_weapon);
+      if (spinalWeaponData) {
+        allRows.push({ category: 'Spinal Weapon', item: `${spinalWeaponData.name} (Damage ${spinalWeaponData.damage})`, mass: spinalWeaponData.mass, cost: spinalWeaponData.cost });
+      }
+    }
 
     // Defenses
     let defenseRowIndex = 0;
@@ -144,8 +172,14 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
         allRows.push({ category: defenseRowIndex++ === 0 ? 'Defenses' : '', item: display, mass: defense.mass * defense.quantity, cost: defense.cost * defense.quantity });
       });
       if (shipDesign.ship.sand_reloads > 0) {
-        allRows.push({ category: defenseRowIndex++ === 0 ? 'Defenses' : '', item: 'Sand', mass: shipDesign.ship.sand_reloads, cost: 0 });
+        allRows.push({ category: defenseRowIndex++ === 0 ? 'Defenses' : '', item: 'Sand', mass: shipDesign.ship.sand_reloads, cost: shipDesign.ship.sand_reloads * 0.1 });
       }
+    }
+
+    // Armor
+    if (shipDesign.ship.armor_percentage) {
+      const armorMass = (shipDesign.ship.tonnage * shipDesign.ship.armor_percentage) / 100;
+      allRows.push({ category: 'Armor', item: `${shipDesign.ship.armor_percentage}% armor`, mass: armorMass, cost: armorMass * 0.1 });
     }
 
     // Berths
@@ -192,7 +226,8 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
     });
 
     allRows.forEach(row => {
-      lines.push(`${row.category},${row.item},${row.mass.toFixed(1)},${row.cost.toFixed(2)}`);
+      const massField = row.mass === null ? '' : row.mass.toFixed(1);
+      lines.push(`${csvField(row.category)},${csvField(row.item)},${massField},${row.cost.toFixed(2)}`);
     });
     lines.push(`Total,,${mass.used.toFixed(1)},${cost.total.toFixed(2)}`);
 
@@ -207,11 +242,6 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
   const handleCsvExport = () => {
     setCsvData(generateCsvData());
     setShowCsvModal(true);
-  };
-
-  const handleLaunchArchitect = () => {
-    const encodedCsv = encodeURIComponent(generateCsvData());
-    window.open(`../StarshipArchitect/index.html?csv=${encodedCsv}`, '_blank');
   };
 
   const tonnageCodeDisplay = getTonnageCode(shipDesign.ship.tonnage);
@@ -242,6 +272,14 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
             </tr>
           </thead>
           <tbody>
+            {/* Hull */}
+            <tr key="hull">
+              <td>Hull</td>
+              <td>{shipDesign.ship.tonnage.toLocaleString()} tons ({shipDesign.ship.configuration})</td>
+              <td></td>
+              <td>{getHullCost(shipDesign.ship.tonnage).toFixed(2)} MCr</td>
+            </tr>
+
             {/* Engines */}
             {(() => {
               const validEngines = shipDesign.engines.filter(engine =>
@@ -324,6 +362,19 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
                     <td>{commsSensors.cost.toFixed(2)} MCr</td>
                   </tr>
                 );
+                fittingRowIndex++;
+              }
+              const computer = shipDesign.fittings.find(f => f.fitting_type === 'computer');
+              if (computer && computer.computer_model) {
+                const computerType = COMPUTER_TYPES.find(c => c.model === computer.computer_model);
+                rows.push(
+                  <tr key="computer">
+                    <td>{fittingRowIndex === 0 ? 'Fittings' : ''}</td>
+                    <td>{computerType?.name || computer.computer_model}</td>
+                    <td>{(computer.mass ?? 0).toFixed(1)} tons</td>
+                    <td>{computer.cost.toFixed(2)} MCr</td>
+                  </tr>
+                );
               }
               return rows;
             })()}
@@ -332,7 +383,8 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
             {(() => {
               const rows: React.ReactElement[] = [];
               let weaponRowIndex = 0;
-              shipDesign.weapons.filter(w => w.quantity > 0).forEach(weapon => {
+              const activeWeapons = shipDesign.weapons.filter(w => w.quantity > 0);
+              activeWeapons.forEach(weapon => {
                 const display = weapon.quantity === 1 ? weapon.weapon_name : `${weapon.weapon_name} (x${weapon.quantity})`;
                 rows.push(
                   <tr key={`weapon_${weapon.weapon_name}`}>
@@ -344,7 +396,34 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
                 );
                 weaponRowIndex++;
               });
+              if (shipDesign.ship.missile_reloads > 0) {
+                rows.push(
+                  <tr key="missile_reloads">
+                    <td>{weaponRowIndex === 0 ? 'Weapons' : ''}</td>
+                    <td>Missile Reloads</td>
+                    <td>{shipDesign.ship.missile_reloads.toFixed(1)} tons</td>
+                    <td>{shipDesign.ship.missile_reloads.toFixed(2)} MCr</td>
+                  </tr>
+                );
+              }
               return rows;
+            })()}
+
+            {/* Spinal Weapon */}
+            {(() => {
+              if (!shipDesign.ship.spinal_weapon) return null;
+              const powerPlant = shipDesign.engines.find(e => e.engine_type === 'power_plant');
+              const spinalWeaponData = getAvailableSpinalWeapons(shipDesign.ship.tech_level, powerPlant?.performance || 0)
+                .find(w => w.name === shipDesign.ship.spinal_weapon);
+              if (!spinalWeaponData) return null;
+              return (
+                <tr key="spinal_weapon">
+                  <td>Spinal Weapon</td>
+                  <td>{spinalWeaponData.name} (Damage {spinalWeaponData.damage})</td>
+                  <td>{spinalWeaponData.mass.toFixed(1)} tons</td>
+                  <td>{spinalWeaponData.cost.toFixed(2)} MCr</td>
+                </tr>
+              );
             })()}
 
             {/* Defenses */}
@@ -375,12 +454,26 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
                       <td>{defenseRowIndex === 0 ? 'Defenses' : ''}</td>
                       <td>Sand</td>
                       <td>{shipDesign.ship.sand_reloads.toFixed(1)} tons</td>
-                      <td></td>
+                      <td>{(shipDesign.ship.sand_reloads * 0.1).toFixed(2)} MCr</td>
                     </tr>
                   );
                 }
               }
               return rows;
+            })()}
+
+            {/* Armor */}
+            {(() => {
+              if (!shipDesign.ship.armor_percentage) return null;
+              const armorMass = (shipDesign.ship.tonnage * shipDesign.ship.armor_percentage) / 100;
+              return (
+                <tr key="armor">
+                  <td>Armor</td>
+                  <td>{shipDesign.ship.armor_percentage}% armor</td>
+                  <td>{armorMass.toFixed(1)} tons</td>
+                  <td>{(armorMass * 0.1).toFixed(2)} MCr</td>
+                </tr>
+              );
             })()}
 
             {/* Berths */}
@@ -552,9 +645,6 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
       <div className="summary-actions">
         <button className="save-btn" onClick={handleSaveDesign} disabled={saving}>
           {saving ? 'Saving...' : 'Save Design'}
-        </button>
-        <button className="load-btn" onClick={handleLaunchArchitect}>
-          Launch Starship Architect
         </button>
         <button className="load-btn" onClick={handleCsvExport}>
           CSV

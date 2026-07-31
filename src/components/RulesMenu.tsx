@@ -28,6 +28,44 @@ const RulesMenu: React.FC<RulesMenuProps> = ({ shipDesign, onRuleChange }) => {
     new Set(['spacecraft_design_srd'])
   );
 
+  // Keep a ref of the latest enabled ids so the tech-level effects below can
+  // see current state without re-running on every enable/disable click.
+  // Synced via effect (not during render) per react-hooks/refs.
+  const enabledRuleIdsRef = useRef(enabledRuleIds);
+  useEffect(() => {
+    enabledRuleIdsRef.current = enabledRuleIds;
+  }, [enabledRuleIds]);
+
+  // Tech-level constraints are computed inline for display (disabled/enabled
+  // below), but App's activeRules is a separate piece of state driven only by
+  // onRuleChange calls. A TL change can silently desync the two: dropping
+  // below the requirement must report the rule as disabled (or it keeps
+  // applying in App's calculations after the UI shows it off), and raising
+  // the TL back up must re-report it as enabled if the user still has it
+  // checked (or App never re-applies a rule the UI shows as on again).
+  // Skip the initial mount — there's nothing to reconcile until the tech
+  // level actually changes, and firing on mount would call onRuleChange for
+  // a rule the user never touched.
+  const isFirstAntimatterCheck = useRef(true);
+  useEffect(() => {
+    if (isFirstAntimatterCheck.current) {
+      isFirstAntimatterCheck.current = false;
+      return;
+    }
+    const antimatterEffective = enabledRuleIdsRef.current.has('antimatter') && canUseAntimatter;
+    onRuleChange?.('antimatter', antimatterEffective);
+  }, [canUseAntimatter, onRuleChange]);
+
+  const isFirstLongerJumpsCheck = useRef(true);
+  useEffect(() => {
+    if (isFirstLongerJumpsCheck.current) {
+      isFirstLongerJumpsCheck.current = false;
+      return;
+    }
+    const longerJumpsEffective = enabledRuleIdsRef.current.has('longer_jumps') && canUseLongerJumps;
+    onRuleChange?.('longer_jumps', longerJumpsEffective);
+  }, [canUseLongerJumps, onRuleChange]);
+
   // Derive full rule list each render; tech-level constraints are computed inline
   // so no useEffect is needed to sync disabled state.
   const rules: RuleItem[] = [
