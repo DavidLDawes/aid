@@ -58,7 +58,7 @@ export interface Berth {
 
 export interface Facility {
   id?: number;
-  facility_type: 'gym' | 'spa' | 'garden' | 'commissary' | 'kitchens' | 'officers_mess_bar' | 'first_aid_station' | 'autodoc' | 'med_bay' | 'surgical_ward' | 'medical_bay' | 'surgical_bay' | 'medical_garden' | 'library' | 'range' | 'club' | 'park' | 'shrine';
+  facility_type: 'gym' | 'spa' | 'garden' | 'commissary' | 'kitchens' | 'officers_mess_bar' | 'first_aid_station' | 'autodoc' | 'medical_bay' | 'surgical_bay' | 'medical_garden' | 'library' | 'range' | 'club' | 'park' | 'shrine';
   quantity: number;
   mass: number;
   cost: number;
