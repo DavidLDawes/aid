@@ -13,6 +13,9 @@ node_modules/
 dist/
 build/
 
+# Wrangler local cache/state
+.wrangler/
+
 # Compiled JS artifacts (project uses TypeScript; .js files in src/ are tsc output)
 src/**/*.js
 
