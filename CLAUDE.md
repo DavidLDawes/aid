@@ -15,13 +15,16 @@ When you spend time searching for commands to typecheck, lint, build, or test, y
 # Install dependencies
 pnpm install
 
-# Local development (build + serve on port 8080) — ~4s rebuild per change
-pnpm serve
+# Local development (Vite dev server, port 5173)
+pnpm dev
 
-# Build for production
+# Build for production (tsc -b + vite build)
 pnpm build
 
-# Preview production build (http-server on port 8080)
+# Build then preview production build (vite preview, port 4173)
+pnpm serve
+
+# Preview an existing production build
 pnpm preview
 
 # Linting
@@ -44,9 +47,11 @@ pnpm apply-feature      # Apply feature branches to ships
 
 ```
 aid/
+├── index.html                   # HTML template (Vite entry)
+├── worker/index.js               # Cloudflare Worker: strips the /CapitalShipDesign path prefix
+├── wrangler.jsonc                # Cloudflare Worker deployment config
 ├── public/                      # Static assets
-│   ├── index.html              # HTML template
-│   └── initial-ships.json      # Default ships loaded on first run
+│   └── initial-ships.json      # Default ships loaded on first run (Large Liner, Destroyer)
 ├── src/                        # Source code
 │   ├── components/             # React UI components
 │   │   ├── SelectShipPanel.tsx # Ship selection screen
@@ -85,7 +90,7 @@ aid/
 │   └── main.tsx                # React entry point
 ├── dist/                       # Production build output (generated)
 ├── package.json                # Dependencies and scripts
-├── webpack.config.cjs          # Webpack configuration
+├── vite.config.js              # Vite configuration
 ├── tsconfig.json              # TypeScript configuration
 ├── jest.config.cjs            # Jest configuration
 ├── Dockerfile                 # Docker container definition
@@ -97,13 +102,14 @@ Test files are co-located with source files using .test.ts/.test.tsx extension
 
 ## Build System & Technology Stack
 
-- **Build Tool**: Webpack 5 with webpack-dev-server
+- **Build Tool**: Vite (with @vitejs/plugin-react)
 - **Frontend**: React 19 with TypeScript
 - **Testing**: Jest with Testing Library
 - **Database**: IndexedDB (via fake-indexeddb for tests) - browser-based local storage
-- **Bundler Config**: `webpack.config.cjs` - entry point is `src/main.tsx`
-- **Dev Server**: Runs on port 8080 (configured in webpack.config.cjs)
-- **Node Version**: 22.x (specified in package.json engines)
+- **Bundler Config**: `vite.config.js` - entry point is `index.html` → `src/main.tsx`
+- **Dev Server**: Vite defaults (dev 5173, preview 4173)
+- **Deployment**: Cloudflare Worker (`worker/index.js` + `wrangler.jsonc`), serving `dist/` under the `/CapitalShipDesign` path at `srd-tools.com` — the same origin as the main Starship Designer app (`/ShipDesign`), which is why the two apps must use different IndexedDB store names (see Database Persistence below)
+- **Node Version**: >=22 (specified in package.json engines)
 
 ## Architecture Overview
 
@@ -134,9 +140,8 @@ Test files are co-located with source files using .test.ts/.test.tsx extension
    - Validation prevents over-mass designs
 
 4. **Database Service Pattern**: `src/services/database.ts` provides IndexedDB abstraction
-   - Ships are stored with unique names (enforced by unique index)
-   - Auto-initialization loads `public/initial-ships.json` on first run
-   - Handles version migrations (currently at version 2)
+   - Ships are stored with unique names (enforced by unique index) in the `capital_ships` object store (currently at version 3)
+   - `SelectShipPanel` auto-loads `public/initial-ships.json` via `initialDataService` on first run if the DB is empty
    - `databaseService.initialize()` is called exactly once at App startup via a `useEffect([], [])` — do not call it again in save/load handlers or component renders
 
 ### Critical Data Files
@@ -216,15 +221,16 @@ const calcFM = (t, j, w) => { ... };
 
 ### Database Persistence
 
-**IndexedDB Schema** (version 2):
-- **Object Store**: `ships`
+**IndexedDB Schema** (version 3):
+- **Database name**: `StarshipDesignerDB` — shared with the main Starship Designer app, since both apps are served from the same origin (`srd-tools.com`) under different paths. IndexedDB is scoped by origin, not path, so opening a lower version than what's already in the browser throws `VersionError`; each app therefore keeps its own object store and independently bumps its own version.
+- **Object Store**: `capital_ships` (this app's own store; the legacy `ships` store from v1/v2 is left untouched — it's shared history with main and this app cannot reliably tell which of those records are its own)
 - **Key Path**: `id` (auto-increment)
 - **Indexes**:
   - `name` (unique) on `ship.name` - enforces unique ship names
   - `createdAt` on `createdAt` - for sorting
-- **Migration Logic**: Version 2 upgrade cleaned up duplicate "Fat Trader" entries and added unique constraint
+- **Migration Logic**: Must stay callback-based inside `onupgradeneeded` — no async/await (the versionchange transaction auto-commits when no requests are pending)
 
-**Initial Data**: On first load, if DB is empty, loads ships from `public/initial-ships.json` via `initialDataService.ts`
+**Initial Data**: On first load, if DB is empty, `SelectShipPanel` calls `initialDataService.loadInitialDataIfNeeded()`, which fetches `public/initial-ships.json` (currently seeded with "Large Liner" and "Destroyer") and preloads it. If that yields nothing, it falls back to the hardcoded ships in `SelectShipPanel.createDefaultShips()`.
 
 **Data Cleanup**: `constants.ts` includes `cleanInvalidCargo()` to remove deprecated cargo types when loading ships
 
@@ -294,12 +300,13 @@ Small ships (**exactly** 100 or 200 tons — not 300+) can combine pilot/navigat
 ### Tech Level Dependencies
 
 Many features are tech-level gated:
-- Maximum jump performance: TL A=J1, TL B=J2, ... TL F+=J6
+- Maximum jump performance: TL A=J1, TL B=J2, ... TL F+=J6. With the Longer Jumps rule active, TL G allows J-8 and TL H allows J-10 (`getEffectiveMaxJump(techLevel, longerJumpsEnabled)`); power plants and maneuver drives can reach performance 10 to support those drives.
 - Spinal weapons: Different weapons available at different TLs, require minimum power plant performance
 - Computer models: Minimum computer required based on tonnage + jump performance
 - Vehicle availability: Most vehicles have minimum TL requirements
+- Changing hull size (`handleShipInfoUpdate` in App.tsx) clears engine and fuel selections — engine mass/cost are computed from tonnage at selection time and don't auto-update — and re-tiers the bridge fitting. Changing tech level drops now-illegal jump drives and too-advanced vehicles from the design.
 
-Use helper functions: `isTechLevelAtLeast()`, `getMaxJumpByTechLevel()`, `getTechLevelIndex()`
+Use helper functions: `isTechLevelAtLeast()`, `getMaxJumpByTechLevel()`, `getEffectiveMaxJump()`, `getTechLevelIndex()`
 
 ### Capital Ship Rules
 
@@ -314,13 +321,18 @@ Ships ≥3,000 tons are capital ships with special rules:
 `activeRules` state (Set<string>) enables optional rule sets:
 - `'spacecraft_design_srd'`: Always enabled (base rules)
 - `'antimatter'`: Antimatter drives (TL-H, 1% of ship tons per Jump performance)
+- `'longer_jumps'`: Extended jumps (TL-G+) — raises the jump cap via `getEffectiveMaxJump()`
 - Additional rules can be added via RulesMenu component
 
-Rules affect calculations (e.g., fuel mass with antimatter) - check `activeRules.has('rule_id')` before applying rule-specific logic.
+Rules affect calculations (e.g., fuel mass with antimatter) - check `activeRules.has('rule_id')` before applying rule-specific logic. `RulesMenu` computes `enabled`/`disabled` per-rule from the ship's tech level on every render, but that's purely for its own display — it must separately call `onRuleChange` whenever a tech-level change flips a rule's effective availability, or App's `activeRules` (the actual source of truth used in calculations) silently desyncs from what the menu shows.
 
 ### Print Functionality
 
 `handleFilePrint()` in App.tsx generates a printable HTML view. It calls `generateShipPrintContent()` from `src/utils/printContent.ts`, which produces a complete standalone HTML document with embedded styles and XSS prevention via `escapeHtml()`. This shared utility is the single source of truth for print output — SummaryPanel does not have its own print implementation.
+
+### Cost Calculation
+
+`calculateCost()` in App.tsx includes the hull cost (`getHullCost()`, tonnage / 10 MCr per the simplified `HULL_SIZES` formula), all component costs, missile reloads (1 MCr/ton), sand reloads (0.1 MCr/ton), armor (0.1 MCr/ton of armor mass), and the spinal weapon if selected. Bridges follow the SRD: 0.5 MCr per 100 tons of ship, multiplied by section count for multi-section capital ships; half bridges are half tonnage at 75% of the full bridge cost. Launch tubes cost 0.5 MCr per ton of tube (12.5 MCr per ton of vehicle capacity, since a tube is 25 tons per ton of vehicle). The Summary table, CSV export, and print output must all include a line item for every cost source (Hull, Computer, Missile Reloads, Spinal Weapon, Armor included) so their displayed rows sum to the Totals row — a value folded into `calculateCost()`/`calculateMass()` without a matching line item makes the printout look wrong even though the total itself is correct.
 
 ## Testing Approach
 
@@ -358,17 +370,11 @@ Ship names must be unique (enforced by DB unique index). Attempting to save dupl
 
 ## Docker Support
 
-`Dockerfile` available for containerized deployment:
-```bash
-docker build -t starship-designer .
-docker run -p 8080:8080 starship-designer
-```
-
-The Docker image runs the production build served via http-server.
+A `Dockerfile` exists but is stale (references the pre-Vite webpack dev server on port 8080) and is not the actual deployment path — production deploys are a Cloudflare Worker (`wrangler deploy`, see `wrangler.jsonc`) serving the Vite `dist/` build. Treat the Dockerfile as unmaintained until someone updates it for the Vite scripts.
 
 ## Debugging Tips
 
-1. **Database Issues**: Check browser DevTools → Application → IndexedDB → StarshipDesignerDB
+1. **Database Issues**: Check browser DevTools → Application → IndexedDB → StarshipDesignerDB → `capital_ships` object store
 2. **Mass Calculation Problems**: Add console.log in `calculateMass()` to trace component contributions
 3. **Panel Validation**: Check `isCurrentPanelValid()` and `canAdvance()` in App.tsx
 4. **Initial Data Loading**: Check `SelectShipPanel.tsx` and `initialDataService.ts` for DB initialization logic
@@ -407,9 +413,11 @@ The Custom panel (`src/components/CustomPanel.tsx`) is a recent addition that de
 ## Known Issues & Quirks
 
 - Ship names in DB are stored as `ship.name` (nested property) for indexing
-- Port 8080 is hardcoded in webpack config and Docker setup
 - `public/initial-ships.json` is loaded once on first DB initialization - subsequent changes require DB flush
 - Testing.md incorrectly mentions Vitest, but project uses Jest
+- `scripts/extractDB.mjs`, `scripts/flushDB.mjs`, and `scripts/preloadDB.mjs` run against `fake-indexeddb` (an isolated in-memory implementation), not a real browser's IndexedDB — they can't actually read or write a user's saved ships. `pnpm setInitialDB` (which chains `extractDB` → copies the export into `public/initial-ships.json`) is non-functional for the same reason. Treat `public/initial-ships.json` as hand-maintained until this is fixed.
+- The `Dockerfile` still references the pre-Vite webpack dev server and port 8080; the app is actually deployed via a Cloudflare Worker (`worker/index.js`, `wrangler.jsonc`), not Docker.
+- Weapon/defense turrets and bay weapons and the spinal weapon all share the same mount pool (`getWeaponMountLimit()` = hull tonnage / 100); WeaponsPanel, DefensesPanel, and the spinal weapon selection must each account for the others' usage when enforcing the limit.
 
 ## Case Study: Implementing the Custom Items Feature
 

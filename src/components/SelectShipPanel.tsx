@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { databaseService, type StoredShipDesign } from '../services/database';
+import { initialDataService } from '../services/initialDataService';
 import type { ShipDesign } from '../types/ship';
 import { logger } from '../utils/logger';
 
@@ -8,18 +9,9 @@ interface SelectShipPanelProps {
   onLoadShip: (shipDesign: ShipDesign) => void;
 }
 
-export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPanelProps) {
-  const [ships, setShips] = useState<StoredShipDesign[]>([]);
-  const [selectedShipId, setSelectedShipId] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    loadShips();
-  }, []);
-
-  const createDefaultShips = () => {
-    // Fallback: create default ship in memory if all loading fails
+// Fallback: create default ships in memory if all loading fails. Pure
+// factory with no reactive dependencies, so it lives outside the component.
+function createDefaultShips() {
     const largeLiner = {
       id: -1, // Temporary ID
       ship: {
@@ -39,8 +31,10 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPan
         { engine_type: 'jump_drive' as const, drive_code: 'J', performance: 2, mass: 240, cost: 240 }
       ],
       fittings: [
-        { fitting_type: 'half_bridge' as const, mass: 60, cost: 90 },
-        { fitting_type: 'comms_sensors' as const, comms_sensors_type: 'basic_civilian' as const, mass: 1, cost: 0.05 }
+        { fitting_type: 'half_bridge' as const, mass: 60, cost: 60 },
+        { fitting_type: 'comms_sensors' as const, comms_sensors_type: 'basic_civilian' as const, mass: 1, cost: 0.05 },
+        // 8,000t at J-2 requires Core/4 or better (getMinimumComputer)
+        { fitting_type: 'computer' as const, computer_model: 'core_4' as const, mass: 0, cost: 20 }
       ],
       weapons: [
         { weapon_name: 'Hard Point', mass: 1, cost: 1, quantity: 80 }
@@ -61,7 +55,7 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPan
         { facility_type: 'kitchens' as const, quantity: 2, mass: 3, cost: 0.4 },
         { facility_type: 'first_aid_station' as const, quantity: 4, mass: 0.5, cost: 0.1 },
         { facility_type: 'autodoc' as const, quantity: 2, mass: 1.5, cost: 0.05 },
-        { facility_type: 'med_bay' as const, quantity: 1, mass: 4, cost: 2 },
+        { facility_type: 'medical_bay' as const, quantity: 1, mass: 4, cost: 2 },
         { facility_type: 'medical_garden' as const, quantity: 1, mass: 4, cost: 1 },
         { facility_type: 'library' as const, quantity: 2, mass: 1, cost: 0.1 },
         { facility_type: 'range' as const, quantity: 1, mass: 2, cost: 2 },
@@ -116,8 +110,10 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPan
         { engine_type: 'jump_drive' as const, drive_code: 'J', performance: 5, mass: 1680, cost: 1680 }
       ],
       fittings: [
-        { fitting_type: 'bridge' as const, mass: 180, cost: 90 },
-        { fitting_type: 'comms_sensors' as const, comms_sensors_type: 'very_advanced' as const, mass: 5, cost: 4 }
+        { fitting_type: 'bridge' as const, mass: 180, cost: 420 },
+        { fitting_type: 'comms_sensors' as const, comms_sensors_type: 'very_advanced' as const, mass: 5, cost: 4 },
+        // 28,000t at J-5 requires Core/5 or better (getMinimumComputer)
+        { fitting_type: 'computer' as const, computer_model: 'core_5' as const, mass: 0, cost: 30 }
       ],
       weapons: [
         { weapon_name: 'Dual Fusion Gun Barbette', mass: 10, cost: 16, quantity: 20 },
@@ -143,7 +139,7 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPan
         { facility_type: 'kitchens' as const, quantity: 2, mass: 3, cost: 0.4 },
         { facility_type: 'first_aid_station' as const, quantity: 4, mass: 0.5, cost: 0.1 },
         { facility_type: 'autodoc' as const, quantity: 2, mass: 1.5, cost: 0.05 },
-        { facility_type: 'med_bay' as const, quantity: 1, mass: 4, cost: 2 },
+        { facility_type: 'medical_bay' as const, quantity: 1, mass: 4, cost: 2 },
         { facility_type: 'medical_garden' as const, quantity: 2, mass: 4, cost: 1 },
         { facility_type: 'library' as const, quantity: 4, mass: 1, cost: 0.1 },
         { facility_type: 'range' as const, quantity: 3, mass: 2, cost: 2 },
@@ -180,9 +176,15 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPan
     };
 
     return [largeLiner, destroyer];
-  };
+}
 
-  async function loadShips() {
+export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPanelProps) {
+  const [ships, setShips] = useState<StoredShipDesign[]>([]);
+  const [selectedShipId, setSelectedShipId] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadShips = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -190,10 +192,20 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPan
       let savedShips = await databaseService.getAllShips();
       logger.info(`SelectShipPanel loaded ${savedShips.length} ships from database`);
 
-      // If no ships exist, use hardcoded defaults
       if (savedShips.length === 0) {
-        logger.info('No ships in database, using hardcoded default ships');
-        savedShips = createDefaultShips();
+        logger.info('No ships found, attempting to load initial data');
+        const loaded = await initialDataService.loadInitialDataIfNeeded();
+        logger.info(`Initial data load result: ${loaded}`);
+
+        if (loaded) {
+          savedShips = await databaseService.getAllShips();
+          logger.info(`After initial load: ${savedShips.length} ship(s) available`);
+        }
+
+        if (savedShips.length === 0) {
+          logger.info('All load methods failed, using hardcoded default ships');
+          savedShips = createDefaultShips();
+        }
       }
 
       setShips(savedShips);
@@ -208,7 +220,15 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPan
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
+
+  // Standard fetch-on-mount pattern; loadShips manages its own loading/error
+  // state internally, which react-hooks/set-state-in-effect flags but is the
+  // intended, documented way to trigger data fetching from an effect.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadShips();
+  }, [loadShips]);
 
   const handleLoadSelectedShip = async () => {
     if (!selectedShipId) return;

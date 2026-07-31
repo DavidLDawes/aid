@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
-import type { ShipDesign, MassCalculation, CostCalculation, StaffRequirements } from './types/ship';
-import { calculateTotalFuelMass, calculateVehicleServiceStaff, calculateDroneServiceStaff, calculateMedicalStaff, WEAPON_TYPES, BAY_WEAPON_TYPES, getAvailableSpinalWeapons, getNumberOfSections, getMinimumComputer, COMPUTER_TYPES } from './data/constants';
+import type { Ship, ShipDesign, MassCalculation, CostCalculation, StaffRequirements } from './types/ship';
+import { calculateTotalFuelMass, calculateVehicleServiceStaff, calculateDroneServiceStaff, calculateMedicalStaff, convertTechLevelToNumber, getBridgeMassAndCost, getEffectiveMaxJump, getHullCost, getNumberOfSections, getMinimumComputer, COMPUTER_TYPES, VEHICLE_TYPES, WEAPON_TYPES, BAY_WEAPON_TYPES, getAvailableSpinalWeapons } from './data/constants';
 import { databaseService } from './services/database';
 import { logger } from './utils/logger';
 import { createEmptyShipDesign, createDefaultShip } from './utils/shipDefaults';
@@ -48,6 +48,154 @@ function App() {
     logger.info('Initializing database');
     databaseService.initialize().catch(err => logger.error('Error initializing database', err));
   }, []);
+
+  const calculateMass = useCallback((): MassCalculation => {
+    let used = 0;
+
+    used += sumMass(shipDesign.engines);
+    used += sumMass(shipDesign.fittings);
+    used += sumMassWithQuantity(shipDesign.weapons);
+    // Defense mass is stored per-unit; multiply by quantity for total
+    used += sumMassWithQuantity(shipDesign.defenses);
+    used += sumMassWithQuantity(shipDesign.berths);
+    used += sumMassWithQuantity(shipDesign.facilities);
+    used += sumCargoTonnage(shipDesign.cargo);
+    used += sumMassWithQuantity(shipDesign.vehicles);
+    used += sumMassWithQuantity(shipDesign.drones);
+    used += sumMass(shipDesign.custom_items);
+
+    const jumpDrive = shipDesign.engines.find(e => e.engine_type === 'jump_drive');
+    const maneuverDrive = shipDesign.engines.find(e => e.engine_type === 'maneuver_drive');
+    const jumpPerformance = jumpDrive?.performance || 0;
+    const maneuverPerformance = maneuverDrive?.performance || 0;
+    const useAntimatter = activeRules.has('antimatter');
+    used += calculateTotalFuelMass(shipDesign.ship.tonnage, jumpPerformance, maneuverPerformance, shipDesign.ship.fuel_weeks, useAntimatter);
+
+    used += shipDesign.ship.missile_reloads;
+    used += shipDesign.ship.sand_reloads;
+
+    if (shipDesign.ship.armor_percentage) {
+      used += (shipDesign.ship.tonnage * shipDesign.ship.armor_percentage) / 100;
+    }
+
+    if (shipDesign.ship.spinal_weapon) {
+      const powerPlant = shipDesign.engines.find(e => e.engine_type === 'power_plant');
+      const availableSpinalWeapons = getAvailableSpinalWeapons(shipDesign.ship.tech_level, powerPlant?.performance || 0);
+      const spinalWeaponData = availableSpinalWeapons.find(w => w.name === shipDesign.ship.spinal_weapon);
+      if (spinalWeaponData) {
+        used += spinalWeaponData.mass;
+      }
+    }
+
+    const total = shipDesign.ship.tonnage;
+    return { total, used, remaining: total - used, isOverweight: used > total };
+  }, [shipDesign, activeRules]);
+
+  const calculateCost = useCallback((): CostCalculation => {
+    let total = getHullCost(shipDesign.ship.tonnage);
+
+    total += sumCost(shipDesign.engines);
+    total += sumCost(shipDesign.fittings);
+    total += sumCostWithQuantity(shipDesign.weapons);
+    // Defense cost is stored per-unit; multiply by quantity for total
+    total += sumCostWithQuantity(shipDesign.defenses);
+    total += sumCostWithQuantity(shipDesign.berths);
+    total += sumCostWithQuantity(shipDesign.facilities);
+    total += sumCost(shipDesign.cargo);
+    total += sumCostWithQuantity(shipDesign.vehicles);
+    total += sumCostWithQuantity(shipDesign.drones);
+    total += sumCost(shipDesign.custom_items);
+
+    total += shipDesign.ship.missile_reloads;
+    total += shipDesign.ship.sand_reloads * 0.1;
+
+    if (shipDesign.ship.armor_percentage) {
+      const armorMass = (shipDesign.ship.tonnage * shipDesign.ship.armor_percentage) / 100;
+      total += armorMass * 0.1;
+    }
+
+    if (shipDesign.ship.spinal_weapon) {
+      const powerPlant = shipDesign.engines.find(e => e.engine_type === 'power_plant');
+      const availableSpinalWeapons = getAvailableSpinalWeapons(shipDesign.ship.tech_level, powerPlant?.performance || 0);
+      const spinalWeaponData = availableSpinalWeapons.find(w => w.name === shipDesign.ship.spinal_weapon);
+      if (spinalWeaponData) {
+        total += spinalWeaponData.cost;
+      }
+    }
+
+    return { total };
+  }, [shipDesign]);
+
+  const calculateStaffRequirements = useCallback((): StaffRequirements => {
+    const pilot = 1;
+    const navigator = 1;
+
+    let engineers: number;
+    const shipTonnage = shipDesign.ship.tonnage;
+
+    if (shipTonnage === 100) {
+      engineers = 1;
+    } else if (shipTonnage === 200 || shipTonnage === 300) {
+      engineers = 2;
+    } else {
+      const engineCount = shipDesign.engines.length;
+      engineers = Math.max(engineCount, 1);
+
+      for (const engine of shipDesign.engines) {
+        if (engine.mass > 100) {
+          engineers += Math.ceil(engine.mass / 100) - 1;
+        }
+      }
+    }
+
+    const bayWeaponNames = BAY_WEAPON_TYPES.map(b => b.name);
+    let turretsAndBarbettesGunners = 0;
+    shipDesign.weapons
+      .filter(weapon => weapon.weapon_name !== 'Hard Point' && !bayWeaponNames.includes(weapon.weapon_name))
+      .forEach(weapon => {
+        turretsAndBarbettesGunners += Math.ceil(weapon.quantity / 10);
+      });
+
+    let defenseTurretGunners = 0;
+    shipDesign.defenses
+      .filter(defense => !['nuclear_damper', 'meson_screen', 'black_globe'].includes(defense.defense_type))
+      .forEach(defense => {
+        defenseTurretGunners += Math.ceil(defense.quantity / 10);
+      });
+
+    let screenGunners = 0;
+    const screenTypes = ['nuclear_damper', 'meson_screen', 'black_globe'] as const;
+    screenTypes.forEach(screenType => {
+      const screen = shipDesign.defenses.find(d => d.defense_type === screenType);
+      if (screen && screen.quantity > 0) {
+        const totalTons = screen.mass * screen.quantity;
+        screenGunners += totalTons > 400 ? Math.ceil(totalTons / 100) : 4;
+      }
+    });
+
+    const spinalWeaponGunners = shipDesign.ship.spinal_weapon ? 10 : 0;
+
+    const bayWeapons = shipDesign.weapons.filter(w => bayWeaponNames.includes(w.weapon_name));
+    const bayWeaponGunners = bayWeapons.reduce((sum, weapon) => sum + (weapon.quantity * 2), 0);
+
+    const gunners = turretsAndBarbettesGunners + defenseTurretGunners + screenGunners + spinalWeaponGunners + bayWeaponGunners;
+
+    const vehicleService = calculateVehicleServiceStaff(shipDesign.vehicles);
+    const droneService = calculateDroneServiceStaff(shipDesign.drones);
+    const service = vehicleService + droneService;
+
+    const totalStaterooms = shipDesign.berths
+      .filter(berth => berth.berth_type === 'staterooms' || berth.berth_type === 'luxury_staterooms')
+      .reduce((sum, berth) => sum + berth.quantity, 0);
+    const stewards = Math.ceil(totalStaterooms / 8);
+
+    const medicalStaff = calculateMedicalStaff(shipDesign.facilities);
+    const { nurses, surgeons, techs } = medicalStaff;
+
+    const total = pilot + navigator + engineers + gunners + service + stewards + nurses + surgeons + techs;
+
+    return { pilot, navigator, engineers, gunners, service, stewards, nurses, surgeons, techs, total };
+  }, [shipDesign]);
 
   const handleFileSave = useCallback(async () => {
     if (!shipDesign.ship.name.trim()) {
@@ -109,7 +257,7 @@ function App() {
     // print() can tear the window down before the dialog/render completes in some browsers.
     printWindow.addEventListener('afterprint', () => printWindow.close());
     printWindow.print();
-  }, [shipDesign, combinePilotNavigator, noStewards, activeRules]);
+  }, [shipDesign, combinePilotNavigator, noStewards, activeRules, calculateMass, calculateCost, calculateStaffRequirements]);
 
   // Global keyboard shortcuts for file operations
   useEffect(() => {
@@ -149,157 +297,6 @@ function App() {
       return newRules;
     });
   }, []);
-
-  function calculateMass(): MassCalculation {
-    let used = 0;
-
-    used += sumMass(shipDesign.engines);
-    used += sumMass(shipDesign.fittings);
-    used += sumMassWithQuantity(shipDesign.weapons);
-    // Defense mass is stored per-unit; multiply by quantity for total
-    used += sumMassWithQuantity(shipDesign.defenses);
-    used += sumMassWithQuantity(shipDesign.berths);
-    used += sumMassWithQuantity(shipDesign.facilities);
-    used += sumCargoTonnage(shipDesign.cargo);
-    used += sumMassWithQuantity(shipDesign.vehicles);
-    used += sumMassWithQuantity(shipDesign.drones);
-    used += sumMass(shipDesign.custom_items);
-
-    const jumpDrive = shipDesign.engines.find(e => e.engine_type === 'jump_drive');
-    const maneuverDrive = shipDesign.engines.find(e => e.engine_type === 'maneuver_drive');
-    const jumpPerformance = jumpDrive?.performance || 0;
-    const maneuverPerformance = maneuverDrive?.performance || 0;
-    const useAntimatter = activeRules.has('antimatter');
-    used += calculateTotalFuelMass(shipDesign.ship.tonnage, jumpPerformance, maneuverPerformance, shipDesign.ship.fuel_weeks, useAntimatter);
-
-    used += shipDesign.ship.missile_reloads;
-    used += shipDesign.ship.sand_reloads;
-
-    if (shipDesign.ship.armor_percentage) {
-      used += (shipDesign.ship.tonnage * shipDesign.ship.armor_percentage) / 100;
-    }
-
-    if (shipDesign.ship.spinal_weapon) {
-      const powerPlant = shipDesign.engines.find(e => e.engine_type === 'power_plant');
-      const availableSpinalWeapons = getAvailableSpinalWeapons(shipDesign.ship.tech_level, powerPlant?.performance || 0);
-      const spinalWeaponData = availableSpinalWeapons.find(w => w.name === shipDesign.ship.spinal_weapon);
-      if (spinalWeaponData) {
-        used += spinalWeaponData.mass;
-      }
-    }
-
-    const total = shipDesign.ship.tonnage;
-    return { total, used, remaining: total - used, isOverweight: used > total };
-  }
-
-  function calculateCost(): CostCalculation {
-    let total = 0;
-
-    total += sumCost(shipDesign.engines);
-    total += sumCost(shipDesign.fittings);
-    total += sumCostWithQuantity(shipDesign.weapons);
-    // Defense cost is stored per-unit; multiply by quantity for total
-    total += sumCostWithQuantity(shipDesign.defenses);
-    total += sumCostWithQuantity(shipDesign.berths);
-    total += sumCostWithQuantity(shipDesign.facilities);
-    total += sumCost(shipDesign.cargo);
-    total += sumCostWithQuantity(shipDesign.vehicles);
-    total += sumCostWithQuantity(shipDesign.drones);
-    total += sumCost(shipDesign.custom_items);
-
-    total += shipDesign.ship.missile_reloads;
-    total += shipDesign.ship.sand_reloads * 0.1;
-
-    if (shipDesign.ship.armor_percentage) {
-      const armorMass = (shipDesign.ship.tonnage * shipDesign.ship.armor_percentage) / 100;
-      total += armorMass * 0.1;
-    }
-
-    if (shipDesign.ship.spinal_weapon) {
-      const powerPlant = shipDesign.engines.find(e => e.engine_type === 'power_plant');
-      const availableSpinalWeapons = getAvailableSpinalWeapons(shipDesign.ship.tech_level, powerPlant?.performance || 0);
-      const spinalWeaponData = availableSpinalWeapons.find(w => w.name === shipDesign.ship.spinal_weapon);
-      if (spinalWeaponData) {
-        total += spinalWeaponData.cost;
-      }
-    }
-
-    return { total };
-  }
-
-  function calculateStaffRequirements(): StaffRequirements {
-    const pilot = 1;
-    const navigator = 1;
-
-    let engineers: number;
-    const shipTonnage = shipDesign.ship.tonnage;
-
-    if (shipTonnage === 100) {
-      engineers = 1;
-    } else if (shipTonnage === 200 || shipTonnage === 300) {
-      engineers = 2;
-    } else if (shipTonnage >= 400) {
-      const engineCount = shipDesign.engines.length;
-      engineers = Math.max(engineCount, 1);
-
-      for (const engine of shipDesign.engines) {
-        if (engine.mass > 100) {
-          engineers += Math.ceil(engine.mass / 100) - 1;
-        }
-      }
-    } else {
-      const totalEnginesWeight = shipDesign.engines.reduce((sum, engine) => sum + engine.mass, 0);
-      engineers = Math.ceil(totalEnginesWeight / 100);
-    }
-
-    const bayWeaponNames = BAY_WEAPON_TYPES.map(b => b.name);
-    let turretsAndBarbettesGunners = 0;
-    shipDesign.weapons
-      .filter(weapon => weapon.weapon_name !== 'Hard Point' && !bayWeaponNames.includes(weapon.weapon_name))
-      .forEach(weapon => {
-        turretsAndBarbettesGunners += Math.ceil(weapon.quantity / 10);
-      });
-
-    let defenseTurretGunners = 0;
-    shipDesign.defenses
-      .filter(defense => !['nuclear_damper', 'meson_screen', 'black_globe'].includes(defense.defense_type))
-      .forEach(defense => {
-        defenseTurretGunners += Math.ceil(defense.quantity / 10);
-      });
-
-    let screenGunners = 0;
-    const screenTypes = ['nuclear_damper', 'meson_screen', 'black_globe'] as const;
-    screenTypes.forEach(screenType => {
-      const screen = shipDesign.defenses.find(d => d.defense_type === screenType);
-      if (screen && screen.quantity > 0) {
-        const totalTons = screen.mass * screen.quantity;
-        screenGunners += totalTons > 400 ? Math.ceil(totalTons / 100) : 4;
-      }
-    });
-
-    const spinalWeaponGunners = shipDesign.ship.spinal_weapon ? 10 : 0;
-
-    const bayWeapons = shipDesign.weapons.filter(w => bayWeaponNames.includes(w.weapon_name));
-    const bayWeaponGunners = bayWeapons.reduce((sum, weapon) => sum + (weapon.quantity * 2), 0);
-
-    const gunners = turretsAndBarbettesGunners + defenseTurretGunners + screenGunners + spinalWeaponGunners + bayWeaponGunners;
-
-    const vehicleService = calculateVehicleServiceStaff(shipDesign.vehicles);
-    const droneService = calculateDroneServiceStaff(shipDesign.drones);
-    const service = vehicleService + droneService;
-
-    const totalStaterooms = shipDesign.berths
-      .filter(berth => berth.berth_type === 'staterooms' || berth.berth_type === 'luxury_staterooms')
-      .reduce((sum, berth) => sum + berth.quantity, 0);
-    const stewards = Math.ceil(totalStaterooms / 8);
-
-    const medicalStaff = calculateMedicalStaff(shipDesign.facilities);
-    const { nurses, surgeons, techs } = medicalStaff;
-
-    const total = pilot + navigator + engineers + gunners + service + stewards + nurses + surgeons + techs;
-
-    return { pilot, navigator, engineers, gunners, service, stewards, nurses, surgeons, techs, total };
-  }
 
   const calculateAdjustedCrewCount = (staffRequirements: StaffRequirements): number => {
     const isSmallShip = shipDesign.ship.tonnage >= 100 && shipDesign.ship.tonnage <= 200;
@@ -393,8 +390,60 @@ function App() {
     });
   };
 
+  // Hull size changes invalidate engine and fuel selections (mass/cost are
+  // computed from tonnage at selection time and don't auto-update) and
+  // re-tier the bridge. Tech level changes drop now-illegal jump drives and
+  // too-advanced vehicles.
+  const handleShipInfoUpdate = useCallback((newShip: Ship) => {
+    setShipDesign(prev => {
+      let next: ShipDesign = { ...prev, ship: newShip };
+
+      if (newShip.tonnage !== prev.ship.tonnage) {
+        logger.info(`Hull size changed to ${newShip.tonnage} tons: clearing engine and fuel selections`);
+        const sections = getNumberOfSections(newShip.tonnage);
+        next = {
+          ...next,
+          ship: { ...newShip, sections: sections ?? undefined, fuel_weeks: 2 },
+          engines: [],
+          fittings: next.fittings.map(fitting =>
+            (fitting.fitting_type === 'bridge' || fitting.fitting_type === 'half_bridge')
+              ? (() => {
+                  const { mass, cost } = getBridgeMassAndCost(newShip.tonnage, fitting.fitting_type === 'half_bridge');
+                  const sectionMultiplier = sections || 1;
+                  return { ...fitting, mass: mass * sectionMultiplier, cost: cost * sectionMultiplier };
+                })()
+              : fitting
+          )
+        };
+      }
+
+      if (newShip.tech_level !== prev.ship.tech_level) {
+        const longerJumpsEnabled = activeRules.has('longer_jumps');
+        const maxJump = getEffectiveMaxJump(newShip.tech_level, longerJumpsEnabled);
+        const shipTL = convertTechLevelToNumber(newShip.tech_level);
+        const engines = next.engines.filter(e => !(e.engine_type === 'jump_drive' && e.performance > maxJump));
+        const vehicles = next.vehicles.filter(vehicle => {
+          const vehicleType = VEHICLE_TYPES.find(vt => vt.type === vehicle.vehicle_type);
+          return vehicleType !== undefined && vehicleType.techLevel <= shipTL;
+        });
+        if (engines.length !== next.engines.length) {
+          logger.info(`Tech level changed to ${newShip.tech_level}: removed jump drive above J-${maxJump}`);
+        }
+        if (vehicles.length !== next.vehicles.length) {
+          logger.info(`Tech level changed to ${newShip.tech_level}: removed vehicles above TL ${shipTL}`);
+        }
+        next = { ...next, engines, vehicles };
+      }
+
+      return next;
+    });
+  }, [activeRules]);
+
   const handleNewShip = () => {
     logger.info('Starting new ship design');
+    setShipDesign(createEmptyShipDesign(createDefaultShip('', 'A', 5000, 'standard')));
+    setCombinePilotNavigator(false);
+    setNoStewards(false);
     setShowSelectShip(false);
     setCurrentPanel(0);
   };
@@ -446,7 +495,7 @@ function App() {
       case 0:
         return <ShipPanel
           ship={shipDesign.ship}
-          onUpdate={(ship) => updateShipDesign({ ship })}
+          onUpdate={handleShipInfoUpdate}
           onLoadExistingShip={(loadedShipDesign) => setShipDesign(loadedShipDesign)}
         />;
       case 1:
