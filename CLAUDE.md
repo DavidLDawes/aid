@@ -93,7 +93,6 @@ aid/
 ├── vite.config.js              # Vite configuration
 ├── tsconfig.json              # TypeScript configuration
 ├── jest.config.cjs            # Jest configuration
-├── Dockerfile                 # Docker container definition
 ├── CLAUDE.md                  # This file - Claude Code guidance
 └── README.md                  # Project README
 
@@ -368,9 +367,9 @@ The app supports standard file operations via FileMenu component:
 
 Ship names must be unique (enforced by DB unique index). Attempting to save duplicate names will throw an error.
 
-## Docker Support
+## Deployment
 
-A `Dockerfile` exists but is stale (references the pre-Vite webpack dev server on port 8080) and is not the actual deployment path — production deploys are a Cloudflare Worker (`wrangler deploy`, see `wrangler.jsonc`) serving the Vite `dist/` build. Treat the Dockerfile as unmaintained until someone updates it for the Vite scripts.
+Production deploys as a Cloudflare Worker (`wrangler deploy`, see `wrangler.jsonc`) serving the Vite `dist/` build under `/CapitalShipDesign` at `srd-tools.com`. There is no Docker deployment path — a stale `Dockerfile` (pre-Vite webpack dev server, port 8080) was removed.
 
 ## Debugging Tips
 
@@ -416,7 +415,6 @@ The Custom panel (`src/components/CustomPanel.tsx`) is a recent addition that de
 - `public/initial-ships.json` is loaded once on first DB initialization - subsequent changes require DB flush
 - Testing.md incorrectly mentions Vitest, but project uses Jest
 - `scripts/extractDB.mjs`, `scripts/flushDB.mjs`, and `scripts/preloadDB.mjs` run against `fake-indexeddb` (an isolated in-memory implementation), not a real browser's IndexedDB — they can't actually read or write a user's saved ships. `pnpm setInitialDB` (which chains `extractDB` → copies the export into `public/initial-ships.json`) is non-functional for the same reason. Treat `public/initial-ships.json` as hand-maintained until this is fixed.
-- The `Dockerfile` still references the pre-Vite webpack dev server and port 8080; the app is actually deployed via a Cloudflare Worker (`worker/index.js`, `wrangler.jsonc`), not Docker.
 - Weapon/defense turrets and bay weapons and the spinal weapon all share the same mount pool (`getWeaponMountLimit()` = hull tonnage / 100); WeaponsPanel, DefensesPanel, and the spinal weapon selection must each account for the others' usage when enforcing the limit.
 
 ## Case Study: Implementing the Custom Items Feature

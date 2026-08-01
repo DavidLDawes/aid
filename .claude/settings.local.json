@@ -46,7 +46,10 @@
       "Bash(git merge *)",
       "Bash(xargs grep -ln \"getBridgeMassAndCost\\\\|BridgeMassAndCost\")",
       "Bash(grep -n \"return \\\\[largeLiner, destroyer\\\\]\\\\|^  };$\\\\|async function loadShips\" src/components/SelectShipPanel.tsx)",
-      "Bash(git status *)"
+      "Bash(git status *)",
+      "Bash(echo \"---grep exit: $?---\")",
+      "Bash(git ls-files *)",
+      "Bash(grep \"\\\\.js$\")"
     ],
     "deny": []
   }
