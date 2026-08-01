@@ -2,7 +2,7 @@
 
 A Megastructure Designer for the Traveller RPG, built with Claude. Uses a Wizard UI and IndexedDB for browser-local persistence — no backend server required.
 
-Megastructures are permanent (or near-stationary) constructions from 1,000,000 to 100,000,000 tons (in 1,000,000-ton steps) — ring worlds, orbital habitats, shipyards, and similar. Unlike the sibling Starship and Capital Ship designers in this repository, megastructures have **no jump drive**.
+Megastructures are permanent (or near-stationary) constructions from 1,000,000 to 1,000,000,000 tons (in 1,000,000-ton steps) — ring worlds, orbital habitats, shipyards, and similar. Unlike the sibling Starship and Capital Ship designers in this repository, megastructures have **no jump drive**.
 
 ## Quick Start
 
@@ -16,7 +16,7 @@ The application will be available at `http://localhost:5173`.
 ## Features
 
 - **Multi-Panel Design Interface**: 15 panels for complete megastructure configuration
-- **Megastructure Scale**: Designs from 1,000,000 to 100,000,000 tons, with a control center, sensors, and computer that scale by the number of million-ton sections
+- **Megastructure Scale**: Designs from 1,000,000 to 1,000,000,000 tons, with a control center, sensors, and computer that scale by the number of million-ton sections
 - **Power Plant & Maneuver Drive**: No jump drive; power plant performance is tech-level gated (up to P-12 at TL-J) so an Antimatter Plant (which needs P-10+) is reachable
 - **Antimatter Plants**: Cut maneuver fuel requirements to 1/10th once installed
 - **Zone Sections**: Residential, commercial, industrial, farm, park, and other 1,000-ton zone types

@@ -466,8 +466,8 @@ export function calculateDroneServiceStaff(drones: { drone_type: string; quantit
 
 // ── Megastructure helpers ────────────────────────────────────────────────────
 
-// Hull sizes for megastructures: 1M–100M tons in 1M-ton steps
-export const MEGASTRUCTURE_HULL_SIZES = Array.from({ length: 100 }, (_, i) => {
+// Hull sizes for megastructures: 1M–1B tons in 1M-ton steps
+export const MEGASTRUCTURE_HULL_SIZES = Array.from({ length: 1000 }, (_, i) => {
   const tonnage = (i + 1) * 1_000_000;
   return { tonnage, code: `${i + 1}M`, cost: tonnage / 10 };
 });
