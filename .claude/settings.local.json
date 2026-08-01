@@ -52,7 +52,16 @@
       "Bash(git show *)",
       "Bash(grep -E \"\\\\.\\(js|js\\\\.map\\)$\")",
       "Bash(xargs git rm --cached)",
-      "Bash(git stash *)"
+      "Bash(git stash *)",
+      "Bash(python -c ' *)",
+      "PowerShell(pnpm build *)",
+      "PowerShell(pnpm lint *)",
+      "Bash(gh pr *)",
+      "Bash(git fetch *)",
+      "Bash(git cherry-pick *)",
+      "Bash(git rm *)",
+      "Bash(docker compose *)",
+      "Bash(gh run *)"
     ],
     "deny": []
   }
