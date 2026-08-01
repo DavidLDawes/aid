@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is the **Traveller Megastructure Designer** - a React-based web application for designing megastructures (1,000,000–100,000,000 tons, in 1M-ton steps) based on the Traveller SRD (System Reference Document) spacecraft design rules. The application uses IndexedDB for local persistence and features a multi-panel wizard interface for configuring all aspects of a megastructure.
+This is the **Traveller Megastructure Designer** - a React-based web application for designing megastructures (1,000,000–1,000,000,000 tons, in 1M-ton steps) based on the Traveller SRD (System Reference Document) spacecraft design rules. The application uses IndexedDB for local persistence and features a multi-panel wizard interface for configuring all aspects of a megastructure.
 
 **Megastructures have no jump drives.** They are permanent (or very-slow-moving) structures — ring worlds, orbital habitats, shipyards. This is a hard rule difference from the sibling `main` (100–2,000 ton starships) and `capital` (2,000–1,000,000 ton capital ships) branches, which do have jump drives. Don't port jump-drive logic back in from those branches.
 
