@@ -1,6 +1,6 @@
 import React from 'react';
 import type { Engine } from '../types/ship';
-import { getAvailableEngines, calculateManeuverFuel } from '../data/constants';
+import { getAvailableEngines, getMaxPowerPlantByTechLevel, calculateAntimatterAdjustedManeuverFuel } from '../data/constants';
 
 interface EnginesPanelProps {
   engines: Engine[];
@@ -8,11 +8,13 @@ interface EnginesPanelProps {
   shipTechLevel: string;
   fuelWeeks: number;
   activeRules: Set<string>;
+  hasAmPlant: boolean;
   onUpdate: (engines: Engine[]) => void;
   onFuelWeeksUpdate: (weeks: number) => void;
 }
 
-const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, shipTechLevel, fuelWeeks, onUpdate, onFuelWeeksUpdate }) => {
+const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, shipTechLevel, fuelWeeks, hasAmPlant, onUpdate, onFuelWeeksUpdate }) => {
+  const maxPowerPlant = getMaxPowerPlantByTechLevel(shipTechLevel);
 
   const getEngine = (type: Engine['engine_type']): Engine => {
     const found = engines.find(e => e.engine_type === type);
@@ -37,7 +39,7 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, shipT
     const engine = getEngine(type);
     const powerPlant = getEngine('power_plant');
     const powerPlantPerformance = (powerPlant.drive_code && powerPlant.performance > 0) ? powerPlant.performance : undefined;
-    const availableEngines = getAvailableEngines(shipTonnage, type, powerPlantPerformance, shipTechLevel, false);
+    const availableEngines = getAvailableEngines(shipTonnage, type, powerPlantPerformance, shipTechLevel);
 
     return (
       <div key={type} className="engine-group">
@@ -74,6 +76,9 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, shipT
             {type === 'maneuver_drive' && powerPlantPerformance && (
               <small>Limited by Power Plant P-{powerPlantPerformance}</small>
             )}
+            {type === 'power_plant' && (
+              <small>Tech Level {shipTechLevel} allows up to P-{maxPowerPlant}{maxPowerPlant >= 10 ? ' (Antimatter Plant requires P-10+)' : ''}</small>
+            )}
           </div>
         </div>
         {engine.drive_code && (
@@ -91,15 +96,16 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, shipT
   const powerRequirementsMet = !maneuverDrive.drive_code || maneuverDrive.performance <= powerPlant.performance;
 
   const maneuverFuel = maneuverDrive.performance > 0
-    ? calculateManeuverFuel(shipTonnage, maneuverDrive.performance, fuelWeeks)
+    ? calculateAntimatterAdjustedManeuverFuel(shipTonnage, maneuverDrive.performance, fuelWeeks, hasAmPlant)
     : 0;
 
   const totalEngineMass = engines.reduce((sum, e) => sum + e.mass, 0);
   const remainingMass = shipTonnage - totalEngineMass;
   const fuelFitsInShip = maneuverFuel <= remainingMass;
 
+  const fuelRateDivisor = shipTonnage * 0.01 * (hasAmPlant ? 0.1 : 1);
   const maxPossibleWeeks = maneuverDrive.performance > 0
-    ? Math.floor(2 * remainingMass / (shipTonnage * 0.01 * maneuverDrive.performance))
+    ? Math.floor(2 * remainingMass / (fuelRateDivisor * maneuverDrive.performance))
     : 12;
   const effectiveMaxWeeks = Math.min(12, Math.max(2, maxPossibleWeeks));
 
@@ -134,13 +140,13 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, shipT
           </div>
 
           <div className="fuel-summary">
-            <h4>Fuel Mass Breakdown:</h4>
+            <h4>Fuel Mass Breakdown{hasAmPlant ? ' (Antimatter Plant)' : ''}:</h4>
             <table>
               <tbody>
                 <tr>
                   <td>Maneuver Fuel ({fuelWeeks} weeks):</td>
                   <td>{maneuverFuel.toFixed(1)} tons</td>
-                  <td><small>({maneuverDrive.performance > 0 ? `M-${maneuverDrive.performance}` : 'No Maneuver Drive'} × 0.01 × {shipTonnage.toLocaleString()}t × {fuelWeeks / 2})</small></td>
+                  <td><small>({maneuverDrive.performance > 0 ? `M-${maneuverDrive.performance}` : 'No Maneuver Drive'} × 0.01 × {shipTonnage.toLocaleString()}t × {fuelWeeks / 2}{hasAmPlant ? ' × 0.1 antimatter' : ''})</small></td>
                 </tr>
                 <tr className="total-row">
                   <td><strong>Total Maneuver Fuel:</strong></td>
@@ -149,7 +155,7 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, shipT
                 </tr>
               </tbody>
             </table>
-            <p><small>Note: Fuel storage, scoops, processors, and antimatter plants are configured in the Fuel panel.</small></p>
+            <p><small>Note: Fuel storage, scoops, processors, and antimatter plants are configured in the Fuel panel. An installed Antimatter Plant reduces maneuver fuel requirements to 1/10th.</small></p>
           </div>
         </div>
       </div>

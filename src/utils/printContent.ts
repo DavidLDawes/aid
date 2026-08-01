@@ -2,8 +2,10 @@ import type { ShipDesign, MassCalculation, CostCalculation, StaffRequirements } 
 import {
   COMMS_SENSORS_TYPES, DEFENSE_TYPES, FACILITY_TYPES, CARGO_TYPES,
   VEHICLE_TYPES, DRONE_TYPES, BERTH_TYPES, ZONE_SECTION_TYPES,
-  calculateManeuverFuel, calculateControlCenterMass, calculateControlCenterCost,
-  getMegastructureSections, PLANT_PER_SCOOP
+  calculateControlCenterMass, calculateControlCenterCost,
+  calculateArmorMass, calculateArmorCost,
+  getMegastructureSections, PLANT_PER_SCOOP,
+  hasAntimatterPlant, calculateAntimatterAdjustedManeuverFuel
 } from '../data/constants';
 
 function escapeHtml(str: string): string {
@@ -36,6 +38,10 @@ export function generateShipPrintContent(
     rows.push(`<tr>${cat}<td>${escapeHtml(item)}</td><td>${rowMass.toFixed(1)} tons</td><td>${rowCost.toFixed(2)} MCr</td></tr>`);
   };
 
+  // Hull
+  const hullCost = shipDesign.ship.tonnage / 10;
+  addRow('Hull', `${shipDesign.ship.tonnage.toLocaleString()} tons @ 0.1 MCr/ton`, 0, hullCost);
+
   // Control Center
   const controlCenterMass = calculateControlCenterMass(shipDesign.ship.tonnage);
   const controlCenterCost = calculateControlCenterCost(shipDesign.ship.tonnage);
@@ -51,13 +57,15 @@ export function generateShipPrintContent(
     addRow(index === 0 ? 'Engines' : '', `${name} ${code}-${engine.performance}`, engine.mass, engine.cost);
   });
 
-  // Maneuver fuel only
+  // Maneuver fuel only. An installed Antimatter Plant reduces this to 1/10th.
+  const fuelSystems = shipDesign.fuel_systems || [];
+  const hasAmPlant = hasAntimatterPlant(fuelSystems);
   const manPerf = shipDesign.engines.find(e => e.engine_type === 'maneuver_drive')?.performance || 0;
   const manFuelMass = manPerf > 0
-    ? calculateManeuverFuel(shipDesign.ship.tonnage, manPerf, shipDesign.ship.fuel_weeks)
+    ? calculateAntimatterAdjustedManeuverFuel(shipDesign.ship.tonnage, manPerf, shipDesign.ship.fuel_weeks, hasAmPlant)
     : 0;
   if (manFuelMass > 0) {
-    addRow('', `Maneuver Fuel (M-${manPerf}, ${shipDesign.ship.fuel_weeks} weeks)`, manFuelMass, 0);
+    addRow('', `Maneuver Fuel (M-${manPerf}, ${shipDesign.ship.fuel_weeks} weeks${hasAmPlant ? ', Antimatter' : ''})`, manFuelMass, 0);
   }
 
   // Fittings (control_center is auto-calculated above; skip it here)
@@ -77,10 +85,14 @@ export function generateShipPrintContent(
   }
 
   // Weapons
-  shipDesign.weapons.filter(w => w.quantity > 0).forEach((weapon, index) => {
+  let weaponIdx = 0;
+  shipDesign.weapons.filter(w => w.quantity > 0).forEach(weapon => {
     const display = weapon.quantity === 1 ? weapon.weapon_name : `${weapon.weapon_name} (x${weapon.quantity})`;
-    addRow(index === 0 ? 'Weapons' : '', display, weapon.mass * weapon.quantity, weapon.cost * weapon.quantity);
+    addRow(weaponIdx++ === 0 ? 'Weapons' : '', display, weapon.mass * weapon.quantity, weapon.cost * weapon.quantity);
   });
+  if (shipDesign.ship.missile_reloads > 0) {
+    addRow(weaponIdx++ === 0 ? 'Weapons' : '', 'Missile Reloads', shipDesign.ship.missile_reloads, shipDesign.ship.missile_reloads);
+  }
 
   // Defenses
   let defenseIdx = 0;
@@ -93,8 +105,14 @@ export function generateShipPrintContent(
       addRow(defenseIdx++ === 0 ? 'Defenses' : '', display, defense.mass * defense.quantity, defense.cost * defense.quantity);
     });
     if (shipDesign.ship.sand_reloads > 0) {
-      addRow(defenseIdx++ === 0 ? 'Defenses' : '', 'Sand', shipDesign.ship.sand_reloads, 0);
+      addRow(defenseIdx++ === 0 ? 'Defenses' : '', 'Sand', shipDesign.ship.sand_reloads, shipDesign.ship.sand_reloads * 0.1);
     }
+  }
+
+  // Armor
+  if (shipDesign.ship.armor_percentage) {
+    const armorMass = calculateArmorMass(shipDesign.ship.tonnage, shipDesign.ship.armor_percentage);
+    addRow('Armor', `${shipDesign.ship.armor_percentage}% armor`, armorMass, calculateArmorCost(armorMass));
   }
 
   // Berths
@@ -144,7 +162,6 @@ export function generateShipPrintContent(
   });
 
   // Fuel Systems
-  const fuelSystems = shipDesign.fuel_systems || [];
   const scoopQty = fuelSystems.find(f => f.system_type === 'fuel_scoop')?.quantity ?? 0;
   const plantMass = scoopQty * PLANT_PER_SCOOP.mass;
   const plantCost = scoopQty * PLANT_PER_SCOOP.cost;

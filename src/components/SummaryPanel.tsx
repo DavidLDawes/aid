@@ -3,8 +3,10 @@ import type { ShipDesign, MassCalculation, CostCalculation, StaffRequirements } 
 import {
   COMMS_SENSORS_TYPES, DEFENSE_TYPES, FACILITY_TYPES, CARGO_TYPES,
   VEHICLE_TYPES, DRONE_TYPES, BERTH_TYPES, ZONE_SECTION_TYPES,
-  calculateManeuverFuel, calculateControlCenterMass, calculateControlCenterCost,
-  getMegastructureSections, PLANT_PER_SCOOP
+  calculateControlCenterMass, calculateControlCenterCost,
+  calculateArmorMass, calculateArmorCost,
+  getMegastructureSections, PLANT_PER_SCOOP,
+  hasAntimatterPlant, calculateAntimatterAdjustedManeuverFuel
 } from '../data/constants';
 import { databaseService } from '../services/database';
 
@@ -28,19 +30,27 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
   const [pendingShipName, setPendingShipName] = useState<string>('');
 
   const sections = getMegastructureSections(shipDesign.ship.tonnage);
+  const hullCost = shipDesign.ship.tonnage / 10;
   const controlCenterMass = calculateControlCenterMass(shipDesign.ship.tonnage);
   const controlCenterCost = calculateControlCenterCost(shipDesign.ship.tonnage);
+
+  const fuelSystems = shipDesign.fuel_systems || [];
+  const hasAmPlant = hasAntimatterPlant(fuelSystems);
 
   const maneuverDrive = shipDesign.engines.find(e => e.engine_type === 'maneuver_drive');
   const maneuverPerf = maneuverDrive?.performance || 0;
   const maneuverFuelMass = maneuverPerf > 0
-    ? calculateManeuverFuel(shipDesign.ship.tonnage, maneuverPerf, shipDesign.ship.fuel_weeks)
+    ? calculateAntimatterAdjustedManeuverFuel(shipDesign.ship.tonnage, maneuverPerf, shipDesign.ship.fuel_weeks, hasAmPlant)
     : 0;
 
-  const fuelSystems = shipDesign.fuel_systems || [];
   const scoopQty = fuelSystems.find(f => f.system_type === 'fuel_scoop')?.quantity ?? 0;
   const plantMass = scoopQty * PLANT_PER_SCOOP.mass;
   const plantCost = scoopQty * PLANT_PER_SCOOP.cost;
+
+  const armorMass = shipDesign.ship.armor_percentage
+    ? calculateArmorMass(shipDesign.ship.tonnage, shipDesign.ship.armor_percentage)
+    : 0;
+  const armorCost = calculateArmorCost(armorMass);
 
   const zoneSections = shipDesign.zone_sections || [];
 
@@ -102,6 +112,9 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
 
     const allRows: { category: string; item: string; mass: number; cost: number }[] = [];
 
+    // Hull
+    allRows.push({ category: 'Hull', item: `${shipDesign.ship.tonnage.toLocaleString()} tons @ 0.1 MCr/ton`, mass: 0, cost: hullCost });
+
     // Control Center
     allRows.push({ category: 'Control Center', item: `${sections} section(s) × 100 tons @ 0.5 MCr/ton`, mass: controlCenterMass, cost: controlCenterCost });
 
@@ -113,7 +126,7 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
       allRows.push({ category: index === 0 ? 'Engines' : '', item: `${name} ${code}-${engine.performance}`, mass: engine.mass, cost: engine.cost });
     });
     if (maneuverFuelMass > 0) {
-      allRows.push({ category: '', item: `Maneuver Fuel (M-${maneuverPerf}, ${shipDesign.ship.fuel_weeks} weeks)`, mass: maneuverFuelMass, cost: 0 });
+      allRows.push({ category: '', item: `Maneuver Fuel (M-${maneuverPerf}, ${shipDesign.ship.fuel_weeks} weeks${hasAmPlant ? ', Antimatter' : ''})`, mass: maneuverFuelMass, cost: 0 });
     }
 
     // Fittings (control_center excluded — shown above)
@@ -133,10 +146,14 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
     }
 
     // Weapons
-    shipDesign.weapons.filter(w => w.quantity > 0).forEach((weapon, index) => {
+    let weaponIdx = 0;
+    shipDesign.weapons.filter(w => w.quantity > 0).forEach(weapon => {
       const display = weapon.quantity === 1 ? weapon.weapon_name : `${weapon.weapon_name} (x${weapon.quantity})`;
-      allRows.push({ category: index === 0 ? 'Weapons' : '', item: display, mass: weapon.mass * weapon.quantity, cost: weapon.cost * weapon.quantity });
+      allRows.push({ category: weaponIdx++ === 0 ? 'Weapons' : '', item: display, mass: weapon.mass * weapon.quantity, cost: weapon.cost * weapon.quantity });
     });
+    if (shipDesign.ship.missile_reloads > 0) {
+      allRows.push({ category: weaponIdx++ === 0 ? 'Weapons' : '', item: 'Missile Reloads', mass: shipDesign.ship.missile_reloads, cost: shipDesign.ship.missile_reloads });
+    }
 
     // Defenses
     let defenseIdx = 0;
@@ -145,6 +162,14 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
       const display = defense.quantity === 1 ? (defenseType?.name ?? defense.defense_type) : `${defenseType?.name ?? defense.defense_type} (x${defense.quantity})`;
       allRows.push({ category: defenseIdx++ === 0 ? 'Defenses' : '', item: display, mass: defense.mass * defense.quantity, cost: defense.cost * defense.quantity });
     });
+    if (shipDesign.ship.sand_reloads > 0) {
+      allRows.push({ category: defenseIdx++ === 0 ? 'Defenses' : '', item: 'Sand', mass: shipDesign.ship.sand_reloads, cost: shipDesign.ship.sand_reloads * 0.1 });
+    }
+
+    // Armor
+    if (armorMass > 0) {
+      allRows.push({ category: 'Armor', item: `${shipDesign.ship.armor_percentage}% armor`, mass: armorMass, cost: armorCost });
+    }
 
     // Berths
     shipDesign.berths.filter(b => b.quantity > 0).forEach((berth, index) => {
@@ -235,6 +260,14 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
             </tr>
           </thead>
           <tbody>
+            {/* Hull */}
+            <tr>
+              <td>Hull</td>
+              <td>{shipDesign.ship.tonnage.toLocaleString()} tons @ 0.1 MCr/ton</td>
+              <td>—</td>
+              <td>{hullCost.toLocaleString()} MCr</td>
+            </tr>
+
             {/* Control Center */}
             <tr>
               <td>Control Center</td>
@@ -262,7 +295,7 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
                 rows.push(
                   <tr key="maneuver_fuel">
                     <td></td>
-                    <td>Maneuver Fuel (M-{maneuverPerf}, {shipDesign.ship.fuel_weeks} weeks)</td>
+                    <td>Maneuver Fuel (M-{maneuverPerf}, {shipDesign.ship.fuel_weeks} weeks{hasAmPlant ? ', Antimatter' : ''})</td>
                     <td>{maneuverFuelMass.toFixed(1)} tons</td>
                     <td></td>
                   </tr>
@@ -299,6 +332,9 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
                 const display = weapon.quantity === 1 ? weapon.weapon_name : `${weapon.weapon_name} (x${weapon.quantity})`;
                 rows.push(<tr key={`w_${weapon.weapon_name}`}><td>{idx++ === 0 ? 'Weapons' : ''}</td><td>{display}</td><td>{(weapon.mass * weapon.quantity).toFixed(1)} tons</td><td>{(weapon.cost * weapon.quantity).toFixed(2)} MCr</td></tr>);
               });
+              if (shipDesign.ship.missile_reloads > 0) {
+                rows.push(<tr key="missiles"><td>{idx++ === 0 ? 'Weapons' : ''}</td><td>Missile Reloads</td><td>{shipDesign.ship.missile_reloads.toFixed(1)} tons</td><td>{shipDesign.ship.missile_reloads.toFixed(2)} MCr</td></tr>);
+              }
               return rows;
             })()}
 
@@ -312,10 +348,20 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
                 rows.push(<tr key={`d_${defense.defense_type}`}><td>{idx++ === 0 ? 'Defenses' : ''}</td><td>{display}</td><td>{(defense.mass * defense.quantity).toFixed(1)} tons</td><td>{(defense.cost * defense.quantity).toFixed(2)} MCr</td></tr>);
               });
               if (shipDesign.ship.sand_reloads > 0) {
-                rows.push(<tr key="sand"><td>{idx++ === 0 ? 'Defenses' : ''}</td><td>Sand</td><td>{shipDesign.ship.sand_reloads.toFixed(1)} tons</td><td></td></tr>);
+                rows.push(<tr key="sand"><td>{idx++ === 0 ? 'Defenses' : ''}</td><td>Sand</td><td>{shipDesign.ship.sand_reloads.toFixed(1)} tons</td><td>{(shipDesign.ship.sand_reloads * 0.1).toFixed(2)} MCr</td></tr>);
               }
               return rows;
             })()}
+
+            {/* Armor */}
+            {armorMass > 0 && (
+              <tr key="armor">
+                <td>Armor</td>
+                <td>{shipDesign.ship.armor_percentage}% armor</td>
+                <td>{armorMass.toLocaleString()} tons</td>
+                <td>{armorCost.toLocaleString()} MCr</td>
+              </tr>
+            )}
 
             {/* Berths */}
             {shipDesign.berths.filter(b => b.quantity > 0).map((berth, index) => {

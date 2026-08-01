@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import type { MassCalculation, CostCalculation, ShipDesign } from '../types/ship';
 import {
-  calculateManeuverFuel, calculateControlCenterMass, PLANT_PER_SCOOP
+  calculateControlCenterMass, calculateArmorMass, PLANT_PER_SCOOP,
+  hasAntimatterPlant, calculateAntimatterAdjustedManeuverFuel
 } from '../data/constants';
 import { sumMass, sumMassWithQuantity, sumCargoTonnage } from '../utils/calculations';
 
@@ -39,15 +40,23 @@ const MassSidebar: React.FC<MassSidebarProps> = ({ mass, cost, shipDesign }) => 
   // Control center: auto-calculated, not stored in fittings
   const controlCenterMass = calculateControlCenterMass(shipDesign.ship.tonnage);
 
-  // Maneuver fuel only — no jump drives on megastructures
-  const maneuverDrive = shipDesign.engines.find(e => e.engine_type === 'maneuver_drive');
-  const maneuverPerformance = maneuverDrive?.performance || 0;
-  const maneuverFuelMass = maneuverPerformance > 0
-    ? calculateManeuverFuel(shipDesign.ship.tonnage, maneuverPerformance, shipDesign.ship.fuel_weeks)
+  // Armor: percentage of hull tonnage, not stored per-item
+  const armorMass = shipDesign.ship.armor_percentage
+    ? calculateArmorMass(shipDesign.ship.tonnage, shipDesign.ship.armor_percentage)
     : 0;
 
   // Fuel systems mass (scoops=0 tons, plant from scoops, processors, tanks, am plant)
   const fuelSystems = shipDesign.fuel_systems || [];
+  const hasAmPlant = hasAntimatterPlant(fuelSystems);
+
+  // Maneuver fuel only — no jump drives on megastructures. An installed
+  // Antimatter Plant reduces this to 1/10th.
+  const maneuverDrive = shipDesign.engines.find(e => e.engine_type === 'maneuver_drive');
+  const maneuverPerformance = maneuverDrive?.performance || 0;
+  const maneuverFuelMass = maneuverPerformance > 0
+    ? calculateAntimatterAdjustedManeuverFuel(shipDesign.ship.tonnage, maneuverPerformance, shipDesign.ship.fuel_weeks, hasAmPlant)
+    : 0;
+
   const scoopQty = fuelSystems.find(f => f.system_type === 'fuel_scoop')?.quantity ?? 0;
   const plantMass = scoopQty * PLANT_PER_SCOOP.mass;
   const fuelSystemsMass = fuelSystems.reduce((sum, f) => sum + f.mass, 0) + plantMass;
@@ -101,6 +110,12 @@ const MassSidebar: React.FC<MassSidebarProps> = ({ mass, cost, shipDesign }) => 
         name: `${defense.defense_type.replace(/_/g, ' ')} (${defense.quantity})`,
         mass: defense.mass * defense.quantity
       }))
+    },
+    {
+      name: 'Armor',
+      mass: armorMass,
+      alwaysVisible: false,
+      items: armorMass > 0 ? [{ name: `${shipDesign.ship.armor_percentage}% Coverage`, mass: armorMass }] : []
     },
     {
       name: 'Rec/Health',

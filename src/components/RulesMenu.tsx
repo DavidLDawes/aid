@@ -22,7 +22,6 @@ const RulesMenu: React.FC<RulesMenuProps> = ({ shipDesign, onRuleChange }) => {
   // Calculate tech level restrictions dynamically
   const currentTechLevel = shipDesign.ship.tech_level;
   const canUseAntimatter = isTechLevelAtLeast(currentTechLevel, 'H');
-  const canUseLongerJumps = isTechLevelAtLeast(currentTechLevel, 'G');
   
   const [enabledRuleIds, setEnabledRuleIds] = useState<Set<string>>(
     new Set(['spacecraft_design_srd'])
@@ -36,9 +35,6 @@ const RulesMenu: React.FC<RulesMenuProps> = ({ shipDesign, onRuleChange }) => {
     { id: 'antimatter', name: 'Antimatter',
       enabled: enabledRuleIds.has('antimatter') && canUseAntimatter,
       disabled: !canUseAntimatter },
-    { id: 'longer_jumps', name: 'Longer Jumps',
-      enabled: enabledRuleIds.has('longer_jumps') && canUseLongerJumps,
-      disabled: !canUseLongerJumps },
   ];
 
   const toggleRule = (ruleId: string) => {
@@ -66,8 +62,6 @@ const RulesMenu: React.FC<RulesMenuProps> = ({ shipDesign, onRuleChange }) => {
       // Show special indicators for tech-level restricted rules
       if (rule.id === 'antimatter' && !canUseAntimatter) {
         return <span className="rule-status disabled" title={`Requires Tech Level H (current: ${currentTechLevel})`}>—</span>;
-      } else if (rule.id === 'longer_jumps' && !canUseLongerJumps) {
-        return <span className="rule-status disabled" title={`Requires Tech Level G+ (current: ${currentTechLevel})`}>—</span>;
       }
       return <span className="rule-status disabled">—</span>;
     }

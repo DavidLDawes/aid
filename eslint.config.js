@@ -6,7 +6,13 @@ import tseslint from 'typescript-eslint'
 import { globalIgnores } from 'eslint/config'
 
 export default tseslint.config([
-  globalIgnores(['dist', 'coverage']),
+  // src/**/*.js mirrors the .gitignore entry: tsc -b (part of `pnpm build`)
+  // compiles .tsx/.ts output directly into src/ alongside the sources, since
+  // this project has no separate outDir. Those files aren't source and
+  // shouldn't be linted — they can carry stale rule-disable comments that
+  // reference rules not configured for plain .js, which errors as an
+  // "unknown rule" rather than being silently ignored.
+  globalIgnores(['dist', 'coverage', 'src/**/*.js']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
