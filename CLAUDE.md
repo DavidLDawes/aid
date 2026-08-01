@@ -113,7 +113,7 @@ Test files are co-located with source files using .test.ts/.test.tsx extension
 - **Database**: IndexedDB (via fake-indexeddb for tests) - browser-based local storage
 - **Bundler Config**: `vite.config.js` - entry point is `index.html` → `src/main.tsx`
 - **Dev Server**: Vite defaults (dev 5173, preview 4173)
-- **Node Version**: >=22 (specified in package.json engines)
+- **Node Version**: >=24 (LTS; specified in package.json engines)
 - **Deployment**: Cloudflare Worker, path prefix `/MegaDesign` under `srd-tools.com` — same origin as the sibling `main` (`/ShipDesign`) and `capital` (`/CapitalShipDesign`) branch deployments. This is why the IndexedDB store name matters (see Database Persistence).
 
 ## Architecture Overview
