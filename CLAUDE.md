@@ -163,7 +163,7 @@ Test files are co-located with source files using .test.ts/.test.tsx extension
 - Megastructure-specific formulas: `getMegastructureSections()`, `calculateControlCenterMass/Cost()`, `getMegastructureSensorMassAndCost()`, `getMegastructureComputerCost()`
 - `hasAntimatterPlant()` / `calculateAntimatterAdjustedManeuverFuel()`: an installed Antimatter Plant (in `fuel_systems`) cuts maneuver fuel to 1/10th
 - Staff calculation helpers (`calculateMedicalStaff`, `calculateVehicleServiceStaff`, `calculateDroneServiceStaff`)
-- `getTonnageCode()` / `TONNAGE_CODES` (capital-ship hull codes CA-CZ, 3K-1M tons) is still used internally by `getScreenSpecs()` for defensive-screen mass/cost, but **every megastructure tonnage (≥1M tons) resolves to the same top code, 'CZ'** — screen mass/cost is not actually scaled for megastructure size. Known limitation; see Known Issues & Quirks.
+- `getScreenSpecs()`: defensive-screen (Nuclear Damper/Meson Screen/Black Globe) mass/cost, scaled by a 5x-per-tier tonnage bracket starting at 1,000,000 tons (see `getScreenTonnageTier()`) — not capital-ship hull codes, which topped out at 1,000,000 tons and didn't scale across the megastructure range
 
 **`src/types/ship.ts`**: TypeScript interfaces for all ship components
 - `ShipDesign`: Root interface containing all component arrays

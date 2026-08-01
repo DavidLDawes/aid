@@ -11,6 +11,7 @@ import {
   getWeaponMountLimit,
   convertTechLevelToNumber,
   getAvailableVehicles,
+  getScreenSpecs,
 } from './constants';
 
 describe('Tech Level Functions', () => {
@@ -178,6 +179,12 @@ describe('calculateEngineMassAndCost at extended power plant tiers', () => {
   });
 });
 
+  it('returns zero for maneuver_drive at performance 11+ (no table entry)', () => {
+    // Unlike power_plant, maneuver_drive has no extended tiers.
+    expect(calculateEngineMassAndCost(1_000_000, 'maneuver_drive', 11)).toEqual({ mass: 0, cost: 0 });
+  });
+});
+
 describe('Antimatter Plant fuel discount', () => {
   it('hasAntimatterPlant detects an installed plant with quantity > 0', () => {
     expect(hasAntimatterPlant([{ system_type: 'antimatter_plant', quantity: 1 }])).toBe(true);
@@ -244,5 +251,37 @@ describe('getAvailableVehicles', () => {
     vehicles.forEach(v => {
       expect(v.techLevel).toBeLessThanOrEqual(shipTLNum);
     });
+  });
+});
+
+describe('getScreenSpecs', () => {
+  it('returns the base spec for the 1,000,000-4,999,999 ton tier', () => {
+    expect(getScreenSpecs('nuclear_damper', 1_000_000)).toEqual({ mass: 80, cost: 80 });
+    expect(getScreenSpecs('meson_screen', 1_000_000)).toEqual({ mass: 100, cost: 120 });
+    expect(getScreenSpecs('black_globe', 1_000_000)).toEqual({ mass: 35, cost: 350 });
+
+    // Still base tier just under the next threshold
+    expect(getScreenSpecs('nuclear_damper', 4_999_999)).toEqual({ mass: 80, cost: 80 });
+  });
+
+  it('adds one tier increment for the 5,000,000-24,999,999 ton tier', () => {
+    expect(getScreenSpecs('nuclear_damper', 5_000_000)).toEqual({ mass: 100, cost: 90 });
+    expect(getScreenSpecs('meson_screen', 5_000_000)).toEqual({ mass: 110, cost: 130 });
+    expect(getScreenSpecs('black_globe', 5_000_000)).toEqual({ mass: 40, cost: 400 });
+
+    expect(getScreenSpecs('nuclear_damper', 24_999_999)).toEqual({ mass: 100, cost: 90 });
+  });
+
+  it('adds two tier increments for the 25,000,000-124,999,999 ton tier', () => {
+    expect(getScreenSpecs('nuclear_damper', 25_000_000)).toEqual({ mass: 120, cost: 100 });
+    expect(getScreenSpecs('meson_screen', 25_000_000)).toEqual({ mass: 120, cost: 140 });
+    expect(getScreenSpecs('black_globe', 25_000_000)).toEqual({ mass: 45, cost: 450 });
+
+    // Max megastructure tonnage (100,000,000) is still within this tier
+    expect(getScreenSpecs('nuclear_damper', 100_000_000)).toEqual({ mass: 120, cost: 100 });
+  });
+
+  it('returns null below the minimum megastructure tonnage', () => {
+    expect(getScreenSpecs('nuclear_damper', 999_999)).toBeNull();
   });
 });
