@@ -163,7 +163,7 @@ Test files are co-located with source files using .test.ts/.test.tsx extension
 - Megastructure-specific formulas: `getMegastructureSections()`, `calculateControlCenterMass/Cost()`, `getMegastructureSensorMassAndCost()`, `getMegastructureComputerCost()`
 - `hasAntimatterPlant()` / `calculateAntimatterAdjustedManeuverFuel()`: an installed Antimatter Plant (in `fuel_systems`) cuts maneuver fuel to 1/10th
 - Staff calculation helpers (`calculateMedicalStaff`, `calculateVehicleServiceStaff`, `calculateDroneServiceStaff`)
-- `getTonnageCode()` / `TONNAGE_CODES` (capital-ship hull codes CA-CZ, 3K-1M tons) is still used internally by `getScreenSpecs()` for defensive-screen mass/cost, but **every megastructure tonnage (≥1M tons) resolves to the same top code, 'CZ'** — screen mass/cost is not actually scaled for megastructure size. Known limitation; see Known Issues & Quirks.
+- `getScreenSpecs()`: defensive-screen (Nuclear Damper/Meson Screen/Black Globe) mass/cost, scaled by a 5x-per-tier tonnage bracket starting at 1,000,000 tons (see `getScreenTonnageTier()`) — not capital-ship hull codes, which topped out at 1,000,000 tons and didn't scale across the megastructure range
 
 **`src/types/ship.ts`**: TypeScript interfaces for all ship components
 - `ShipDesign`: Root interface containing all component arrays
@@ -424,7 +424,6 @@ The Custom panel (`src/components/CustomPanel.tsx`, panel index 9) demonstrates 
 
 - Ship names in DB are stored as `ship.name` (nested property) for indexing
 - `public/initial-ships.json` is loaded once on first DB initialization - subsequent changes require DB flush
-- Defensive screens (`nuclear_damper`/`meson_screen`/`black_globe`) use `getScreenSpecs()`, which derives its hull-size bracket from `getTonnageCode()` — a capital-ship hull-code system (CA-CZ, 3K-1M tons) that tops out at 1,000,000 tons ('CZ'). Every megastructure (always ≥1M tons) resolves to that same top code, so screen mass/cost is identical whether the structure is 1M tons or 100M tons. Not wired up for megastructure scale; would need a megastructure-appropriate spec table to fix properly.
 - The `activeRules` "Antimatter" toggle in RulesMenu doesn't currently gate anything — the real Antimatter Plant mechanic is driven by `hasAntimatterPlant(fuel_systems)` instead (see Rules System above)
 
 ## Case Study: Implementing the Custom Items Feature

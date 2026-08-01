@@ -31,52 +31,6 @@ export function getMaxPowerPlantByTechLevel(techLevel: string): number {
   return 6;
 }
 
-// Tonnage code table for capital ships (3,000+ tons)
-export const TONNAGE_CODES = [
-  { minTonnage: 3000, code: 'CA' },
-  { minTonnage: 4000, code: 'CB' },
-  { minTonnage: 5000, code: 'CC' },
-  { minTonnage: 6000, code: 'CD' },
-  { minTonnage: 7500, code: 'CE' },
-  { minTonnage: 10000, code: 'CF' },
-  { minTonnage: 15000, code: 'CG' },
-  { minTonnage: 20000, code: 'CH' },
-  { minTonnage: 25000, code: 'CJ' },
-  { minTonnage: 30000, code: 'CK' },
-  { minTonnage: 40000, code: 'CL' },
-  { minTonnage: 50000, code: 'CM' },
-  { minTonnage: 60000, code: 'CN' },
-  { minTonnage: 75000, code: 'CP' },
-  { minTonnage: 100000, code: 'CQ' },
-  { minTonnage: 200000, code: 'CR' },
-  { minTonnage: 300000, code: 'CS' },
-  { minTonnage: 400000, code: 'CT' },
-  { minTonnage: 500000, code: 'CU' },
-  { minTonnage: 600000, code: 'CV' },
-  { minTonnage: 700000, code: 'CW' },
-  { minTonnage: 800000, code: 'CX' },
-  { minTonnage: 900000, code: 'CY' },
-  { minTonnage: 1000000, code: 'CZ' }
-];
-
-// Get tonnage code based on ship tonnage
-export function getTonnageCode(tonnage: number): string | null {
-  // Ships under 3,000 tons don't have a tonnage code
-  if (tonnage < 3000) {
-    return null;
-  }
-
-  // Find the highest threshold that the ship meets
-  // Iterate in reverse to find the largest matching code
-  for (let i = TONNAGE_CODES.length - 1; i >= 0; i--) {
-    if (tonnage >= TONNAGE_CODES[i].minTonnage) {
-      return TONNAGE_CODES[i].code;
-    }
-  }
-
-  return null;
-}
-
 // Engine performance percentages as a function of ship displacement.
 // Levels 1-6 are from the Traveller SRD. Megastructures have no jump drive,
 // so power plant levels 7-12 extend the same +1.0%/step progression from
@@ -298,13 +252,34 @@ export const SCREEN_TL_LIMITS = {
 };
 
 // Screen specs by hull code
-const SCREEN_SPECS_BY_HULL: Record<string, Record<string, { mass: number; cost: number }>> = {
-  'CA-CE': { nuclear_damper: { mass: 20, cost: 30 }, meson_screen: { mass: 50, cost: 70 }, black_globe: { mass: 10, cost: 100 } },
-  'CF-CK': { nuclear_damper: { mass: 30, cost: 40 }, meson_screen: { mass: 60, cost: 80 }, black_globe: { mass: 15, cost: 150 } },
-  'CL-CQ': { nuclear_damper: { mass: 40, cost: 50 }, meson_screen: { mass: 70, cost: 90 }, black_globe: { mass: 20, cost: 200 } },
-  'CR-CV': { nuclear_damper: { mass: 50, cost: 60 }, meson_screen: { mass: 80, cost: 100 }, black_globe: { mass: 25, cost: 250 } },
-  'CW-CZ': { nuclear_damper: { mass: 60, cost: 70 }, meson_screen: { mass: 90, cost: 110 }, black_globe: { mass: 30, cost: 300 } }
+// Screen spec at the base tonnage tier (1,000,000 - 4,999,999 tons), and the
+// per-tier increment added for each 5x step up in tonnage bracket beyond
+// that (5,000,000-24,999,999 tons = tier 1, 25,000,000-124,999,999 = tier 2,
+// and so on). See getScreenTonnageTier.
+const SCREEN_BASE_SPECS: Record<string, { mass: number; cost: number }> = {
+  nuclear_damper: { mass: 80, cost: 80 },
+  meson_screen: { mass: 100, cost: 120 },
+  black_globe: { mass: 35, cost: 350 }
 };
+
+const SCREEN_TIER_INCREMENT: Record<string, { mass: number; cost: number }> = {
+  nuclear_damper: { mass: 20, cost: 10 },
+  meson_screen: { mass: 10, cost: 10 },
+  black_globe: { mass: 5, cost: 50 }
+};
+
+// Tonnage brackets are 1,000,000 * 5^tier .. (1,000,000 * 5^(tier+1)) - 1.
+// Uses repeated multiplication rather than a log() so tier boundaries
+// (e.g. exactly 5,000,000) aren't at risk of floating-point drift.
+function getScreenTonnageTier(tonnage: number): number {
+  let threshold = 1_000_000;
+  let tier = 0;
+  while (tonnage >= threshold * 5) {
+    threshold *= 5;
+    tier++;
+  }
+  return tier;
+}
 
 // Get maximum screens allowed based on TL
 export function getMaxScreens(screenType: 'nuclear_damper' | 'meson_screen' | 'black_globe', techLevel: string): number {
@@ -324,19 +299,13 @@ export function getMaxScreens(screenType: 'nuclear_damper' | 'meson_screen' | 'b
 
 // Get screen specs based on hull code
 export function getScreenSpecs(screenType: 'nuclear_damper' | 'meson_screen' | 'black_globe', shipTonnage: number): { mass: number; cost: number } | null {
-  const hullCode = getTonnageCode(shipTonnage);
-  if (!hullCode) return null;
+  if (shipTonnage < 1_000_000) return null;
 
-  // Determine hull code range
-  let hullRange: string;
-  if (hullCode >= 'CA' && hullCode <= 'CE') hullRange = 'CA-CE';
-  else if (hullCode >= 'CF' && hullCode <= 'CK') hullRange = 'CF-CK';
-  else if (hullCode >= 'CL' && hullCode <= 'CQ') hullRange = 'CL-CQ';
-  else if (hullCode >= 'CR' && hullCode <= 'CV') hullRange = 'CR-CV';
-  else if (hullCode >= 'CW' && hullCode <= 'CZ') hullRange = 'CW-CZ';
-  else return null;
+  const tier = getScreenTonnageTier(shipTonnage);
+  const base = SCREEN_BASE_SPECS[screenType];
+  const increment = SCREEN_TIER_INCREMENT[screenType];
 
-  return SCREEN_SPECS_BY_HULL[hullRange][screenType];
+  return { mass: base.mass + tier * increment.mass, cost: base.cost + tier * increment.cost };
 }
 
 export const BERTH_TYPES = [
