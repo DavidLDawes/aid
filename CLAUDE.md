@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a **Traveller Capital Starship Designer** - a React-based web application for designing capital starships based on the Traveller SRD (System Reference Document) spacecraft design rules. The application uses IndexedDB for local persistence and features a multi-panel wizard interface for configuring all aspects of a capital ship.
+This is the **Traveller Megastructure Designer** - a React-based web application for designing megastructures (1,000,000–100,000,000 tons, in 1M-ton steps) based on the Traveller SRD (System Reference Document) spacecraft design rules. The application uses IndexedDB for local persistence and features a multi-panel wizard interface for configuring all aspects of a megastructure.
 
 ## General Rules
 When you spend time searching for commands to typecheck, lint, build, or test, you should ask the user if it's okay to add those commands to CLAUDE.md. Similarly, when learning about code style preferences or important codebase information, ask if it's okay to add that to CLAUDE.md so you can remember it for next time.
@@ -15,13 +15,16 @@ When you spend time searching for commands to typecheck, lint, build, or test, y
 # Install dependencies
 pnpm install
 
-# Local development (build + serve on port 8080) — ~4s rebuild per change
-pnpm serve
+# Local development (Vite dev server, port 5173)
+pnpm dev
 
-# Build for production
+# Build for production (tsc -b + vite build)
 pnpm build
 
-# Preview production build (http-server on port 8080)
+# Build then preview production build (vite preview, port 4173)
+pnpm serve
+
+# Preview an existing production build
 pnpm preview
 
 # Linting
@@ -85,10 +88,9 @@ aid/
 │   └── main.tsx                # React entry point
 ├── dist/                       # Production build output (generated)
 ├── package.json                # Dependencies and scripts
-├── webpack.config.cjs          # Webpack configuration
+├── vite.config.js              # Vite configuration
 ├── tsconfig.json              # TypeScript configuration
 ├── jest.config.cjs            # Jest configuration
-├── Dockerfile                 # Docker container definition
 ├── CLAUDE.md                  # This file - Claude Code guidance
 └── README.md                  # Project README
 
@@ -97,13 +99,13 @@ Test files are co-located with source files using .test.ts/.test.tsx extension
 
 ## Build System & Technology Stack
 
-- **Build Tool**: Webpack 5 with webpack-dev-server
+- **Build Tool**: Vite (with @vitejs/plugin-react)
 - **Frontend**: React 19 with TypeScript
 - **Testing**: Jest with Testing Library
 - **Database**: IndexedDB (via fake-indexeddb for tests) - browser-based local storage
-- **Bundler Config**: `webpack.config.cjs` - entry point is `src/main.tsx`
-- **Dev Server**: Runs on port 8080 (configured in webpack.config.cjs)
-- **Node Version**: 22.x (specified in package.json engines)
+- **Bundler Config**: `vite.config.js` - entry point is `index.html` → `src/main.tsx`
+- **Dev Server**: Vite defaults (dev 5173, preview 4173)
+- **Node Version**: >=22 (specified in package.json engines)
 
 ## Architecture Overview
 
@@ -356,15 +358,9 @@ The app supports standard file operations via FileMenu component:
 
 Ship names must be unique (enforced by DB unique index). Attempting to save duplicate names will throw an error.
 
-## Docker Support
+## Deployment
 
-`Dockerfile` available for containerized deployment:
-```bash
-docker build -t starship-designer .
-docker run -p 8080:8080 starship-designer
-```
-
-The Docker image runs the production build served via http-server.
+Production deploys as a Cloudflare Worker (`wrangler deploy`, see `wrangler.jsonc`) serving the Vite `dist/` build under `/MegaDesign` at `srd-tools.com`. There is no Docker deployment path — a stale `Dockerfile` (pre-Vite webpack dev server, port 8080) was removed.
 
 ## Debugging Tips
 
@@ -407,7 +403,6 @@ The Custom panel (`src/components/CustomPanel.tsx`) is a recent addition that de
 ## Known Issues & Quirks
 
 - Ship names in DB are stored as `ship.name` (nested property) for indexing
-- Port 8080 is hardcoded in webpack config and Docker setup
 - `public/initial-ships.json` is loaded once on first DB initialization - subsequent changes require DB flush
 - Testing.md incorrectly mentions Vitest, but project uses Jest
 
