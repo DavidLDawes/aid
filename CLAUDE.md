@@ -91,7 +91,6 @@ aid/
 ├── tsconfig.app.json           # TypeScript configuration for app
 ├── jest.config.cjs             # Jest configuration
 ├── babel.config.cjs            # Babel configuration
-├── Dockerfile                  # Docker container definition
 ├── CLAUDE.md                   # This file
 └── README.md                   # Project README
 
@@ -283,15 +282,9 @@ The app supports standard file operations via FileMenu component:
 
 Ship names must be unique (enforced by DB unique index). Attempting to save duplicate names will throw an error.
 
-## Docker Support
+## Deployment
 
-`Dockerfile` available for containerized deployment:
-```bash
-docker build -t starship-designer .
-docker run -p 8080:8080 starship-designer
-```
-
-The Docker image runs the production build served via http-server.
+Production deploys as a Cloudflare Worker (`wrangler deploy`, see `wrangler.jsonc`) serving the Vite `dist/` build under `/ShipDesign` at `srd-tools.com`. There is no Docker deployment path — a stale `Dockerfile` (pre-Vite webpack dev server, port 8080) was removed.
 
 ## Debugging Tips
 
