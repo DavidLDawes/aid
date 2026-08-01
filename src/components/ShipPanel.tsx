@@ -50,8 +50,8 @@ const ShipPanel: React.FC<ShipPanelProps> = ({ ship, onUpdate, onLoadExistingShi
             vehicles: existingShip.vehicles,
             drones: existingShip.drones,
             custom_items: existingShip.custom_items || [],
-            fuel_systems: (existingShip as unknown as ShipDesign).fuel_systems || [],
-            zone_sections: (existingShip as unknown as ShipDesign).zone_sections || []
+            fuel_systems: existingShip.fuel_systems || [],
+            zone_sections: existingShip.zone_sections || []
           }
         });
       } else {
@@ -159,6 +159,22 @@ const ShipPanel: React.FC<ShipPanelProps> = ({ ship, onUpdate, onLoadExistingShi
               <option key={level} value={level}>{level}</option>
             ))}
           </select>
+        </div>
+      </div>
+
+      <div className="ship-basic-info-row">
+        <div className="form-group">
+          <label>
+            <input
+              type="checkbox"
+              checked={ship.atmosphere_support || false}
+              onChange={(e) => onUpdate({ ...ship, atmosphere_support: e.target.checked })}
+            />
+            {' '}Atmosphere Support (floating city)
+          </label>
+          <small>
+            Requires active navigation rather than a decades-long plotted course — adds 4 navigators to the crew.
+          </small>
         </div>
       </div>
 

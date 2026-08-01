@@ -9,19 +9,18 @@ import {
   hasAntimatterPlant, calculateAntimatterAdjustedManeuverFuel
 } from '../data/constants';
 import { databaseService } from '../services/database';
+import { escapeCsvField } from '../utils/csv';
 
 interface SummaryPanelProps {
   shipDesign: ShipDesign;
   mass: MassCalculation;
   cost: CostCalculation;
   staff: StaffRequirements;
-  combinePilotNavigator: boolean;
-  noStewards: boolean;
   activeRules: Set<string>;
   onBackToShipSelect?: () => void;
 }
 
-const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, staff, combinePilotNavigator, noStewards, onBackToShipSelect }) => {
+const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, staff, onBackToShipSelect }) => {
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [showCsvModal, setShowCsvModal] = useState(false);
@@ -107,7 +106,12 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
 
   const generateCsvData = () => {
     const lines: string[] = [];
-    lines.push(`${shipDesign.ship.name}, ${sections} sections, ${shipDesign.ship.tonnage.toLocaleString()} tons, Tech Level ${shipDesign.ship.tech_level}`);
+    lines.push([
+      escapeCsvField(shipDesign.ship.name),
+      escapeCsvField(`${sections} sections`),
+      escapeCsvField(`${shipDesign.ship.tonnage.toLocaleString()} tons`),
+      escapeCsvField(`Tech Level ${shipDesign.ship.tech_level}`)
+    ].join(','));
     lines.push('Category,Item,Mass,Cost');
 
     const allRows: { category: string; item: string; mass: number; cost: number }[] = [];
@@ -229,7 +233,7 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
     });
 
     allRows.forEach(row => {
-      lines.push(`${row.category},${row.item},${row.mass.toFixed(1)},${row.cost.toFixed(2)}`);
+      lines.push(`${escapeCsvField(row.category)},${escapeCsvField(row.item)},${row.mass.toFixed(1)},${row.cost.toFixed(2)}`);
     });
     lines.push(`Total,,${mass.used.toFixed(1)},${cost.total.toFixed(2)}`);
 
@@ -448,30 +452,16 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
 
       <div className="summary-section">
         <h4>Crew</h4>
-        {combinePilotNavigator ? (
-          <p><strong>Pilot/Navigator:</strong> 1</p>
-        ) : (
-          <>
-            <p><strong>Pilot:</strong> {staff.pilot}</p>
-            <p><strong>Navigator:</strong> {staff.navigator}</p>
-          </>
-        )}
+        <p><strong>Pilot:</strong> {staff.pilot}</p>
+        <p><strong>Navigator:</strong> {staff.navigator}</p>
         <p><strong>Engineers:</strong> {staff.engineers}</p>
         {staff.gunners > 0 && <p><strong>Gunners:</strong> {staff.gunners}</p>}
         {staff.service > 0 && <p><strong>Service Staff:</strong> {staff.service}</p>}
-        <p><strong>Stewards:</strong> {noStewards ? 0 : staff.stewards}</p>
+        <p><strong>Stewards:</strong> {staff.stewards}</p>
         {staff.nurses > 0 && <p><strong>Nurses:</strong> {staff.nurses}</p>}
         {staff.surgeons > 0 && <p><strong>Surgeons:</strong> {staff.surgeons}</p>}
         {staff.techs > 0 && <p><strong>Medical Techs:</strong> {staff.techs}</p>}
-        <p><strong>Total:</strong> {
-          combinePilotNavigator && noStewards
-            ? staff.total - 1 - staff.stewards
-            : combinePilotNavigator
-              ? staff.total - 1
-              : noStewards
-                ? staff.total - staff.stewards
-                : staff.total
-        }</p>
+        <p><strong>Total:</strong> {staff.total}</p>
       </div>
 
       {saveMessage && (
