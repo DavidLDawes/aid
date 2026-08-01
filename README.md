@@ -28,7 +28,7 @@ The application will be available at `http://localhost:5173`.
 
 ## System Requirements
 
-- **Node.js** 22+
+- **Node.js** 24+ (LTS)
 - **pnpm** 11+ package manager
 
 ## Installation & Setup
@@ -168,7 +168,7 @@ Power plant and maneuver drive performance tables are implemented in `src/data/c
 - **Vite** for the dev server and production build
 - **Jest** for testing
 - **IndexedDB** for browser-local persistence
-- **Node.js 22+**
+- **Node.js 24+ (LTS)**
 - **pnpm 11+**
 
 ## Deployment
