@@ -8,8 +8,6 @@ This is the **Traveller Megastructure Designer** - a React-based web application
 
 **Megastructures have no jump drives.** They are permanent (or very-slow-moving) structures — ring worlds, orbital habitats, shipyards. This is a hard rule difference from the sibling `main` (100–2,000 ton starships) and `capital` (2,000–1,000,000 ton capital ships) branches, which do have jump drives. Don't port jump-drive logic back in from those branches.
 
-**Megastructures have no jump drives.** They are permanent (or very-slow-moving) structures — ring worlds, orbital habitats, shipyards. This is a hard rule difference from the sibling `main` (100–2,000 ton starships) and `capital` (2,000–1,000,000 ton capital ships) branches, which do have jump drives. Don't port jump-drive logic back in from those branches.
-
 ## General Rules
 When you spend time searching for commands to typecheck, lint, build, or test, you should ask the user if it's okay to add those commands to CLAUDE.md. Similarly, when learning about code style preferences or important codebase information, ask if it's okay to add that to CLAUDE.md so you can remember it for next time.
 
