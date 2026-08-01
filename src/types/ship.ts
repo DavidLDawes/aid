@@ -9,6 +9,7 @@ export interface Ship {
   sand_reloads: number;
   armor_percentage?: number;
   sections?: number; // Number of million-ton sections
+  atmosphere_support?: boolean; // Floating city — needs active navigation
   description?: string;
 }
 

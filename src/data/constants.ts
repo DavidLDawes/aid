@@ -77,39 +77,6 @@ export function getTonnageCode(tonnage: number): string | null {
   return null;
 }
 
-// Get number of sections based on hull code
-export function getNumberOfSections(tonnage: number): number | null {
-  const hullCode = getTonnageCode(tonnage);
-
-  if (!hullCode) {
-    return null; // Ships under 3,000 tons don't have sections
-  }
-
-  // Determine sections based on hull code ranges
-  // CA-CE: 2 sections
-  if (hullCode >= 'CA' && hullCode <= 'CE') return 2;
-  // CF-CK: 3 sections
-  if (hullCode >= 'CF' && hullCode <= 'CK') return 3;
-  // CL-CQ: 4 sections
-  if (hullCode >= 'CL' && hullCode <= 'CQ') return 4;
-  // CR-CV: 5 sections
-  if (hullCode >= 'CR' && hullCode <= 'CV') return 5;
-  // CW-CZ: 6 sections
-  if (hullCode >= 'CW' && hullCode <= 'CZ') return 6;
-
-  return null;
-}
-
-// Generate hull sizes as multiples of 100 from 100 to 1,000,000
-export const HULL_SIZES = Array.from({ length: 10000 }, (_, i) => {
-  const tonnage = (i + 1) * 100;
-  // Hull cost is tonnage / 10 MCr (simplified formula)
-  const cost = tonnage / 10;
-  // Generate hull code (simplified: just use tonnage value)
-  const code = tonnage.toString();
-  return { tonnage, code, cost };
-});
-
 // Engine performance percentages as a function of ship displacement.
 // Levels 1-6 are from the Traveller SRD. Megastructures have no jump drive,
 // so power plant levels 7-12 extend the same +1.0%/step progression from
@@ -315,88 +282,6 @@ export function getAvailableBayWeapons(techLevel: string): typeof BAY_WEAPON_TYP
   });
 }
 
-// Spinal weapon types - requires P-2+ power plant
-export const SPINAL_WEAPON_TYPES = [
-  // Particle weapons
-  { name: 'Particle Spinal Mount A', type: 'particle', code: 'A', baseTL: 8, baseMass: 5000, baseDamage: 200, baseCost: 3500 },
-  { name: 'Particle Spinal Mount B', type: 'particle', code: 'B', baseTL: 12, baseMass: 3000, baseDamage: 300, baseCost: 2100 },
-  { name: 'Particle Spinal Mount C', type: 'particle', code: 'C', baseTL: 10, baseMass: 5000, baseDamage: 300, baseCost: 3500 },
-  { name: 'Particle Spinal Mount D', type: 'particle', code: 'D', baseTL: 14, baseMass: 3500, baseDamage: 400, baseCost: 2500 },
-  { name: 'Particle Spinal Mount E', type: 'particle', code: 'E', baseTL: 12, baseMass: 4000, baseDamage: 400, baseCost: 2800 },
-  // Meson weapons
-  { name: 'Meson Spinal Mount A', type: 'meson', code: 'A', baseTL: 11, baseMass: 5000, baseDamage: 200, baseCost: 5000 },
-  { name: 'Meson Spinal Mount B', type: 'meson', code: 'B', baseTL: 11, baseMass: 8000, baseDamage: 250, baseCost: 8000 },
-  { name: 'Meson Spinal Mount C', type: 'meson', code: 'C', baseTL: 12, baseMass: 10000, baseDamage: 350, baseCost: 10000 },
-  { name: 'Meson Spinal Mount D', type: 'meson', code: 'D', baseTL: 13, baseMass: 14000, baseDamage: 450, baseCost: 14000 }
-];
-
-// Calculate TL bonus modifiers for spinal weapons
-function calculateSpinalWeaponTLBonus(weaponType: 'particle' | 'meson', tlDifference: number): { sizeModifier: number; damageModifier: number } {
-  if (tlDifference <= 0) {
-    return { sizeModifier: 1.0, damageModifier: 1.0 };
-  }
-
-  // Cap at TL+4
-  const cappedTLDiff = Math.min(tlDifference, 4);
-
-  if (weaponType === 'particle') {
-    // Particle: Size/Cost -10% per TL, Damage +5% per TL
-    const sizeModifier = 1.0 - (cappedTLDiff * 0.10);
-    const damageModifier = 1.0 + (cappedTLDiff * 0.05);
-    return { sizeModifier, damageModifier };
-  } else {
-    // Meson: Size/Cost -20% per TL, Damage +10% per TL
-    const sizeModifier = 1.0 - (cappedTLDiff * 0.20);
-    const damageModifier = 1.0 + (cappedTLDiff * 0.10);
-    return { sizeModifier, damageModifier };
-  }
-}
-
-// Get available spinal weapons based on tech level and power plant performance
-// Returns weapons with TL-adjusted mass, damage, and cost
-export function getAvailableSpinalWeapons(techLevel: string, powerPlantPerformance: number) {
-  // Spinal weapons require P-2 or higher
-  if (powerPlantPerformance < 2) {
-    return [];
-  }
-
-  const techLevelNum = convertTechLevelToNumber(techLevel);
-
-  return SPINAL_WEAPON_TYPES
-    .filter(weapon => techLevelNum >= weapon.baseTL)
-    .map(weapon => {
-      const tlDifference = techLevelNum - weapon.baseTL;
-      const { sizeModifier, damageModifier } = calculateSpinalWeaponTLBonus(weapon.type as 'particle' | 'meson', tlDifference);
-
-      return {
-        ...weapon,
-        mass: Math.round(weapon.baseMass * sizeModifier),
-        cost: Math.round(weapon.baseCost * sizeModifier),
-        damage: Math.round(weapon.baseDamage * damageModifier),
-        tlBonus: tlDifference > 0 ? `TL+${tlDifference}` : undefined
-      };
-    });
-}
-
-export function getSpinalWeaponMass(spinalWeaponName: string, techLevel: string): number {
-  const techLevelNum = convertTechLevelToNumber(techLevel);
-  const baseWeapon = SPINAL_WEAPON_TYPES.find(w => w.name === spinalWeaponName);
-
-  if (!baseWeapon) return 0;
-
-  const tlDifference = techLevelNum - baseWeapon.baseTL;
-  const { sizeModifier } = calculateSpinalWeaponTLBonus(baseWeapon.type as 'particle' | 'meson', tlDifference);
-
-  return Math.round(baseWeapon.baseMass * sizeModifier);
-}
-
-export function getSpinalWeaponMountUsage(spinalWeaponName: string | undefined, techLevel: string): number {
-  if (!spinalWeaponName) return 0;
-
-  const mass = getSpinalWeaponMass(spinalWeaponName, techLevel);
-  return Math.floor(mass / 100);
-}
-
 export const DEFENSE_TYPES = [
   { name: 'Sandcaster Turret', type: 'sandcaster_turret', mass: 1, cost: 1.3 },
   { name: 'Dual Sandcaster Turret', type: 'dual_sandcaster_turret', mass: 1, cost: 1.5 },
@@ -532,27 +417,6 @@ export function cleanInvalidCargo(cargo: Cargo[]): Cargo[] {
   });
 }
 
-export function getBridgeMassAndCost(shipTonnage: number, isHalfBridge: boolean) {
-  let bridgeMass: number;
-  
-  if (shipTonnage <= 200) {
-    bridgeMass = 10;
-  } else if (shipTonnage <= 1000) {
-    bridgeMass = 20;
-  } else if (shipTonnage <= 2000) {
-    bridgeMass = 40;
-  } else {
-    bridgeMass = 60;
-  }
-  
-  if (isHalfBridge) {
-    bridgeMass = bridgeMass / 2;
-    return { mass: bridgeMass, cost: bridgeMass * 1.5 };
-  }
-  
-  return { mass: bridgeMass, cost: bridgeMass * 0.5 };
-}
-
 export const COMMS_SENSORS_TYPES = [
   { name: 'Standard', type: 'standard', mass: 0, cost: 0 },
   { name: 'Basic Civilian', type: 'basic_civilian', mass: 1, cost: 0.05 },
@@ -573,55 +437,6 @@ export const COMPUTER_TYPES = [
   { name: 'Core/8', model: 'core_8', techLevel: 14, rating: 90, cost: 100 },
   { name: 'Core/9', model: 'core_9', techLevel: 15, rating: 100, cost: 130 }
 ];
-
-// Get minimum required computer based on ship size and jump performance.
-// Always returns at least Core/1 — every ship requires a computer.
-// Core/N sits at index N-1 in COMPUTER_TYPES (Core/1=0, Core/2=1, … Core/9=8).
-export function getMinimumComputer(shipTonnage: number, jumpPerformance: number): typeof COMPUTER_TYPES[0] {
-  // Size-based minimum for large capital ships (indices use the Core/N → index N-1 mapping)
-  let sizeIndex: number | null = null;
-  if (shipTonnage >= 3000) {
-    if (shipTonnage <= 5000) {
-      sizeIndex = jumpPerformance >= 2 ? 2 : null; // Core/3
-    } else if (shipTonnage <= 10000) {
-      sizeIndex = jumpPerformance >= 2 ? 3 : null; // Core/4
-    } else if (shipTonnage <= 50000) {
-      sizeIndex = jumpPerformance >= 3 ? 4 : null; // Core/5
-    } else if (shipTonnage <= 100000) {
-      sizeIndex = jumpPerformance >= 4 ? 5 : null; // Core/6
-    } else {
-      sizeIndex = jumpPerformance >= 6 ? 7 // Core/8 for J-6+
-                : jumpPerformance >= 5 ? 6 // Core/7 for J-5
-                : null;
-    }
-  }
-
-  // Jump floor: a J-N ship requires Core/N (index N-1). Cap at the largest model.
-  const jumpIndex = jumpPerformance >= 1
-    ? Math.min(COMPUTER_TYPES.length - 1, jumpPerformance - 1)
-    : null;
-
-  // All ships require at least Core/1 (index 0); pick the highest applicable requirement.
-  const candidates = [0, sizeIndex, jumpIndex].filter((i): i is number => i !== null);
-  return COMPUTER_TYPES[Math.max(...candidates)];
-}
-
-// Get available computers based on ship requirements and tech level
-export function getAvailableComputers(shipTonnage: number, jumpPerformance: number, shipTechLevel: string) {
-  const minimumComputer = getMinimumComputer(shipTonnage, jumpPerformance);
-
-  if (!minimumComputer) {
-    return [];
-  }
-
-  const shipTL = convertTechLevelToNumber(shipTechLevel);
-  const minIndex = COMPUTER_TYPES.findIndex(c => c.name === minimumComputer.name);
-
-  // Return all computers from minimum required and up that meet TL requirements
-  return COMPUTER_TYPES.filter((computer, index) =>
-    index >= minIndex && computer.techLevel <= shipTL
-  );
-}
 
 export function getWeaponMountLimit(shipTonnage: number): number {
   return Math.floor(shipTonnage / 100);

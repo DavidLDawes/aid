@@ -8,11 +8,9 @@ import {
   getMaxPowerPlantByTechLevel,
   hasAntimatterPlant,
   calculateAntimatterAdjustedManeuverFuel,
-  getBridgeMassAndCost,
   getWeaponMountLimit,
   convertTechLevelToNumber,
   getAvailableVehicles,
-  getMinimumComputer,
 } from './constants';
 
 describe('Tech Level Functions', () => {
@@ -196,33 +194,6 @@ describe('Antimatter Plant fuel discount', () => {
   });
 });
 
-describe('getBridgeMassAndCost', () => {
-  it('should return 10t mass for ships ≤200 tons', () => {
-    expect(getBridgeMassAndCost(200, false)).toEqual({ mass: 10, cost: 5 });
-    expect(getBridgeMassAndCost(100, false)).toEqual({ mass: 10, cost: 5 });
-  });
-
-  it('should return 20t mass for ships 201–1000 tons', () => {
-    expect(getBridgeMassAndCost(1000, false)).toEqual({ mass: 20, cost: 10 });
-    expect(getBridgeMassAndCost(500, false)).toEqual({ mass: 20, cost: 10 });
-  });
-
-  it('should return 40t mass for ships 1001–2000 tons', () => {
-    expect(getBridgeMassAndCost(2000, false)).toEqual({ mass: 40, cost: 20 });
-    expect(getBridgeMassAndCost(1500, false)).toEqual({ mass: 40, cost: 20 });
-  });
-
-  it('should return 60t mass for ships >2000 tons', () => {
-    expect(getBridgeMassAndCost(2001, false)).toEqual({ mass: 60, cost: 30 });
-    expect(getBridgeMassAndCost(5000, false)).toEqual({ mass: 60, cost: 30 });
-  });
-
-  it('should halve mass and use cost = halvedMass * 1.5 for half bridge', () => {
-    expect(getBridgeMassAndCost(200, true)).toEqual({ mass: 5, cost: 7.5 });
-    expect(getBridgeMassAndCost(1000, true)).toEqual({ mass: 10, cost: 15 });
-  });
-});
-
 describe('getWeaponMountLimit', () => {
   it('should return 1 mount per 100 tons (floored)', () => {
     expect(getWeaponMountLimit(100)).toBe(1);
@@ -273,38 +244,5 @@ describe('getAvailableVehicles', () => {
     vehicles.forEach(v => {
       expect(v.techLevel).toBeLessThanOrEqual(shipTLNum);
     });
-  });
-});
-describe('getMinimumComputer', () => {
-  it('should require Core/1 minimum for all ships, including those under 3,000 tons', () => {
-    // No jump drive — base minimum Core/1
-    expect(getMinimumComputer(200, 0).name).toBe('Core/1');
-    // Small ship with jump drive — jump floor applies exactly (J-2 → Core/2)
-    expect(getMinimumComputer(200, 2).name).toBe('Core/2');
-    // Small ship with high jump — jump floor still applies (J-6 → Core/6)
-    expect(getMinimumComputer(2999, 6).name).toBe('Core/6');
-  });
-
-  it('should apply the size-based minimum for large jump-capable ships', () => {
-    // >100,000 tons at J-6 still needs Core/8 (size requirement exceeds jump floor)
-    expect(getMinimumComputer(150000, 6).name).toBe('Core/8');
-    // >100,000 tons at J-5 needs Core/7
-    expect(getMinimumComputer(150000, 5).name).toBe('Core/7');
-  });
-
-  it('should enforce a jump-number floor so a large J-4 ship needs at least Core/4', () => {
-    expect(getMinimumComputer(150000, 4).name).toBe('Core/4');
-  });
-
-  it('should require Core/N for a J-N ship regardless of size', () => {
-    // 3,000-5,000 tons at J-4: size needs Core/3, jump floor needs Core/4 → Core/4 wins
-    expect(getMinimumComputer(4000, 4).name).toBe('Core/4');
-    // 3,000-5,000 tons at J-1: size needs nothing (J<2), jump floor Core/1 → Core/1
-    expect(getMinimumComputer(4000, 1).name).toBe('Core/1');
-  });
-
-  it('should pick the more capable of the size and jump requirements', () => {
-    // 10,001-50,000 tons at J-3: size needs Core/5, jump floor needs Core/3 → Core/5
-    expect(getMinimumComputer(20000, 3).name).toBe('Core/5');
   });
 });

@@ -8,8 +8,6 @@ interface FileMenuProps {
   mass?: MassCalculation;
   cost?: CostCalculation;
   staff?: StaffRequirements;
-  combinePilotNavigator?: boolean;
-  noStewards?: boolean;
   onPrint: () => void;
   onSave?: () => void;
   onSaveAs?: (newName: string) => void;
