@@ -12,6 +12,7 @@ import { databaseService } from './services/database';
 import { logger } from './utils/logger';
 import { createEmptyShipDesign, createDefaultShip } from './utils/shipDefaults';
 import { sumMass, sumMassWithQuantity, sumCost, sumCostWithQuantity, sumCargoTonnage } from './utils/calculations';
+import { rescaleEnginesForTonnage, rescaleFittingsForTonnage } from './utils/tonnageRescale';
 import { generateShipPrintContent } from './utils/printContent';
 // Eagerly load only the ship selection panel (first screen)
 import SelectShipPanel from './components/SelectShipPanel';
@@ -335,9 +336,22 @@ function App() {
   const updateShipDesign = (updates: Partial<ShipDesign>) => {
     setShipDesign(prev => {
       const newDesign = { ...prev, ...updates };
-      if (updates.ship?.tonnage !== undefined) {
-        const sections = getMegastructureSections(updates.ship.tonnage);
+      const newTonnage = updates.ship?.tonnage;
+      if (newTonnage !== undefined) {
+        const sections = getMegastructureSections(newTonnage);
         newDesign.ship = { ...newDesign.ship, sections };
+      }
+
+      // Engine mass/cost and the comms/sensors + computer fittings are all
+      // percentage-of-tonnage or per-section formulas, computed once at
+      // selection time and stored on the design. Changing tonnage on the
+      // Megastructure panel (e.g. after configuring engines) would otherwise
+      // leave those stored values stale. Rescale them from what the user
+      // already picked (engine performance, sensor type, computer model)
+      // rather than discarding the selections.
+      if (newTonnage !== undefined && newTonnage !== prev.ship.tonnage) {
+        newDesign.engines = rescaleEnginesForTonnage(newDesign.engines, newTonnage);
+        newDesign.fittings = rescaleFittingsForTonnage(newDesign.fittings, newTonnage);
       }
 
       // Dropping the power plant below P-10 strands an installed Antimatter

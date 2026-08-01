@@ -38,6 +38,10 @@ export function generateShipPrintContent(
     rows.push(`<tr>${cat}<td>${escapeHtml(item)}</td><td>${rowMass.toFixed(1)} tons</td><td>${rowCost.toFixed(2)} MCr</td></tr>`);
   };
 
+  // Hull
+  const hullCost = shipDesign.ship.tonnage / 10;
+  addRow('Hull', `${shipDesign.ship.tonnage.toLocaleString()} tons @ 0.1 MCr/ton`, 0, hullCost);
+
   // Control Center
   const controlCenterMass = calculateControlCenterMass(shipDesign.ship.tonnage);
   const controlCenterCost = calculateControlCenterCost(shipDesign.ship.tonnage);
@@ -81,10 +85,14 @@ export function generateShipPrintContent(
   }
 
   // Weapons
-  shipDesign.weapons.filter(w => w.quantity > 0).forEach((weapon, index) => {
+  let weaponIdx = 0;
+  shipDesign.weapons.filter(w => w.quantity > 0).forEach(weapon => {
     const display = weapon.quantity === 1 ? weapon.weapon_name : `${weapon.weapon_name} (x${weapon.quantity})`;
-    addRow(index === 0 ? 'Weapons' : '', display, weapon.mass * weapon.quantity, weapon.cost * weapon.quantity);
+    addRow(weaponIdx++ === 0 ? 'Weapons' : '', display, weapon.mass * weapon.quantity, weapon.cost * weapon.quantity);
   });
+  if (shipDesign.ship.missile_reloads > 0) {
+    addRow(weaponIdx++ === 0 ? 'Weapons' : '', 'Missile Reloads', shipDesign.ship.missile_reloads, shipDesign.ship.missile_reloads);
+  }
 
   // Defenses
   let defenseIdx = 0;
@@ -97,7 +105,7 @@ export function generateShipPrintContent(
       addRow(defenseIdx++ === 0 ? 'Defenses' : '', display, defense.mass * defense.quantity, defense.cost * defense.quantity);
     });
     if (shipDesign.ship.sand_reloads > 0) {
-      addRow(defenseIdx++ === 0 ? 'Defenses' : '', 'Sand', shipDesign.ship.sand_reloads, 0);
+      addRow(defenseIdx++ === 0 ? 'Defenses' : '', 'Sand', shipDesign.ship.sand_reloads, shipDesign.ship.sand_reloads * 0.1);
     }
   }
 

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { databaseService, type StoredShipDesign } from '../services/database';
+import { initialDataService } from '../services/initialDataService';
 import type { ShipDesign } from '../types/ship';
 import { logger } from '../utils/logger';
 
@@ -34,12 +35,16 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPan
         description: 'Five-section ring world habitat'
       },
       engines: [
-        { engine_type: 'power_plant' as const, drive_code: 'P-6', performance: 6, mass: 50000, cost: 100000 },
-        { engine_type: 'maneuver_drive' as const, drive_code: 'M-1', performance: 1, mass: 25000, cost: 50000 }
+        // P-6 = 5.0% of tonnage @ 2 MCr/ton (see ENGINE_PERFORMANCE_PERCENTAGES)
+        { engine_type: 'power_plant' as const, drive_code: 'P-6', performance: 6, mass: 250000, cost: 500000 },
+        // M-1 = 1.0% of tonnage @ 2 MCr/ton
+        { engine_type: 'maneuver_drive' as const, drive_code: 'M-1', performance: 1, mass: 50000, cost: 100000 }
       ],
       fittings: [
-        { fitting_type: 'comms_sensors' as const, comms_sensors_type: 'very_advanced' as const, mass: 500, cost: 200 },
-        { fitting_type: 'computer' as const, computer_model: 'core_9' as const, mass: 0, cost: 36000 }
+        // Very Advanced sensors: base 5t/4MCr × 10 × 5 sections (see getMegastructureSensorMassAndCost)
+        { fitting_type: 'comms_sensors' as const, comms_sensors_type: 'very_advanced' as const, mass: 250, cost: 200 },
+        // Core/9: base 130 MCr × 4 × 5 sections (see getMegastructureComputerCost)
+        { fitting_type: 'computer' as const, computer_model: 'core_9' as const, mass: 0, cost: 2600 }
       ],
       weapons: [],
       defenses: [],
@@ -78,9 +83,20 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPan
       let savedShips = await databaseService.getAllShips();
       logger.info(`SelectShipPanel loaded ${savedShips.length} ships from database`);
 
-      // If no ships exist, use hardcoded defaults
+      // If no ships exist, try preloading public/initial-ships.json into the
+      // database (so it persists and can be saved-over like any other ship).
       if (savedShips.length === 0) {
-        logger.info('No ships in database, using hardcoded default ships');
+        const preloaded = await initialDataService.loadInitialDataIfNeeded();
+        if (preloaded) {
+          savedShips = await databaseService.getAllShips();
+          logger.info(`Preloaded ${savedShips.length} initial ships into the database`);
+        }
+      }
+
+      // Last resort: an in-memory fallback if the database is unavailable
+      // or public/initial-ships.json couldn't be loaded (e.g. sandboxed test env).
+      if (savedShips.length === 0) {
+        logger.info('No ships in database or initial data, using hardcoded default ships');
         savedShips = createDefaultShips();
       }
 

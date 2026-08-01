@@ -103,6 +103,12 @@ describe('generateShipPrintContent', () => {
     expect(html).not.toContain('M-0');
   });
 
+  it('should include a Hull cost row', () => {
+    const html = generateShipPrintContent(baseShip, baseMass, baseCost, baseStaff, false, false, baseRules);
+    expect(html).toContain('Hull');
+    expect(html).toContain('100000.00 MCr'); // 1,000,000 tons / 10
+  });
+
   it('should include control center section', () => {
     const html = generateShipPrintContent(baseShip, baseMass, baseCost, baseStaff, false, false, baseRules);
     expect(html).toContain('Control Center');
@@ -143,10 +149,18 @@ describe('generateShipPrintContent', () => {
     expect(html).toContain('Sandcaster');
   });
 
-  it('should include sand reloads in defenses', () => {
+  it('should include sand reloads in defenses with cost', () => {
     const ship = { ...baseShip, ship: { ...baseShip.ship, sand_reloads: 5 } };
     const html = generateShipPrintContent(ship, baseMass, baseCost, baseStaff, false, false, baseRules);
     expect(html).toContain('Sand');
+    expect(html).toContain('0.50 MCr'); // 5 tons * 0.1 MCr/ton
+  });
+
+  it('should include missile reloads in weapons with cost', () => {
+    const ship = { ...baseShip, ship: { ...baseShip.ship, missile_reloads: 10 } };
+    const html = generateShipPrintContent(ship, baseMass, baseCost, baseStaff, false, false, baseRules);
+    expect(html).toContain('Missile Reloads');
+    expect(html).toContain('10.00 MCr'); // 10 tons * 1 MCr/ton
   });
 
   it('should include berths when present', () => {
