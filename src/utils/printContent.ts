@@ -21,8 +21,6 @@ export function generateShipPrintContent(
   mass: MassCalculation,
   cost: CostCalculation,
   staff: StaffRequirements,
-  combinePilotNavigator: boolean,
-  noStewards: boolean,
   _activeRules: Set<string>
 ): string {
   const sections = getMegastructureSections(shipDesign.ship.tonnage);
@@ -187,27 +185,17 @@ export function generateShipPrintContent(
     `<td><strong>${Math.round(cost.total).toLocaleString()} MCr</strong></td></tr>`
   );
 
-  const adjustedTotal = combinePilotNavigator && noStewards
-    ? staff.total - 1 - staff.stewards
-    : combinePilotNavigator ? staff.total - 1
-    : noStewards ? staff.total - staff.stewards
-    : staff.total;
-
   const crewLines: string[] = [];
-  if (combinePilotNavigator) {
-    crewLines.push('<p><strong>Pilot/Navigator:</strong> 1</p>');
-  } else {
-    crewLines.push(`<p><strong>Pilot:</strong> ${staff.pilot}</p>`);
-    crewLines.push(`<p><strong>Navigator:</strong> ${staff.navigator}</p>`);
-  }
+  crewLines.push(`<p><strong>Pilot:</strong> ${staff.pilot}</p>`);
+  crewLines.push(`<p><strong>Navigator:</strong> ${staff.navigator}</p>`);
   crewLines.push(`<p><strong>Engineers:</strong> ${staff.engineers}</p>`);
   if (staff.gunners > 0) crewLines.push(`<p><strong>Gunners:</strong> ${staff.gunners}</p>`);
   if (staff.service > 0) crewLines.push(`<p><strong>Service Staff:</strong> ${staff.service}</p>`);
-  crewLines.push(`<p><strong>Stewards:</strong> ${noStewards ? 0 : staff.stewards}</p>`);
+  crewLines.push(`<p><strong>Stewards:</strong> ${staff.stewards}</p>`);
   if (staff.nurses > 0) crewLines.push(`<p><strong>Nurses:</strong> ${staff.nurses}</p>`);
   if (staff.surgeons > 0) crewLines.push(`<p><strong>Surgeons:</strong> ${staff.surgeons}</p>`);
   if (staff.techs > 0) crewLines.push(`<p><strong>Medical Techs:</strong> ${staff.techs}</p>`);
-  crewLines.push(`<p><strong>Total Crew:</strong> ${adjustedTotal}</p>`);
+  crewLines.push(`<p><strong>Total Crew:</strong> ${staff.total}</p>`);
 
   return `<!DOCTYPE html>
 <html>

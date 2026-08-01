@@ -13,6 +13,8 @@ import { logger } from './utils/logger';
 import { createEmptyShipDesign, createDefaultShip } from './utils/shipDefaults';
 import { sumMass, sumMassWithQuantity, sumCost, sumCostWithQuantity, sumCargoTonnage } from './utils/calculations';
 import { rescaleEnginesForTonnage, rescaleFittingsForTonnage } from './utils/tonnageRescale';
+import { cleanupVehiclesForTechLevel, cleanupBayWeaponsForTechLevel, cleanupScreensForTechLevel } from './utils/techLevelCleanup';
+import { calculatePilotCount, calculateNavigatorCount } from './utils/crewCalculations';
 import { generateShipPrintContent } from './utils/printContent';
 // Eagerly load only the ship selection panel (first screen)
 import SelectShipPanel from './components/SelectShipPanel';
@@ -47,8 +49,6 @@ const panels = [
 function App() {
   const [showSelectShip, setShowSelectShip] = useState(true);
   const [currentPanel, setCurrentPanel] = useState(0);
-  const [combinePilotNavigator, setCombinePilotNavigator] = useState(false);
-  const [noStewards, setNoStewards] = useState(false);
   const [activeRules, setActiveRules] = useState<Set<string>>(new Set(['spacecraft_design_srd']));
   const [shipDesign, setShipDesign] = useState<ShipDesign>(
     createEmptyShipDesign(createDefaultShip('', 'A', 1_000_000, 'standard'))
@@ -105,13 +105,13 @@ function App() {
     const mass = calculateMass();
     const cost = calculateCost();
     const staff = calculateStaffRequirements();
-    const printContent = generateShipPrintContent(shipDesign, mass, cost, staff, combinePilotNavigator, noStewards, activeRules);
+    const printContent = generateShipPrintContent(shipDesign, mass, cost, staff, activeRules);
     printWindow.document.write(printContent);
     printWindow.document.close();
     printWindow.focus();
     printWindow.addEventListener('afterprint', () => printWindow.close());
     printWindow.print();
-  }, [shipDesign, combinePilotNavigator, noStewards, activeRules]);
+  }, [shipDesign, activeRules]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -232,8 +232,14 @@ function App() {
   }
 
   function calculateStaffRequirements(): StaffRequirements {
-    const pilot = 1;
-    const navigator = 1;
+    // At M-1+, a megastructure under way needs round-the-clock piloting
+    // (24x7 coverage with spares); stationary (M-0) needs only a skeleton
+    // crew. A plotted course is followed for decades, so no standing
+    // navigator is needed unless this is an atmosphere-support structure
+    // (a floating city) that requires active navigation.
+    const maneuverPerformance = shipDesign.engines.find(e => e.engine_type === 'maneuver_drive')?.performance || 0;
+    const pilot = calculatePilotCount(maneuverPerformance);
+    const navigator = calculateNavigatorCount(shipDesign.ship.atmosphere_support);
 
     // Engineer count based on engine mass (megastructures are large ships)
     const engineCount = shipDesign.engines.length;
@@ -364,6 +370,19 @@ function App() {
           logger.info('Power plant dropped below P-10: removing Antimatter Plant');
           newDesign.fuel_systems = existingFuelSystems.filter(f => f.system_type !== 'antimatter_plant');
         }
+      }
+
+      // Vehicles, bay weapons, and defensive screens are all tech-level
+      // gated in their panels, but a design that already has one selected
+      // keeps it in the underlying data even after a tech-level drop makes
+      // it unavailable — it becomes invisible (and thus unremovable) in its
+      // panel while still silently counting toward mass/cost/staff. Clean
+      // those up whenever tech level changes.
+      const newTechLevel = updates.ship?.tech_level;
+      if (newTechLevel !== undefined && newTechLevel !== prev.ship.tech_level) {
+        newDesign.vehicles = cleanupVehiclesForTechLevel(newDesign.vehicles, newTechLevel);
+        newDesign.weapons = cleanupBayWeaponsForTechLevel(newDesign.weapons, newTechLevel);
+        newDesign.defenses = cleanupScreensForTechLevel(newDesign.defenses, newTechLevel);
       }
 
       return newDesign;
@@ -512,11 +531,6 @@ function App() {
         return <StaffPanel
           staffRequirements={staff}
           berths={shipDesign.berths}
-          shipTonnage={shipDesign.ship.tonnage}
-          combinePilotNavigator={combinePilotNavigator}
-          noStewards={noStewards}
-          onCombinePilotNavigatorChange={setCombinePilotNavigator}
-          onNoStewardsChange={setNoStewards}
         />;
       case 14:
         return <SummaryPanel
@@ -524,8 +538,6 @@ function App() {
           mass={mass}
           cost={cost}
           staff={staff}
-          combinePilotNavigator={combinePilotNavigator}
-          noStewards={noStewards}
           activeRules={activeRules}
           onBackToShipSelect={handleBackToShipSelect}
         />;
@@ -549,8 +561,6 @@ function App() {
                 mass={mass}
                 cost={cost}
                 staff={staff}
-                combinePilotNavigator={combinePilotNavigator}
-                noStewards={noStewards}
                 onPrint={handleFilePrint}
                 onSave={handleFileSave}
                 onSaveAs={handleFileSaveWithName}
