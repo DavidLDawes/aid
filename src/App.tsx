@@ -188,9 +188,9 @@ function App() {
 
     const total = shipDesign.ship.tonnage;
     return { total, used, remaining: total - used, isOverweight: used > total };
-  }
+  }, [shipDesign]);
 
-  function calculateCost(): CostCalculation {
+  const calculateCost = useCallback((): CostCalculation => {
     let total = 0;
 
     // Hull cost: tonnage / 10 MCr (from MEGASTRUCTURE_HULL_SIZES formula)
@@ -229,7 +229,7 @@ function App() {
     total += zoneSections.reduce((sum, z) => sum + z.cost, 0);
 
     return { total };
-  }
+  }, [shipDesign]);
 
   function calculateStaffRequirements(): StaffRequirements {
     // At M-1+, a megastructure under way needs round-the-clock piloting
@@ -292,7 +292,55 @@ function App() {
     const total = pilot + navigator + engineers + gunners + service + stewards + nurses + surgeons + techs;
 
     return { pilot, navigator, engineers, gunners, service, stewards, nurses, surgeons, techs, total };
-  }
+  }, [shipDesign]);
+
+  const handleFilePrint = useCallback(() => {
+    logger.info(`Printing megastructure "${shipDesign.ship.name}"`);
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      logger.error('Print window was blocked by the browser');
+      alert('Unable to open the print window. Please allow pop-ups for this site and try again.');
+      return;
+    }
+    const mass = calculateMass();
+    const cost = calculateCost();
+    const staff = calculateStaffRequirements();
+    const printContent = generateShipPrintContent(shipDesign, mass, cost, staff, activeRules);
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.addEventListener('afterprint', () => printWindow.close());
+    printWindow.print();
+  }, [shipDesign, activeRules, calculateMass, calculateCost, calculateStaffRequirements]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (showSelectShip || (event.target as HTMLElement)?.tagName === 'INPUT' || (event.target as HTMLElement)?.tagName === 'TEXTAREA') {
+        return;
+      }
+      if (event.ctrlKey && !event.shiftKey && event.key === 's') {
+        event.preventDefault();
+        handleFileSave();
+      } else if (event.ctrlKey && event.shiftKey && event.key === 'S') {
+        event.preventDefault();
+        handleFileSaveAs();
+      } else if (event.ctrlKey && event.key === 'p') {
+        event.preventDefault();
+        handleFilePrint();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => { document.removeEventListener('keydown', handleKeyDown); };
+  }, [showSelectShip, handleFileSave, handleFileSaveAs, handleFilePrint]);
+
+  const handleRuleChange = useCallback((ruleId: string, enabled: boolean) => {
+    logger.info(`Rule "${ruleId}" ${enabled ? 'enabled' : 'disabled'}`);
+    setActiveRules(prevRules => {
+      const newRules = new Set(prevRules);
+      if (enabled) { newRules.add(ruleId); } else { newRules.delete(ruleId); }
+      return newRules;
+    });
+  }, []);
 
   const isCurrentPanelValid = (): boolean => {
     switch (currentPanel) {

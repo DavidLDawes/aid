@@ -1,14 +1,34 @@
 services:
   node:
-    image: "node:22"
-    user: "node"
+    image: "node:24"
+    # Not "user: node": the named node_modules volume below is created
+    # root-owned (nothing in the base image pre-creates that path with
+    # different ownership), and the non-root "node" user can't write to it.
     working_dir: /home/node/app
     environment:
       - NODE_ENV=production
+      - CI=true
     volumes:
       - ./:/home/node/app
+      # Isolate node_modules in a named volume rather than the bind mount
+      # above: the host's node_modules (if any) is built for the host OS,
+      # not this container's Linux/glibc target, and pnpm otherwise refuses
+      # to reconcile the two without an interactive TTY to confirm a purge.
+      - node_modules:/home/node/app/node_modules
     expose:
-      - "8080"
+      - "4173"
     ports: # use if it is necessary to expose the container to the host machine
-      - "8080:8080"
-    command: "npm start"
+      - "4173:4173"
+    # The base node image doesn't ship pnpm on PATH, and "npm start" ->
+    # "pnpm serve" needs it. Use `corepack pnpm` (bundled with Node, no
+    # install step) rather than `npm install -g pnpm` / `corepack enable` —
+    # both of those write into root-owned system directories and would fail
+    # under a non-root user. --host makes the preview server reachable from
+    # the mapped port (vite preview otherwise only binds to localhost).
+    command: >
+      sh -c "corepack pnpm install --frozen-lockfile &&
+             corepack pnpm build &&
+             corepack pnpm exec vite preview --host 0.0.0.0"
+
+volumes:
+  node_modules:

@@ -271,8 +271,24 @@ describe('getScreenSpecs', () => {
     expect(getScreenSpecs('meson_screen', 25_000_000)).toEqual({ mass: 120, cost: 140 });
     expect(getScreenSpecs('black_globe', 25_000_000)).toEqual({ mass: 45, cost: 450 });
 
-    // Max megastructure tonnage (100,000,000) is still within this tier
-    expect(getScreenSpecs('nuclear_damper', 100_000_000)).toEqual({ mass: 120, cost: 100 });
+    expect(getScreenSpecs('nuclear_damper', 124_999_999)).toEqual({ mass: 120, cost: 100 });
+  });
+
+  it('adds three tier increments for the 125,000,000-624,999,999 ton tier', () => {
+    expect(getScreenSpecs('nuclear_damper', 125_000_000)).toEqual({ mass: 140, cost: 110 });
+    expect(getScreenSpecs('meson_screen', 125_000_000)).toEqual({ mass: 130, cost: 150 });
+    expect(getScreenSpecs('black_globe', 125_000_000)).toEqual({ mass: 50, cost: 500 });
+
+    expect(getScreenSpecs('nuclear_damper', 624_999_999)).toEqual({ mass: 140, cost: 110 });
+  });
+
+  it('adds four tier increments for the 625,000,000+ ton tier (covers the 1B max)', () => {
+    expect(getScreenSpecs('nuclear_damper', 625_000_000)).toEqual({ mass: 160, cost: 120 });
+    expect(getScreenSpecs('meson_screen', 625_000_000)).toEqual({ mass: 140, cost: 160 });
+    expect(getScreenSpecs('black_globe', 625_000_000)).toEqual({ mass: 55, cost: 550 });
+
+    // Max megastructure tonnage (1,000,000,000) is still within this tier
+    expect(getScreenSpecs('nuclear_damper', 1_000_000_000)).toEqual({ mass: 160, cost: 120 });
   });
 
   it('returns null below the minimum megastructure tonnage', () => {

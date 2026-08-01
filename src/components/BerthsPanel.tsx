@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import type { Berth, StaffRequirements } from '../types/ship';
 import { BERTH_TYPES } from '../data/constants';
 
@@ -10,10 +10,10 @@ interface BerthsPanelProps {
 }
 
 const BerthsPanel: React.FC<BerthsPanelProps> = ({ berths, staffRequirements, adjustedCrewCount, onUpdate }) => {
-  const updateBerthQuantity = (berthType: typeof BERTH_TYPES[0], newQuantity: number) => {
+  const updateBerthQuantity = useCallback((berthType: typeof BERTH_TYPES[0], newQuantity: number) => {
     const newBerths = [...berths];
     const existingIndex = newBerths.findIndex(b => b.berth_type === berthType.type);
-    
+
     if (newQuantity === 0) {
       // Remove berth if quantity is 0
       if (existingIndex >= 0) {
@@ -26,29 +26,29 @@ const BerthsPanel: React.FC<BerthsPanelProps> = ({ berths, staffRequirements, ad
         mass: berthType.mass,
         cost: berthType.cost
       };
-      
+
       if (existingIndex >= 0) {
         newBerths[existingIndex] = berthData;
       } else {
         newBerths.push(berthData);
       }
     }
-    
-    onUpdate(newBerths);
-  };
 
-  const getBerthQuantity = (berthType: string): number => {
+    onUpdate(newBerths);
+  }, [berths, onUpdate]);
+
+  const getBerthQuantity = useCallback((berthType: string): number => {
     const berth = berths.find(b => b.berth_type === berthType);
     return berth?.quantity || 0;
-  };
+  }, [berths]);
 
-  const getTotalStaterooms = (): number => {
+  const getTotalStaterooms = useCallback((): number => {
     return getBerthQuantity('staterooms') + getBerthQuantity('luxury_staterooms');
-  };
+  }, [getBerthQuantity]);
 
-  const getEffectiveCrewCount = (): number => {
+  const getEffectiveCrewCount = useCallback((): number => {
     return adjustedCrewCount !== undefined ? adjustedCrewCount : staffRequirements.total;
-  };
+  }, [adjustedCrewCount, staffRequirements.total]);
 
   const hasEnoughStaterooms = (): boolean => {
     return getTotalStaterooms() >= getEffectiveCrewCount();
@@ -64,17 +64,17 @@ const BerthsPanel: React.FC<BerthsPanelProps> = ({ berths, staffRequirements, ad
   useEffect(() => {
     const totalStaterooms = getTotalStaterooms();
     const crewCount = getEffectiveCrewCount();
-    
+
     if (totalStaterooms < crewCount && crewCount > 0) {
       const shortfall = crewCount - totalStaterooms;
       const currentStaterooms = getBerthQuantity('staterooms');
-      
+
       updateBerthQuantity(
         BERTH_TYPES.find(bt => bt.type === 'staterooms')!,
         currentStaterooms + shortfall
       );
     }
-  }, [staffRequirements.total, adjustedCrewCount]);
+  }, [getTotalStaterooms, getEffectiveCrewCount, getBerthQuantity, updateBerthQuantity]);
 
   return (
     <div className="panel-content">
