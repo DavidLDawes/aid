@@ -12,7 +12,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [22.x, 24.x]
+        node-version: [24.x]
 
     steps:
       - uses: actions/checkout@v7
@@ -45,7 +45,7 @@ jobs:
         run: pnpm test:run
 
       - name: Upload coverage
-        if: matrix.node-version == '22.x'
+        if: matrix.node-version == '24.x'
         uses: actions/upload-artifact@v7
         with:
           name: coverage-report
