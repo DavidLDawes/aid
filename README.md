@@ -1,6 +1,6 @@
 # Traveller Starship Designer
 
-A Starship Designer for the Traveller RPG, built with Claude. Uses a Wizard UI and IndexedDB for browser-local persistence — no backend server required.
+A Megastructure Designer for the Traveller RPG, built with Claude. Uses a Wizard UI and IndexedDB for browser-local persistence — no backend server required.
 
 ## Quick Start
 
@@ -26,8 +26,7 @@ docker run -p 8080:8080 starship-designer
 ## Features
 
 - **Multi-Panel Design Interface**: 13 specialized panels for complete starship configuration
-- **Capital Ship Support**: Designs from 100 tons to 1,000,000 tons
-  - Hull codes (CA–CZ) and hull sections (2–6) for ships ≥3,000 tons
+- **Megastructure Support**: Designs from 1,000,000 tons to 1,000,000,000 tons
   - Spinal weapons, bay weapons, and defensive screens
   - Armor percentage and tech-level-gated computer requirements
 - **Real-time Mass & Cost Tracking**: Live calculations with overweight warnings
