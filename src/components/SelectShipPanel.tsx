@@ -9,19 +9,11 @@ interface SelectShipPanelProps {
   onLoadShip: (shipDesign: ShipDesign) => void;
 }
 
-export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPanelProps) {
-  const [ships, setShips] = useState<StoredShipDesign[]>([]);
-  const [selectedShipId, setSelectedShipId] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    loadShips();
-  }, []);
-
-  const createDefaultShips = () => {
-    // Fallback: create default megastructure in memory if all loading fails
-    const ringWorld = {
+// Fallback: create default megastructure in memory if all loading fails.
+// Fully static (no props/state), so it lives outside the component rather
+// than being redeclared — and needing to be re-memoized — every render.
+function createDefaultShips() {
+  const ringWorld = {
       id: -1,
       ship: {
         name: 'Ring World Alpha',
@@ -70,10 +62,16 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPan
       ],
       createdAt: new Date(),
       updatedAt: new Date()
-    };
-
-    return [ringWorld];
   };
+
+  return [ringWorld];
+}
+
+export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPanelProps) {
+  const [ships, setShips] = useState<StoredShipDesign[]>([]);
+  const [selectedShipId, setSelectedShipId] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   async function loadShips() {
     try {
@@ -113,6 +111,13 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPan
       setLoading(false);
     }
   }
+
+  // Intentionally mount-only data load — one of react.dev's own documented
+  // valid uses of an effect (https://react.dev/learn/you-might-not-need-an-effect#fetching-data).
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadShips();
+  }, []);
 
   const handleLoadSelectedShip = async () => {
     if (!selectedShipId) return;
