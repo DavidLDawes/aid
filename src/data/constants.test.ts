@@ -2,10 +2,12 @@ import { describe, it, expect } from '@jest/globals';
 import {
   getTechLevelIndex,
   isTechLevelAtLeast,
-  calculateTotalFuelMass,
-  calculateJumpFuel,
   calculateManeuverFuel,
+  calculateEngineMassAndCost,
   getAvailableEngines,
+  getMaxPowerPlantByTechLevel,
+  hasAntimatterPlant,
+  calculateAntimatterAdjustedManeuverFuel,
   getBridgeMassAndCost,
   getWeaponMountLimit,
   convertTechLevelToNumber,
@@ -60,176 +62,6 @@ describe('Tech Level Functions', () => {
       expect(isTechLevelAtLeast('A', 'H')).toBe(false); // TL A cannot use antimatter
     });
 
-    // Test longer jumps specific requirements
-    it('should correctly validate longer jumps tech level requirement (TL G+)', () => {
-      expect(isTechLevelAtLeast('H', 'G')).toBe(true); // TL H can use longer jumps
-      expect(isTechLevelAtLeast('G', 'G')).toBe(true); // TL G can use longer jumps
-      expect(isTechLevelAtLeast('F', 'G')).toBe(false); // TL F cannot use longer jumps
-      expect(isTechLevelAtLeast('A', 'G')).toBe(false); // TL A cannot use longer jumps
-    });
-  });
-});
-
-describe('Fuel Calculation Functions', () => {
-  describe('calculateTotalFuelMass without antimatter', () => {
-    it('should calculate normal fuel mass correctly', () => {
-      const shipTonnage = 200;
-      const jumpPerformance = 1;
-      const maneuverPerformance = 1;
-      const weeks = 2;
-      
-      const result = calculateTotalFuelMass(shipTonnage, jumpPerformance, maneuverPerformance, weeks, false);
-      
-      // Expected: Jump fuel (10% of 200 for jump-1) + Maneuver fuel (1% of 200 for M-1, 2 weeks)
-      const expectedJumpFuel = calculateJumpFuel(shipTonnage, jumpPerformance); // 20 tons
-      const expectedManeuverFuel = calculateManeuverFuel(shipTonnage, maneuverPerformance, weeks); // 4 tons
-      const expected = expectedJumpFuel + expectedManeuverFuel; // 24 tons
-      
-      expect(result).toBe(expected);
-    });
-
-    it('should handle zero performance values', () => {
-      const shipTonnage = 200;
-      const jumpPerformance = 0;
-      const maneuverPerformance = 0;
-      const weeks = 2;
-      
-      const result = calculateTotalFuelMass(shipTonnage, jumpPerformance, maneuverPerformance, weeks, false);
-      expect(result).toBe(0);
-    });
-  });
-
-  describe('calculateTotalFuelMass with antimatter', () => {
-    it('should reduce fuel mass to 10% when antimatter is enabled', () => {
-      const shipTonnage = 200;
-      const jumpPerformance = 1;
-      const maneuverPerformance = 1;
-      const weeks = 2;
-      
-      const normalFuel = calculateTotalFuelMass(shipTonnage, jumpPerformance, maneuverPerformance, weeks, false);
-      const antimatterFuel = calculateTotalFuelMass(shipTonnage, jumpPerformance, maneuverPerformance, weeks, true);
-      
-      expect(antimatterFuel).toBe(normalFuel * 0.1);
-    });
-
-    it('should provide 90% fuel savings with antimatter', () => {
-      const shipTonnage = 400;
-      const jumpPerformance = 2;
-      const maneuverPerformance = 2;
-      const weeks = 4;
-      
-      const normalFuel = calculateTotalFuelMass(shipTonnage, jumpPerformance, maneuverPerformance, weeks, false);
-      const antimatterFuel = calculateTotalFuelMass(shipTonnage, jumpPerformance, maneuverPerformance, weeks, true);
-      
-      const fuelSavings = normalFuel - antimatterFuel;
-      const savingsPercentage = fuelSavings / normalFuel;
-      
-      expect(savingsPercentage).toBeCloseTo(0.9, 2); // 90% savings
-    });
-
-    it('should handle edge cases with antimatter', () => {
-      // Test with zero fuel requirements
-      expect(calculateTotalFuelMass(200, 0, 0, 2, true)).toBe(0);
-      
-      // Test with minimal fuel requirements
-      const minimalFuel = calculateTotalFuelMass(100, 1, 1, 1, true);
-      expect(minimalFuel).toBeGreaterThan(0);
-      expect(minimalFuel).toBeLessThan(calculateTotalFuelMass(100, 1, 1, 1, false));
-    });
-  });
-
-  describe('real-world antimatter scenarios', () => {
-    it('should correctly calculate fuel for a Scout with antimatter', () => {
-      // Scout: 100 tons, Jump-2, Maneuver-2, 2 weeks fuel
-      const shipTonnage = 100;
-      const jumpPerformance = 2;
-      const maneuverPerformance = 2;
-      const weeks = 2;
-      
-      const normalFuel = calculateTotalFuelMass(shipTonnage, jumpPerformance, maneuverPerformance, weeks, false);
-      const antimatterFuel = calculateTotalFuelMass(shipTonnage, jumpPerformance, maneuverPerformance, weeks, true);
-      
-      // Normal fuel should be: Jump-2 (20 tons) + Maneuver-2 (2 tons for 2 weeks) = 22 tons
-      expect(normalFuel).toBe(22);
-      // Antimatter fuel should be 10% of normal = 2.2 tons
-      expect(antimatterFuel).toBe(2.2);
-    });
-
-    it('should correctly calculate fuel for a Free Trader with antimatter', () => {
-      // Free Trader: 200 tons, Jump-1, Maneuver-1, 2 weeks fuel
-      const shipTonnage = 200;
-      const jumpPerformance = 1;
-      const maneuverPerformance = 1;
-      const weeks = 2;
-      
-      const normalFuel = calculateTotalFuelMass(shipTonnage, jumpPerformance, maneuverPerformance, weeks, false);
-      const antimatterFuel = calculateTotalFuelMass(shipTonnage, jumpPerformance, maneuverPerformance, weeks, true);
-      
-      // Normal fuel should be: Jump-1 (20 tons) + Maneuver-1 (2 tons for 2 weeks) = 22 tons
-      expect(normalFuel).toBe(22);
-      // Antimatter fuel should be 10% of normal = 2.2 tons
-      expect(antimatterFuel).toBe(2.2);
-    });
-
-    it('should correctly calculate fuel for high-performance ships with antimatter', () => {
-      // High-performance ship: 1000 tons, Jump-6, Maneuver-6, 4 weeks fuel
-      const shipTonnage = 1000;
-      const jumpPerformance = 6;
-      const maneuverPerformance = 6;
-      const weeks = 4;
-      
-      const normalFuel = calculateTotalFuelMass(shipTonnage, jumpPerformance, maneuverPerformance, weeks, false);
-      const antimatterFuel = calculateTotalFuelMass(shipTonnage, jumpPerformance, maneuverPerformance, weeks, true);
-      
-      // Normal fuel should be: Jump-6 (600 tons) + Maneuver-6 (120 tons for 4 weeks) = 720 tons
-      expect(normalFuel).toBe(720);
-      // Antimatter fuel should be 10% of normal = 72 tons
-      expect(antimatterFuel).toBe(72);
-      
-      // Verify the massive fuel savings
-      const savings = normalFuel - antimatterFuel;
-      expect(savings).toBe(648); // 648 tons saved!
-    });
-  });
-
-  describe('antimatter fuel calculation edge cases', () => {
-    it('should handle large ships with antimatter correctly', () => {
-      const shipTonnage = 2000;
-      const jumpPerformance = 4;
-      const maneuverPerformance = 4;
-      const weeks = 6;
-      
-      const normalFuel = calculateTotalFuelMass(shipTonnage, jumpPerformance, maneuverPerformance, weeks, false);
-      const antimatterFuel = calculateTotalFuelMass(shipTonnage, jumpPerformance, maneuverPerformance, weeks, true);
-      
-      expect(antimatterFuel).toBe(normalFuel * 0.1);
-      expect(antimatterFuel).toBeGreaterThan(0);
-    });
-
-    it('should maintain precision with antimatter calculations', () => {
-      const shipTonnage = 150;
-      const jumpPerformance = 3;
-      const maneuverPerformance = 3;
-      const weeks = 3;
-      
-      const normalFuel = calculateTotalFuelMass(shipTonnage, jumpPerformance, maneuverPerformance, weeks, false);
-      const antimatterFuel = calculateTotalFuelMass(shipTonnage, jumpPerformance, maneuverPerformance, weeks, true);
-      
-      // Check that precision is maintained (no rounding errors)
-      expect(antimatterFuel).toBe(normalFuel * 0.1);
-    });
-  });
-});
-
-describe('calculateJumpFuel', () => {
-  it('should return 10% of ship tonnage per jump performance', () => {
-    expect(calculateJumpFuel(200, 1)).toBe(20);
-    expect(calculateJumpFuel(200, 2)).toBe(40);
-    expect(calculateJumpFuel(400, 3)).toBe(120);
-  });
-
-  it('should return 0 for zero jump performance', () => {
-    expect(calculateJumpFuel(200, 0)).toBe(0);
   });
 });
 
@@ -273,19 +105,14 @@ describe('getAvailableEngines', () => {
     expect(engines[0].label).toMatch(/^P-/);
   });
 
-  it('should use J- label for jump_drive', () => {
-    const engines = getAvailableEngines(200, 'jump_drive');
-    expect(engines[0].label).toMatch(/^J-/);
-  });
-
   it('should use M- label for maneuver_drive', () => {
     const engines = getAvailableEngines(200, 'maneuver_drive');
     expect(engines[0].label).toMatch(/^M-/);
   });
 
-  it('should filter out drives exceeding powerPlantPerformance for jump/maneuver', () => {
-    const limited = getAvailableEngines(400, 'jump_drive', 2);
-    const unlimited = getAvailableEngines(400, 'jump_drive');
+  it('should filter out maneuver drives exceeding powerPlantPerformance', () => {
+    const limited = getAvailableEngines(400, 'maneuver_drive', 2);
+    const unlimited = getAvailableEngines(400, 'maneuver_drive');
     expect(limited.length).toBeLessThanOrEqual(unlimited.length);
     limited.forEach(e => expect(e.performance).toBeLessThanOrEqual(2));
   });
@@ -294,6 +121,78 @@ describe('getAvailableEngines', () => {
     const filtered = getAvailableEngines(400, 'power_plant', 1);
     const unfiltered = getAvailableEngines(400, 'power_plant');
     expect(filtered.length).toBe(unfiltered.length);
+  });
+
+  it('should gate power_plant performance by tech level when techLevel is provided', () => {
+    const tlA = getAvailableEngines(1_000_000, 'power_plant', undefined, 'A');
+    expect(Math.max(...tlA.map(e => e.performance))).toBe(6);
+
+    const tlF = getAvailableEngines(1_000_000, 'power_plant', undefined, 'F');
+    expect(Math.max(...tlF.map(e => e.performance))).toBe(7);
+
+    const tlG = getAvailableEngines(1_000_000, 'power_plant', undefined, 'G');
+    expect(Math.max(...tlG.map(e => e.performance))).toBe(8);
+
+    const tlH = getAvailableEngines(1_000_000, 'power_plant', undefined, 'H');
+    expect(Math.max(...tlH.map(e => e.performance))).toBe(10);
+
+    const tlJ = getAvailableEngines(1_000_000, 'power_plant', undefined, 'J');
+    expect(Math.max(...tlJ.map(e => e.performance))).toBe(12);
+  });
+
+  it('should not extend maneuver_drive performance via the power plant TL gate', () => {
+    const maneuver = getAvailableEngines(1_000_000, 'maneuver_drive', undefined, 'J');
+    expect(Math.max(...maneuver.map(e => e.performance))).toBe(6);
+  });
+});
+
+describe('getMaxPowerPlantByTechLevel', () => {
+  it('caps at P-6 below TL-F', () => {
+    expect(getMaxPowerPlantByTechLevel('A')).toBe(6);
+    expect(getMaxPowerPlantByTechLevel('E')).toBe(6);
+  });
+
+  it('steps up with tech level: F=7, G=8, H=10, J=12', () => {
+    expect(getMaxPowerPlantByTechLevel('F')).toBe(7);
+    expect(getMaxPowerPlantByTechLevel('G')).toBe(8);
+    expect(getMaxPowerPlantByTechLevel('H')).toBe(10);
+    expect(getMaxPowerPlantByTechLevel('J')).toBe(12);
+  });
+});
+
+describe('calculateEngineMassAndCost at extended power plant tiers', () => {
+  it('computes mass/cost for P-11 and P-12', () => {
+    const p11 = calculateEngineMassAndCost(1_000_000, 'power_plant', 11);
+    expect(p11.mass).toBe(100_000); // 10.0% of 1,000,000
+    expect(p11.cost).toBe(200_000); // 2.0 MCr/ton
+
+    const p12 = calculateEngineMassAndCost(1_000_000, 'power_plant', 12);
+    expect(p12.mass).toBe(110_000); // 11.0% of 1,000,000
+  });
+
+  it('returns zero mass/cost above P-12', () => {
+    expect(calculateEngineMassAndCost(1_000_000, 'power_plant', 13)).toEqual({ mass: 0, cost: 0 });
+  });
+
+  it('returns zero for maneuver_drive at performance 11+ (no table entry)', () => {
+    // Unlike power_plant, maneuver_drive has no extended tiers.
+    expect(calculateEngineMassAndCost(1_000_000, 'maneuver_drive', 11)).toEqual({ mass: 0, cost: 0 });
+  });
+});
+
+describe('Antimatter Plant fuel discount', () => {
+  it('hasAntimatterPlant detects an installed plant with quantity > 0', () => {
+    expect(hasAntimatterPlant([{ system_type: 'antimatter_plant', quantity: 1 }])).toBe(true);
+    expect(hasAntimatterPlant([{ system_type: 'antimatter_plant', quantity: 0 }])).toBe(false);
+    expect(hasAntimatterPlant([{ system_type: 'fuel_tank', quantity: 5 }])).toBe(false);
+    expect(hasAntimatterPlant([])).toBe(false);
+  });
+
+  it('calculateAntimatterAdjustedManeuverFuel reduces fuel to 1/10th when an AM plant is present', () => {
+    const normal = calculateAntimatterAdjustedManeuverFuel(1_000_000, 2, 4, false);
+    const discounted = calculateAntimatterAdjustedManeuverFuel(1_000_000, 2, 4, true);
+    expect(normal).toBe(calculateManeuverFuel(1_000_000, 2, 4));
+    expect(discounted).toBeCloseTo(normal * 0.1);
   });
 });
 
@@ -342,9 +241,14 @@ describe('convertTechLevelToNumber', () => {
     expect(convertTechLevelToNumber('H')).toBe(17);
   });
 
-  it('should map any A-Z letter to charCode offset + 10', () => {
-    // 'Z' is a valid single uppercase letter so returns 35, not 0
-    expect(convertTechLevelToNumber('Z')).toBe(35);
+  it('should map J to 18, skipping I per the Traveller TL convention', () => {
+    expect(convertTechLevelToNumber('J')).toBe(18);
+  });
+
+  it('should return 0 for a letter not in TECH_LEVELS', () => {
+    // 'Z' is not (yet) a supported tech level, unlike the old charCode-offset
+    // formula which treated any single uppercase letter as valid.
+    expect(convertTechLevelToNumber('Z')).toBe(0);
   });
 
   it('should return 0 for empty string', () => {

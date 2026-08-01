@@ -162,7 +162,8 @@ const FuelPanel: React.FC<FuelPanelProps> = ({ fuelSystems, engines, shipTonnage
         <h3>Antimatter Plant</h3>
         <p>
           100,000 tons per unit, 1,000 MCr per unit. Output: 1,200 tons AM fuel/day per unit.
-          <strong> Requires P-10 power plant.</strong>
+          <strong> Requires P-10 power plant.</strong> Installing at least one unit reduces the
+          megastructure's maneuver fuel requirement (Engines panel) to 1/10th.
         </p>
         {!hasP10 ? (
           <p className="warning-message">

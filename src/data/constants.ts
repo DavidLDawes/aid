@@ -1,6 +1,8 @@
 import type { Cargo } from '../types/ship';
 
-export const TECH_LEVELS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+// TL letters skip 'I' (visual confusion with the digit 1), matching the
+// Traveller convention: ...H=17, I skipped, J=18, K=19...
+export const TECH_LEVELS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J'];
 
 export function getTechLevelIndex(techLevel: string): number {
   return TECH_LEVELS.indexOf(techLevel);
@@ -18,29 +20,15 @@ export function isTechLevelAtLeast(currentLevel: string, requiredLevel: string):
   return currentIndex >= requiredIndex;
 }
 
-// Calculate maximum jump performance based on tech level
-// TL A (10) = J-1, TL B (11) = J-2, TL C (12) = J-3, TL D (13) = J-4, TL E (14) = J-5, TL F+ (15+) = J-6
-export function getMaxJumpByTechLevel(techLevel: string): number {
-  const tlIndex = getTechLevelIndex(techLevel);
-
-  // Tech level A (index 0) = TL 10 = J-1
-  // Tech level B (index 1) = TL 11 = J-2
-  // etc.
-  const maxJump = tlIndex + 1;
-
-  // Cap at J-6 (for TL F and above)
-  return Math.min(maxJump, 6);
-}
-
-// Calculate maximum jump performance considering the Longer Jumps optional rule.
-// Without the rule: same as getMaxJumpByTechLevel (capped at J-6).
-// With the rule: TL-H allows J-10, TL-G allows J-8; lower tech levels are unchanged.
-export function getEffectiveMaxJump(techLevel: string, longerJumpsEnabled: boolean): number {
-  if (longerJumpsEnabled) {
-    if (isTechLevelAtLeast(techLevel, 'H')) return 10;
-    if (isTechLevelAtLeast(techLevel, 'G')) return 8;
-  }
-  return getMaxJumpByTechLevel(techLevel);
+// Maximum power plant performance by tech level. Megastructures have no
+// jump drive, so power plant tiers are gated directly by TL: TL-H unlocks
+// the P-10 an Antimatter Plant requires, TL-J extends further to P-12.
+export function getMaxPowerPlantByTechLevel(techLevel: string): number {
+  if (isTechLevelAtLeast(techLevel, 'J')) return 12;
+  if (isTechLevelAtLeast(techLevel, 'H')) return 10;
+  if (isTechLevelAtLeast(techLevel, 'G')) return 8;
+  if (isTechLevelAtLeast(techLevel, 'F')) return 7;
+  return 6;
 }
 
 // Tonnage code table for capital ships (3,000+ tons)
@@ -123,8 +111,11 @@ export const HULL_SIZES = Array.from({ length: 10000 }, (_, i) => {
 });
 
 // Engine performance percentages as a function of ship displacement.
-// Levels 1-6 are from the Traveller SRD. Levels 7-10 are extensions used
-// by the Longer Jumps optional rule (TL-G allows J-8, TL-H allows J-10).
+// Levels 1-6 are from the Traveller SRD. Megastructures have no jump drive,
+// so power plant levels 7-12 extend the same +1.0%/step progression from
+// levels 7-10, gated by tech level (see getMaxPowerPlantByTechLevel) so
+// megastructures can reach the P-10 an Antimatter Plant requires, up to P-12
+// at TL-J.
 export const ENGINE_PERFORMANCE_PERCENTAGES = {
   power_plant: {
     1: 1.5,
@@ -136,7 +127,9 @@ export const ENGINE_PERFORMANCE_PERCENTAGES = {
     7: 6.0,
     8: 7.0,
     9: 8.0,
-    10: 9.0
+    10: 9.0,
+    11: 10.0,
+    12: 11.0
   },
   maneuver_drive: {
     1: 1.0,
@@ -149,39 +142,32 @@ export const ENGINE_PERFORMANCE_PERCENTAGES = {
     8: 4.75,
     9: 5.5,
     10: 6.25
-  },
-  jump_drive: {
-    1: 2.0,
-    2: 3.0,
-    3: 4.0,
-    4: 5.0,
-    5: 6.0,
-    6: 7.0,
-    7: 8.0,
-    8: 9.0,
-    9: 10.0,
-    10: 11.0
   }
 };
 
 // Cost per ton for each engine type (in MCr per ton)
 export const ENGINE_COST_PER_TON = {
   power_plant: 2.0,
-  maneuver_drive: 2.0,
-  jump_drive: 1.0
+  maneuver_drive: 2.0
 };
 
 // Calculate engine mass and cost based on performance and ship tonnage
 export function calculateEngineMassAndCost(
   shipTonnage: number,
-  engineType: 'power_plant' | 'maneuver_drive' | 'jump_drive',
+  engineType: 'power_plant' | 'maneuver_drive',
   performance: number
 ): { mass: number; cost: number } {
-  if (performance < 1 || performance > 10) {
+  if (performance < 1 || performance > 12) {
     return { mass: 0, cost: 0 };
   }
 
-  const percentage = ENGINE_PERFORMANCE_PERCENTAGES[engineType][performance as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10];
+  // Only power_plant defines levels 11-12; maneuver_drive tops out at 10, so
+  // an out-of-range lookup here correctly yields undefined.
+  const table = ENGINE_PERFORMANCE_PERCENTAGES[engineType] as Record<number, number | undefined>;
+  const percentage = table[performance];
+  if (percentage === undefined) {
+    return { mass: 0, cost: 0 };
+  }
   const mass = (shipTonnage * percentage) / 100;
   const costPerTon = ENGINE_COST_PER_TON[engineType];
   const cost = mass * costPerTon;
@@ -189,24 +175,23 @@ export function calculateEngineMassAndCost(
   return { mass, cost };
 }
 
-export function getAvailableEngines(hullTonnage: number, engineType: string, powerPlantPerformance?: number, techLevel?: string, longerJumpsEnabled?: boolean) {
+export function getAvailableEngines(hullTonnage: number, engineType: string, powerPlantPerformance?: number, techLevel?: string) {
   const availableEngines = [];
 
-  const performanceLabel = engineType === 'jump_drive' ? 'J' :
-                          engineType === 'maneuver_drive' ? 'M' : 'P';
+  const performanceLabel = engineType === 'maneuver_drive' ? 'M' : 'P';
 
-  // When Longer Jumps rule is active, power plants and maneuver drives can reach
-  // performance 10 (to support J-8/J-10 drives). Jump drives are further limited
-  // by tech level via getEffectiveMaxJump.
-  let maxPerformance = longerJumpsEnabled ? 10 : 6;
-  if (engineType === 'jump_drive' && techLevel) {
-    maxPerformance = getEffectiveMaxJump(techLevel, longerJumpsEnabled ?? false);
+  // Maneuver drives cap at 6. Power plants are instead gated directly by tech
+  // level via getMaxPowerPlantByTechLevel, up to P-12 at TL-J (needed to
+  // support the P-10 an Antimatter Plant requires).
+  let maxPerformance = 6;
+  if (engineType === 'power_plant' && techLevel) {
+    maxPerformance = getMaxPowerPlantByTechLevel(techLevel);
   }
 
   // Generate engines for performance ratings 1 up to max allowed
   for (let performance = 1; performance <= maxPerformance; performance++) {
-    // For Jump and Maneuver drives, check power plant requirement
-    if ((engineType === 'jump_drive' || engineType === 'maneuver_drive') && powerPlantPerformance !== undefined) {
+    // Maneuver drives can't exceed the power plant's performance
+    if (engineType === 'maneuver_drive' && powerPlantPerformance !== undefined) {
       if (performance > powerPlantPerformance) {
         continue; // Skip this drive if it requires more power than available
       }
@@ -214,7 +199,7 @@ export function getAvailableEngines(hullTonnage: number, engineType: string, pow
 
     const { mass, cost } = calculateEngineMassAndCost(
       hullTonnage,
-      engineType as 'power_plant' | 'maneuver_drive' | 'jump_drive',
+      engineType as 'power_plant' | 'maneuver_drive',
       performance
     );
 
@@ -230,24 +215,10 @@ export function getAvailableEngines(hullTonnage: number, engineType: string, pow
   return availableEngines;
 }
 
-export function calculateJumpFuel(shipTonnage: number, jumpPerformance: number): number {
-  // Jump fuel: 0.1 * ship mass * jump rating per jump
-  return shipTonnage * 0.1 * jumpPerformance;
-}
-
 export function calculateManeuverFuel(shipTonnage: number, maneuverPerformance: number, weeks: number): number {
   // Maneuver fuel: 0.01 * ship mass * maneuver rating * (weeks / 2)
   // Base is 2 weeks for M-1 at 1% of ship mass
   return shipTonnage * 0.01 * maneuverPerformance * (weeks / 2);
-}
-
-export function calculateTotalFuelMass(shipTonnage: number, jumpPerformance: number, maneuverPerformance: number, weeks: number, useAntimatter: boolean = false): number {
-  const jumpFuel = calculateJumpFuel(shipTonnage, jumpPerformance);
-  const maneuverFuel = calculateManeuverFuel(shipTonnage, maneuverPerformance, weeks);
-  const totalFuel = jumpFuel + maneuverFuel;
-
-  // If antimatter is enabled, fuel takes only 10% of normal values
-  return useAntimatter ? totalFuel * 0.1 : totalFuel;
 }
 
 // Armor calculations based on tech level
@@ -657,9 +628,11 @@ export function getWeaponMountLimit(shipTonnage: number): number {
 }
 
 export function convertTechLevelToNumber(techLevel: string): number {
-  // Convert A=10, B=11, C=12, etc.
-  if (techLevel.length === 1 && techLevel >= 'A' && techLevel <= 'Z') {
-    return techLevel.charCodeAt(0) - 'A'.charCodeAt(0) + 10;
+  // Derive from TECH_LEVELS position (not raw char code) so the numbering
+  // stays correct now that 'I' is skipped: H=17, J=18, K=19, ...
+  const index = getTechLevelIndex(techLevel);
+  if (index !== -1) {
+    return index + 10;
   }
   return parseInt(techLevel) || 0;
 }
@@ -753,6 +726,22 @@ export const FUEL_SYSTEM_TYPES = [
 
 // Plant support infrastructure auto-calculated from scoop count: 100 tons, 1 MCr per scoop
 export const PLANT_PER_SCOOP = { mass: 100, cost: 1 };
+
+// An installed Antimatter Plant (any quantity > 0) supplies antimatter fuel,
+// which requires 1/10th the mass of a regular power plant's maneuver fuel.
+export function hasAntimatterPlant(fuelSystems: { system_type: string; quantity: number }[]): boolean {
+  return fuelSystems.some(f => f.system_type === 'antimatter_plant' && f.quantity > 0);
+}
+
+export function calculateAntimatterAdjustedManeuverFuel(
+  shipTonnage: number,
+  maneuverPerformance: number,
+  weeks: number,
+  hasAmPlant: boolean
+): number {
+  const baseFuel = calculateManeuverFuel(shipTonnage, maneuverPerformance, weeks);
+  return hasAmPlant ? baseFuel * 0.1 : baseFuel;
+}
 
 // Zone section types: 1,000-ton increments
 export const ZONE_SECTION_TYPES = [

@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import type { ShipDesign, MassCalculation, CostCalculation, StaffRequirements } from './types/ship';
 import {
-  calculateManeuverFuel, calculateVehicleServiceStaff, calculateDroneServiceStaff,
+  calculateVehicleServiceStaff, calculateDroneServiceStaff,
   calculateMedicalStaff, WEAPON_TYPES, BAY_WEAPON_TYPES,
   calculateControlCenterMass, calculateControlCenterCost,
-  getMegastructureSections, PLANT_PER_SCOOP
+  calculateArmorMass, calculateArmorCost,
+  getMegastructureSections, PLANT_PER_SCOOP,
+  hasAntimatterPlant, calculateAntimatterAdjustedManeuverFuel
 } from './data/constants';
 import { databaseService } from './services/database';
 import { logger } from './utils/logger';
@@ -157,18 +159,24 @@ function App() {
     used += sumMassWithQuantity(shipDesign.drones);
     used += sumMass(shipDesign.custom_items);
 
-    // Maneuver fuel only — no jump drives on megastructures
+    // Maneuver fuel only — no jump drives on megastructures. An installed
+    // Antimatter Plant reduces this to 1/10th (see hasAntimatterPlant).
     const maneuverDrive = shipDesign.engines.find(e => e.engine_type === 'maneuver_drive');
     const maneuverPerformance = maneuverDrive?.performance || 0;
+    const fuelSystems = shipDesign.fuel_systems || [];
+    const hasAmPlant = hasAntimatterPlant(fuelSystems);
     if (maneuverPerformance > 0) {
-      used += calculateManeuverFuel(shipDesign.ship.tonnage, maneuverPerformance, shipDesign.ship.fuel_weeks);
+      used += calculateAntimatterAdjustedManeuverFuel(shipDesign.ship.tonnage, maneuverPerformance, shipDesign.ship.fuel_weeks, hasAmPlant);
     }
 
     used += shipDesign.ship.missile_reloads;
     used += shipDesign.ship.sand_reloads;
 
+    if (shipDesign.ship.armor_percentage) {
+      used += calculateArmorMass(shipDesign.ship.tonnage, shipDesign.ship.armor_percentage);
+    }
+
     // Fuel systems: scoops have 0 mass, plant is derived from scoop count
-    const fuelSystems = shipDesign.fuel_systems || [];
     used += fuelSystems.reduce((sum, f) => sum + f.mass, 0);
     const scoopQty = fuelSystems.find(f => f.system_type === 'fuel_scoop')?.quantity ?? 0;
     used += scoopQty * PLANT_PER_SCOOP.mass;
@@ -203,6 +211,11 @@ function App() {
 
     total += shipDesign.ship.missile_reloads;
     total += shipDesign.ship.sand_reloads * 0.1;
+
+    if (shipDesign.ship.armor_percentage) {
+      const armorMass = calculateArmorMass(shipDesign.ship.tonnage, shipDesign.ship.armor_percentage);
+      total += calculateArmorCost(armorMass);
+    }
 
     // Fuel systems: scoops=1MCr each, plant=1MCr per scoop
     const fuelSystems = shipDesign.fuel_systems || [];
@@ -326,6 +339,19 @@ function App() {
         const sections = getMegastructureSections(updates.ship.tonnage);
         newDesign.ship = { ...newDesign.ship, sections };
       }
+
+      // Dropping the power plant below P-10 strands an installed Antimatter
+      // Plant: it can no longer run (FuelPanel hides the control), but its
+      // mass/cost/fuel-discount would otherwise linger unnoticed. Remove it.
+      if (updates.engines !== undefined) {
+        const powerPlantPerformance = updates.engines.find(e => e.engine_type === 'power_plant')?.performance || 0;
+        const existingFuelSystems = newDesign.fuel_systems || [];
+        if (powerPlantPerformance < 10 && hasAntimatterPlant(existingFuelSystems)) {
+          logger.info('Power plant dropped below P-10: removing Antimatter Plant');
+          newDesign.fuel_systems = existingFuelSystems.filter(f => f.system_type !== 'antimatter_plant');
+        }
+      }
+
       return newDesign;
     });
   };
@@ -401,6 +427,7 @@ function App() {
           shipTechLevel={shipDesign.ship.tech_level}
           fuelWeeks={shipDesign.ship.fuel_weeks}
           activeRules={activeRules}
+          hasAmPlant={hasAntimatterPlant(shipDesign.fuel_systems || [])}
           onUpdate={(engines) => updateShipDesign({ engines })}
           onFuelWeeksUpdate={(fuel_weeks) => updateShipDesign({ ship: { ...shipDesign.ship, fuel_weeks } })}
         />;

@@ -3,7 +3,7 @@ import { sumMass } from '../utils/calculations';
 
 // Mock ship design structure
 interface Engine {
-  engine_type: 'power_plant' | 'jump_drive' | 'maneuver_drive';
+  engine_type: 'power_plant' | 'maneuver_drive';
   mass: number;
   cost: number;
   performance: number;
@@ -44,19 +44,19 @@ describe('Engineering Staff Calculations', () => {
     it('should require 3 engineers for 3 normal engines (all under 100 tons)', () => {
       const engines: Engine[] = [
         { engine_type: 'power_plant', mass: 50, cost: 10, performance: 2 },
-        { engine_type: 'jump_drive', mass: 75, cost: 15, performance: 1 },
+        { engine_type: 'power_plant', mass: 75, cost: 15, performance: 1 },
         { engine_type: 'maneuver_drive', mass: 60, cost: 8, performance: 3 }
       ];
       const shipTonnage = 400;
-      
+
       const result = calculateEngineers(engines, shipTonnage);
       expect(result).toBe(3); // 1 engineer per engine, none over 100 tons
     });
-    
+
     it('should require 2 engineers for 2 normal engines and no maneuver engine', () => {
       const engines: Engine[] = [
         { engine_type: 'power_plant', mass: 80, cost: 16, performance: 4 },
-        { engine_type: 'jump_drive', mass: 90, cost: 18, performance: 2 }
+        { engine_type: 'power_plant', mass: 90, cost: 18, performance: 2 }
         // No maneuver drive (M-0 performance)
       ];
       const shipTonnage = 500;
@@ -67,17 +67,17 @@ describe('Engineering Staff Calculations', () => {
   });
   
   describe('Large ships with large engines', () => {
-    it('should require 4 engineers for largest ship with largest engines including Jump engine over 100 tons', () => {
+    it('should require 4 engineers for largest ship with largest engines including a power plant over 100 tons', () => {
       const engines: Engine[] = [
         { engine_type: 'power_plant', mass: 80, cost: 16, performance: 4 },   // 80 tons = 1 engineer (base only)
-        { engine_type: 'jump_drive', mass: 120, cost: 24, performance: 3 },   // 120 tons = 2 engineers (1 base + 1 additional)  
+        { engine_type: 'power_plant', mass: 120, cost: 24, performance: 3 },  // 120 tons = 2 engineers (1 base + 1 additional)
         { engine_type: 'maneuver_drive', mass: 60, cost: 12, performance: 2 } // 60 tons = 1 engineer (base only)
       ];
       const shipTonnage = 1000; // Large ship
-      
+
       const result = calculateEngineers(engines, shipTonnage);
-      // Power Plant: 1 base (under 100 tons) = 1 engineer
-      // Jump Drive: 1 base + Math.ceil(120/100) - 1 = 1 + 2 - 1 = 2 engineers  
+      // Power Plant (80t): 1 base (under 100 tons) = 1 engineer
+      // Power Plant (120t): 1 base + Math.ceil(120/100) - 1 = 1 + 2 - 1 = 2 engineers
       // Maneuver Drive: 1 base (under 100 tons) = 1 engineer
       // Total: 1 + 2 + 1 = 4 engineers
       expect(result).toBe(4);
@@ -88,7 +88,7 @@ describe('Engineering Staff Calculations', () => {
     it('should require 1 engineer for 100 ton ships regardless of engines', () => {
       const engines: Engine[] = [
         { engine_type: 'power_plant', mass: 20, cost: 4, performance: 1 },
-        { engine_type: 'jump_drive', mass: 30, cost: 6, performance: 1 },
+        { engine_type: 'power_plant', mass: 30, cost: 6, performance: 1 },
         { engine_type: 'maneuver_drive', mass: 25, cost: 5, performance: 1 }
       ];
       const shipTonnage = 100;
@@ -100,7 +100,7 @@ describe('Engineering Staff Calculations', () => {
     it('should require 2 engineers for 200 ton ships regardless of engines', () => {
       const engines: Engine[] = [
         { engine_type: 'power_plant', mass: 40, cost: 8, performance: 2 },
-        { engine_type: 'jump_drive', mass: 60, cost: 12, performance: 2 }
+        { engine_type: 'maneuver_drive', mass: 60, cost: 12, performance: 2 }
       ];
       const shipTonnage = 200;
       
@@ -111,7 +111,7 @@ describe('Engineering Staff Calculations', () => {
     it('should require 2 engineers for 300 ton ships regardless of engines', () => {
       const engines: Engine[] = [
         { engine_type: 'power_plant', mass: 60, cost: 12, performance: 3 },
-        { engine_type: 'jump_drive', mass: 90, cost: 18, performance: 3 },
+        { engine_type: 'power_plant', mass: 90, cost: 18, performance: 3 },
         { engine_type: 'maneuver_drive', mass: 50, cost: 10, performance: 3 }
       ];
       const shipTonnage = 300;
@@ -132,14 +132,14 @@ describe('Engineering Staff Calculations', () => {
     
     it('should handle engines exactly at 100 tons boundary', () => {
       const engines: Engine[] = [
-        { engine_type: 'power_plant', mass: 100, cost: 20, performance: 4 }, // Exactly 100 tons = 1 engineer
-        { engine_type: 'jump_drive', mass: 101, cost: 20, performance: 2 }   // 101 tons = 2 engineers
+        { engine_type: 'power_plant', mass: 100, cost: 20, performance: 4 },   // Exactly 100 tons = 1 engineer
+        { engine_type: 'maneuver_drive', mass: 101, cost: 20, performance: 2 } // 101 tons = 2 engineers
       ];
       const shipTonnage = 600;
-      
+
       const result = calculateEngineers(engines, shipTonnage);
       // Power Plant: 1 base (exactly 100 tons, no additional)
-      // Jump Drive: 1 base + Math.ceil(101/100) - 1 = 1 + 2 - 1 = 2 engineers
+      // Maneuver Drive: 1 base + Math.ceil(101/100) - 1 = 1 + 2 - 1 = 2 engineers
       // Total: 1 + 2 = 3 engineers
       expect(result).toBe(3);
     });

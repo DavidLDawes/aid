@@ -2,8 +2,10 @@ import type { ShipDesign, MassCalculation, CostCalculation, StaffRequirements } 
 import {
   COMMS_SENSORS_TYPES, DEFENSE_TYPES, FACILITY_TYPES, CARGO_TYPES,
   VEHICLE_TYPES, DRONE_TYPES, BERTH_TYPES, ZONE_SECTION_TYPES,
-  calculateManeuverFuel, calculateControlCenterMass, calculateControlCenterCost,
-  getMegastructureSections, PLANT_PER_SCOOP
+  calculateControlCenterMass, calculateControlCenterCost,
+  calculateArmorMass, calculateArmorCost,
+  getMegastructureSections, PLANT_PER_SCOOP,
+  hasAntimatterPlant, calculateAntimatterAdjustedManeuverFuel
 } from '../data/constants';
 
 function escapeHtml(str: string): string {
@@ -51,13 +53,15 @@ export function generateShipPrintContent(
     addRow(index === 0 ? 'Engines' : '', `${name} ${code}-${engine.performance}`, engine.mass, engine.cost);
   });
 
-  // Maneuver fuel only
+  // Maneuver fuel only. An installed Antimatter Plant reduces this to 1/10th.
+  const fuelSystems = shipDesign.fuel_systems || [];
+  const hasAmPlant = hasAntimatterPlant(fuelSystems);
   const manPerf = shipDesign.engines.find(e => e.engine_type === 'maneuver_drive')?.performance || 0;
   const manFuelMass = manPerf > 0
-    ? calculateManeuverFuel(shipDesign.ship.tonnage, manPerf, shipDesign.ship.fuel_weeks)
+    ? calculateAntimatterAdjustedManeuverFuel(shipDesign.ship.tonnage, manPerf, shipDesign.ship.fuel_weeks, hasAmPlant)
     : 0;
   if (manFuelMass > 0) {
-    addRow('', `Maneuver Fuel (M-${manPerf}, ${shipDesign.ship.fuel_weeks} weeks)`, manFuelMass, 0);
+    addRow('', `Maneuver Fuel (M-${manPerf}, ${shipDesign.ship.fuel_weeks} weeks${hasAmPlant ? ', Antimatter' : ''})`, manFuelMass, 0);
   }
 
   // Fittings (control_center is auto-calculated above; skip it here)
@@ -95,6 +99,12 @@ export function generateShipPrintContent(
     if (shipDesign.ship.sand_reloads > 0) {
       addRow(defenseIdx++ === 0 ? 'Defenses' : '', 'Sand', shipDesign.ship.sand_reloads, 0);
     }
+  }
+
+  // Armor
+  if (shipDesign.ship.armor_percentage) {
+    const armorMass = calculateArmorMass(shipDesign.ship.tonnage, shipDesign.ship.armor_percentage);
+    addRow('Armor', `${shipDesign.ship.armor_percentage}% armor`, armorMass, calculateArmorCost(armorMass));
   }
 
   // Berths
@@ -144,7 +154,6 @@ export function generateShipPrintContent(
   });
 
   // Fuel Systems
-  const fuelSystems = shipDesign.fuel_systems || [];
   const scoopQty = fuelSystems.find(f => f.system_type === 'fuel_scoop')?.quantity ?? 0;
   const plantMass = scoopQty * PLANT_PER_SCOOP.mass;
   const plantCost = scoopQty * PLANT_PER_SCOOP.cost;
