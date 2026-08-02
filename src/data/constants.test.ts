@@ -179,6 +179,55 @@ describe('calculateEngineMassAndCost at extended power plant tiers', () => {
   });
 });
 
+describe('Fractional maneuver drives (sub-1-gee, megastructure branch only)', () => {
+  // M-1 at 1,000,000 tons: 1.0% tons -> 10,000t, 2.0 MCr/ton -> 20,000 MCr.
+  // Fractional drives are a percentage of those M-1 figures, not of tonnage.
+  it('computes M-.5 as 40% of M-1 tons and 33% of M-1 cost', () => {
+    expect(calculateEngineMassAndCost(1_000_000, 'maneuver_drive', 0.5)).toEqual({ mass: 4_000, cost: 6_600 });
+  });
+
+  it('computes M-.4 as 33% of M-1 tons and 25% of M-1 cost', () => {
+    expect(calculateEngineMassAndCost(1_000_000, 'maneuver_drive', 0.4)).toEqual({ mass: 3_300, cost: 5_000 });
+  });
+
+  it('computes M-.3 as 25% of M-1 tons and 20% of M-1 cost', () => {
+    expect(calculateEngineMassAndCost(1_000_000, 'maneuver_drive', 0.3)).toEqual({ mass: 2_500, cost: 4_000 });
+  });
+
+  it('computes M-.2 as 10% of M-1 tons and 8% of M-1 cost', () => {
+    expect(calculateEngineMassAndCost(1_000_000, 'maneuver_drive', 0.2)).toEqual({ mass: 1_000, cost: 1_600 });
+  });
+
+  it('computes M-.1 as 10% of M-1 tons and 5% of M-1 cost', () => {
+    expect(calculateEngineMassAndCost(1_000_000, 'maneuver_drive', 0.1)).toEqual({ mass: 1_000, cost: 1_000 });
+  });
+
+  it('computes M-.05 as 5% of M-1 tons and 2% of M-1 cost', () => {
+    expect(calculateEngineMassAndCost(1_000_000, 'maneuver_drive', 0.05)).toEqual({ mass: 500, cost: 400 });
+  });
+
+  it('computes M-.01 as 0.1% of M-1 tons and 0.05% of M-1 cost', () => {
+    expect(calculateEngineMassAndCost(1_000_000, 'maneuver_drive', 0.01)).toEqual({ mass: 10, cost: 10 });
+  });
+
+  it('does not apply the fractional table to power_plant', () => {
+    expect(calculateEngineMassAndCost(1_000_000, 'power_plant', 0.5)).toEqual({ mass: 0, cost: 0 });
+  });
+
+  it('lists all seven fractional drives ahead of M-1 in getAvailableEngines', () => {
+    const engines = getAvailableEngines(1_000_000, 'maneuver_drive');
+    const codes = engines.map(e => e.code);
+    expect(codes.slice(0, 7)).toEqual(['M-.01', 'M-.05', 'M-.1', 'M-.2', 'M-.3', 'M-.4', 'M-.5']);
+    expect(codes[7]).toBe('M-1');
+  });
+
+  it('never filters fractional drives out via powerPlantPerformance gating', () => {
+    const engines = getAvailableEngines(1_000_000, 'maneuver_drive', 1);
+    const fractional = engines.filter(e => e.performance < 1);
+    expect(fractional).toHaveLength(7);
+  });
+});
+
 describe('Antimatter Plant fuel discount', () => {
   it('hasAntimatterPlant detects an installed plant with quantity > 0', () => {
     expect(hasAntimatterPlant([{ system_type: 'antimatter_plant', quantity: 1 }])).toBe(true);

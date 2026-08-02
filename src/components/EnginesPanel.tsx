@@ -83,7 +83,7 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, shipT
         </div>
         {engine.drive_code && (
           <div className="engine-info">
-            <small>Performance: {engine.performance} ({type === 'maneuver_drive' ? 'M' : 'P'}-{engine.performance})</small>
+            <small>Performance: {engine.performance} ({engine.drive_code})</small>
           </div>
         )}
       </div>
@@ -199,7 +199,7 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, shipT
                 <tr key={engineType}>
                   <td>{engineType === 'power_plant' ? 'Power Plant' : 'Maneuver Drive'}</td>
                   <td>{engine.drive_code || '-'}</td>
-                  <td>{engine.performance} ({engineType === 'maneuver_drive' ? 'M' : 'P'}-{engine.performance})</td>
+                  <td>{engine.performance} ({engine.drive_code || '-'})</td>
                   <td>{engine.mass.toFixed(1)}</td>
                   <td>{engine.cost.toFixed(2)}</td>
                 </tr>

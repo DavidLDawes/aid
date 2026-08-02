@@ -72,12 +72,51 @@ export const ENGINE_COST_PER_TON = {
   maneuver_drive: 2.0
 };
 
+// Fractional (sub-1-gee) maneuver drives, megastructure branch only. Mass and
+// cost are each a percentage of the M-1 drive's mass/cost - not a straight
+// percentage of ship tonnage - and the two percentages diverge (e.g. M-.5 is
+// 40% of M-1's tons but only 33% of M-1's cost), so these can't be folded
+// into ENGINE_PERFORMANCE_PERCENTAGES/ENGINE_COST_PER_TON's uniform
+// percentage-of-tonnage/cost-per-ton model.
+export const FRACTIONAL_MANEUVER_DRIVE_LEVELS: {
+  performance: number;
+  suffix: string;
+  tonsPercentOfM1: number;
+  costPercentOfM1: number;
+}[] = [
+  { performance: 0.01, suffix: '.01', tonsPercentOfM1: 0.1, costPercentOfM1: 0.05 },
+  { performance: 0.05, suffix: '.05', tonsPercentOfM1: 5, costPercentOfM1: 2 },
+  { performance: 0.1, suffix: '.1', tonsPercentOfM1: 10, costPercentOfM1: 5 },
+  { performance: 0.2, suffix: '.2', tonsPercentOfM1: 10, costPercentOfM1: 8 },
+  { performance: 0.3, suffix: '.3', tonsPercentOfM1: 25, costPercentOfM1: 20 },
+  { performance: 0.4, suffix: '.4', tonsPercentOfM1: 33, costPercentOfM1: 25 },
+  { performance: 0.5, suffix: '.5', tonsPercentOfM1: 40, costPercentOfM1: 33 },
+];
+
+function getFractionalManeuverDriveLevel(performance: number) {
+  return FRACTIONAL_MANEUVER_DRIVE_LEVELS.find(
+    level => Math.abs(level.performance - performance) < 1e-9
+  );
+}
+
 // Calculate engine mass and cost based on performance and ship tonnage
 export function calculateEngineMassAndCost(
   shipTonnage: number,
   engineType: 'power_plant' | 'maneuver_drive',
   performance: number
 ): { mass: number; cost: number } {
+  if (engineType === 'maneuver_drive' && performance > 0 && performance < 1) {
+    const level = getFractionalManeuverDriveLevel(performance);
+    if (!level) {
+      return { mass: 0, cost: 0 };
+    }
+    const m1 = calculateEngineMassAndCost(shipTonnage, 'maneuver_drive', 1);
+    return {
+      mass: (m1.mass * level.tonsPercentOfM1) / 100,
+      cost: (m1.cost * level.costPercentOfM1) / 100
+    };
+  }
+
   if (performance < 1 || performance > 12) {
     return { mass: 0, cost: 0 };
   }
@@ -100,6 +139,25 @@ export function getAvailableEngines(hullTonnage: number, engineType: string, pow
   const availableEngines = [];
 
   const performanceLabel = engineType === 'maneuver_drive' ? 'M' : 'P';
+
+  // Fractional (sub-1-gee) maneuver drives, listed ascending before M-1.
+  // Always available alongside the M-1..M-6 range: they require less than
+  // 1 gee of power plant performance, so the powerPlantPerformance gating
+  // below (which only excludes drives exceeding the power plant's rating)
+  // never filters them out.
+  if (engineType === 'maneuver_drive') {
+    for (const level of FRACTIONAL_MANEUVER_DRIVE_LEVELS) {
+      const { mass, cost } = calculateEngineMassAndCost(hullTonnage, 'maneuver_drive', level.performance);
+      const code = `M-${level.suffix}`;
+      availableEngines.push({
+        code,
+        performance: level.performance,
+        mass,
+        cost,
+        label: `${code} (${mass.toFixed(1)}t, ${cost.toFixed(2)} MCr)`
+      });
+    }
+  }
 
   // Maneuver drives cap at 6. Power plants are instead gated directly by tech
   // level via getMaxPowerPlantByTechLevel, up to P-12 at TL-J (needed to
