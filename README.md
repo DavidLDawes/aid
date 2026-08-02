@@ -38,7 +38,7 @@ docker run -p 8080:8080 starship-designer
 
 ## System Requirements
 
-- **Node.js** 22+
+- **Node.js** 24+ (LTS)
 - **pnpm** 11+ package manager
 
 ## Installation & Setup
@@ -167,7 +167,7 @@ Drive performance by drive letter (A–Z) across hull tonnages is implemented in
 - **Webpack 5** with webpack-dev-server
 - **Jest** for testing
 - **IndexedDB** for browser-local persistence
-- **Node.js 22+**
+- **Node.js 24+ (LTS)**
 - **pnpm 11+**
 
 ## Troubleshooting
