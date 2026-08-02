@@ -461,6 +461,10 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
         {staff.nurses > 0 && <p><strong>Nurses:</strong> {staff.nurses}</p>}
         {staff.surgeons > 0 && <p><strong>Surgeons:</strong> {staff.surgeons}</p>}
         {staff.techs > 0 && <p><strong>Medical Techs:</strong> {staff.techs}</p>}
+        {staff.infantry > 0 && <p><strong>Infantry:</strong> {staff.infantry}</p>}
+        {staff.armor > 0 && <p><strong>Armor:</strong> {staff.armor}</p>}
+        {staff.mp > 0 && <p><strong>MP:</strong> {staff.mp}</p>}
+        {staff.security > 0 && <p><strong>Security:</strong> {staff.security}</p>}
         <p><strong>Total:</strong> {staff.total}</p>
       </div>
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import type { Ship, ShipDesign } from '../types/ship';
 import { TECH_LEVELS, MEGASTRUCTURE_HULL_SIZES, getMegastructureSections } from '../data/constants';
 import { databaseService } from '../services/database';
+import { createEmptyCustomCrew } from '../utils/shipDefaults';
 
 interface ShipPanelProps {
   ship: Ship;
@@ -50,6 +51,7 @@ const ShipPanel: React.FC<ShipPanelProps> = ({ ship, onUpdate, onLoadExistingShi
             vehicles: existingShip.vehicles,
             drones: existingShip.drones,
             custom_items: existingShip.custom_items || [],
+            custom_crew: existingShip.custom_crew || createEmptyCustomCrew(),
             fuel_systems: existingShip.fuel_systems || [],
             zone_sections: existingShip.zone_sections || []
           }

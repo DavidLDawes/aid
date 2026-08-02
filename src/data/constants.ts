@@ -1,4 +1,23 @@
-import type { Cargo } from '../types/ship';
+import type { Cargo, CustomCrew } from '../types/ship';
+
+// Crew categories shown on the Custom panel's crew-tracking section, in
+// display order - the same positions shown on the Staff panel, plus four
+// (infantry/armor/mp/security) that only exist as custom-crew entries.
+export const CUSTOM_CREW_CATEGORIES: { key: keyof CustomCrew; label: string }[] = [
+  { key: 'pilot', label: 'Pilot' },
+  { key: 'navigator', label: 'Navigator' },
+  { key: 'engineers', label: 'Engineers' },
+  { key: 'gunners', label: 'Gunners' },
+  { key: 'service', label: 'Service' },
+  { key: 'stewards', label: 'Stewards' },
+  { key: 'nurses', label: 'Nurses' },
+  { key: 'surgeons', label: 'Surgeons' },
+  { key: 'techs', label: 'Techs' },
+  { key: 'infantry', label: 'Infantry' },
+  { key: 'armor', label: 'Armor' },
+  { key: 'mp', label: 'MP' },
+  { key: 'security', label: 'Security' },
+];
 
 // TL letters skip 'I' (visual confusion with the digit 1), matching the
 // Traveller convention: ...H=17, I skipped, J=18, K=19...
