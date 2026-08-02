@@ -30,54 +30,67 @@ describe('FacilitiesPanel', () => {
     expect(onUpdate).not.toHaveBeenCalled();
   });
 
-  it('+ button adds a new facility', () => {
+  it('typing a quantity adds a new facility', () => {
     const onUpdate = jest.fn();
     const facilities: Facility[] = [{ facility_type: 'commissary', quantity: 1, mass: 2, cost: 0.2 }];
     render(<FacilitiesPanel facilities={facilities} onUpdate={onUpdate} />);
-    // Click + for Gym (first non-commissary facility shown)
-    const plusButtons = screen.getAllByText('+');
-    fireEvent.click(plusButtons[0]);
+    // Gym is the first facility shown (Row 1)
+    const quantityInputs = screen.getAllByLabelText('Quantity:');
+    fireEvent.change(quantityInputs[0], { target: { value: '1' } });
     expect(onUpdate).toHaveBeenCalledWith(
       expect.arrayContaining([expect.objectContaining({ facility_type: 'gym', quantity: 1 })])
     );
   });
 
-  it('+ button increments quantity for existing facility', () => {
+  it('typing a large quantity updates an existing facility directly, without one click per unit', () => {
     const onUpdate = jest.fn();
     const facilities: Facility[] = [
       { facility_type: 'commissary', quantity: 1, mass: 2, cost: 0.2 },
       { facility_type: 'gym', quantity: 1, mass: 3, cost: 0.1 }
     ];
     render(<FacilitiesPanel facilities={facilities} onUpdate={onUpdate} />);
-    const plusButtons = screen.getAllByText('+');
-    fireEvent.click(plusButtons[0]); // Gym is first in row 1
+    const quantityInputs = screen.getAllByLabelText('Quantity:'); // Gym is first in row 1
+    fireEvent.change(quantityInputs[0], { target: { value: '250' } });
     expect(onUpdate).toHaveBeenCalledWith(
-      expect.arrayContaining([expect.objectContaining({ facility_type: 'gym', quantity: 2 })])
+      expect.arrayContaining([expect.objectContaining({ facility_type: 'gym', quantity: 250 })])
     );
   });
 
-  it('- button decrements facility and removes at 0', () => {
+  it('typing 0 removes a facility', () => {
     const onUpdate = jest.fn();
     const facilities: Facility[] = [
       { facility_type: 'commissary', quantity: 1, mass: 2, cost: 0.2 },
       { facility_type: 'gym', quantity: 1, mass: 3, cost: 0.1 }
     ];
     render(<FacilitiesPanel facilities={facilities} onUpdate={onUpdate} />);
-    const minusButtons = screen.getAllByText('-');
-    // Find the enabled minus button for gym
-    const enabledMinus = minusButtons.find(btn => !btn.hasAttribute('disabled'));
-    fireEvent.click(enabledMinus!);
+    const quantityInputs = screen.getAllByLabelText('Quantity:');
+    fireEvent.change(quantityInputs[0], { target: { value: '0' } });
     const result = (onUpdate.mock.calls[0][0] as Facility[]);
     expect(result.some(f => f.facility_type === 'gym')).toBe(false);
   });
 
-  it('- button disabled when quantity is 0', () => {
+  it('treats a negative entry as zero', () => {
+    const onUpdate = jest.fn();
+    const facilities: Facility[] = [
+      { facility_type: 'commissary', quantity: 1, mass: 2, cost: 0.2 },
+      { facility_type: 'gym', quantity: 1, mass: 3, cost: 0.1 }
+    ];
+    render(<FacilitiesPanel facilities={facilities} onUpdate={onUpdate} />);
+    const quantityInputs = screen.getAllByLabelText('Quantity:');
+    fireEvent.change(quantityInputs[0], { target: { value: '-5' } });
+    const result = (onUpdate.mock.calls[0][0] as Facility[]);
+    expect(result.some(f => f.facility_type === 'gym')).toBe(false);
+  });
+
+  it('quantity inputs allow direct entry and have a minimum of 0', () => {
     const facilities: Facility[] = [{ facility_type: 'commissary', quantity: 1, mass: 2, cost: 0.2 }];
     render(<FacilitiesPanel facilities={facilities} onUpdate={noOp} />);
-    const minusButtons = screen.getAllByText('-');
-    // All - buttons for zero-quantity facilities should be disabled
-    const disabledCount = minusButtons.filter(btn => btn.hasAttribute('disabled')).length;
-    expect(disabledCount).toBeGreaterThan(0);
+    const quantityInputs = screen.getAllByLabelText('Quantity:');
+    expect(quantityInputs.length).toBeGreaterThan(0);
+    quantityInputs.forEach(input => {
+      expect(input).toHaveAttribute('type', 'number');
+      expect(input).toHaveAttribute('min', '0');
+    });
   });
 
   it('shows valid commissary requirement when commissary present', () => {
