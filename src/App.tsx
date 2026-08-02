@@ -238,11 +238,30 @@ function App() {
     const stewards = Math.ceil(totalStaterooms / 8);
 
     const medicalStaff = calculateMedicalStaff(shipDesign.facilities);
-    const { nurses, surgeons, techs } = medicalStaff;
+    const { nurses: baseNurses, surgeons: baseSurgeons, techs: baseTechs } = medicalStaff;
 
-    const total = pilot + navigator + engineers + gunners + service + stewards + nurses + surgeons + techs;
+    // Crew assigned to operate/service/repair/serve custom items adds onto
+    // the corresponding position; infantry/armor/mp/security have no
+    // baseline formula elsewhere, so they're purely custom-crew-driven.
+    const customCrew = shipDesign.custom_crew;
+    const pilotTotal = pilot + customCrew.pilot;
+    const navigatorTotal = navigator + customCrew.navigator;
+    const engineersTotal = engineers + customCrew.engineers;
+    const gunnersTotal = gunners + customCrew.gunners;
+    const serviceTotal = service + customCrew.service;
+    const stewardsTotal = stewards + customCrew.stewards;
+    const nurses = baseNurses + customCrew.nurses;
+    const surgeons = baseSurgeons + customCrew.surgeons;
+    const techs = baseTechs + customCrew.techs;
+    const { infantry, armor, mp, security } = customCrew;
 
-    return { pilot, navigator, engineers, gunners, service, stewards, nurses, surgeons, techs, total };
+    const total = pilotTotal + navigatorTotal + engineersTotal + gunnersTotal + serviceTotal + stewardsTotal
+      + nurses + surgeons + techs + infantry + armor + mp + security;
+
+    return {
+      pilot: pilotTotal, navigator: navigatorTotal, engineers: engineersTotal, gunners: gunnersTotal,
+      service: serviceTotal, stewards: stewardsTotal, nurses, surgeons, techs, infantry, armor, mp, security, total
+    };
   }, [shipDesign, activeRules]);
 
   const handleFilePrint = useCallback(() => {
@@ -505,7 +524,12 @@ function App() {
       case 8:
         return <DronesPanel drones={shipDesign.drones} onUpdate={(drones) => updateShipDesign({ drones })} />;
       case 9:
-        return <CustomPanel custom_items={shipDesign.custom_items} onUpdate={(custom_items) => updateShipDesign({ custom_items })} />;
+        return <CustomPanel
+          custom_items={shipDesign.custom_items}
+          custom_crew={shipDesign.custom_crew}
+          onUpdate={(custom_items) => updateShipDesign({ custom_items })}
+          onCrewUpdate={(custom_crew) => updateShipDesign({ custom_crew })}
+        />;
       case 10:
         return <FuelPanel
           fuelSystems={shipDesign.fuel_systems || []}

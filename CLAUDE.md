@@ -64,7 +64,7 @@ aid/
 │   │   ├── CargoPanel.tsx      # Cargo bays (panel 6)
 │   │   ├── VehiclesPanel.tsx   # Vehicles (panel 7)
 │   │   ├── DronesPanel.tsx     # Drones (panel 8)
-│   │   ├── CustomPanel.tsx     # Custom items (panel 9)
+│   │   ├── CustomPanel.tsx     # Custom items + custom crew (panel 9)
 │   │   ├── FuelPanel.tsx       # Fuel scoops, processors, tanks, antimatter plant (panel 10)
 │   │   ├── SectionsPanel.tsx   # Zone sections — residential/industrial/farm/etc. (panel 11)
 │   │   ├── BerthsPanel.tsx     # Berths (panel 12)
@@ -169,8 +169,9 @@ Test files are co-located with source files using .test.ts/.test.tsx extension
 **`src/types/ship.ts`**: TypeScript interfaces for all ship components
 - `ShipDesign`: Root interface containing all component arrays
 - `Ship`: includes `atmosphere_support?: boolean` — a floating-city-style structure that needs active navigation (see Staff Requirements Logic)
-- Component interfaces: `Engine` (`engine_type: 'power_plant' | 'maneuver_drive'`, no jump drive), `Fitting` (`fitting_type: 'control_center' | 'launch_tube' | 'comms_sensors' | 'computer'`, no bridge), `Weapon`, `Defense`, `Berth`, `Facility`, `Cargo`, `Vehicle`, `Drone`, `CustomItem`, `FuelSystem`, `ZoneSection`
+- Component interfaces: `Engine` (`engine_type: 'power_plant' | 'maneuver_drive'`, no jump drive), `Fitting` (`fitting_type: 'control_center' | 'launch_tube' | 'comms_sensors' | 'computer'`, no bridge), `Weapon`, `Defense`, `Berth`, `Facility`, `Cargo`, `Vehicle`, `Drone`, `CustomItem`, `CustomCrew`, `FuelSystem`, `ZoneSection`
 - `CustomItem`: User-defined items with name, mass, and cost (no predefined types)
+- `CustomCrew`: a single object (not an array) on `ShipDesign`, holding a count per crew category to operate/service/repair/serve custom items — the same 9 positions shown on the Staff panel (pilot/navigator/engineers/gunners/service/stewards/nurses/surgeons/techs), plus 4 that exist only as custom-crew entries (infantry/armor/mp/security, no baseline formula elsewhere). Every count adds directly onto the corresponding `StaffRequirements` field in `calculateStaffRequirements()` (see Staff Requirements Logic)
 - `StaffRequirements`: Crew calculation results
 
 ### Component Architecture
@@ -318,6 +319,7 @@ Crew calculation in `calculateStaffRequirements()` (hoisted before JSX return in
 - **Stewards**: 1 per 8 staterooms (rounded up)
 - **Medical**: Calculated by `calculateMedicalStaff()` based on medical facilities
 - **Service**: Vehicle service (`calculateVehicleServiceStaff`) + drone service (`calculateDroneServiceStaff`) from `constants.ts`
+- **Custom Crew** (`shipDesign.custom_crew`, entered on the Custom panel — see Common Modifications): added directly onto the corresponding field above for the 9 shared positions (pilot/navigator/engineers/gunners/service/stewards/nurses/surgeons/techs). **Infantry/Armor/MP/Security** have no baseline formula anywhere else in the app, so their `StaffRequirements` values are exactly whatever's entered as custom crew
 
 There is no small-ship pilot/navigator-combining or no-stewards toggle on this branch (that convention only applied to exactly-100/200-ton starships on the `main` branch; megastructures start at 1,000,000 tons, so it never applied here and was removed as dead code).
 
@@ -417,6 +419,7 @@ The Custom panel (`src/components/CustomPanel.tsx`, panel index 9) demonstrates 
 - **UI Pattern**: Form with text/number inputs + table with remove buttons
 - **Different from other panels**: No predefined types or constants - fully user-defined
 - **Integration**: Same as other panels - appears in mass/cost calculations, CSV export, summary, print
+- **Custom Crew**: a second section on the same panel, gated on `custom_items.length > 0` (hidden entirely until at least one custom item exists, rather than shown-but-disabled). Iterates `CUSTOM_CREW_CATEGORIES` (`src/data/constants.ts`) to render one number input per crew position; unlike `CustomItem`, this list of categories **is** predefined (it mirrors the Staff panel's positions plus infantry/armor/mp/security) since the whole point is tracking crew against known position types, not arbitrary user-named ones
 
 **Modifying validation**:
 - Panel-specific validation in `isCurrentPanelValid()` switch statement
