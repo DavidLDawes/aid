@@ -3,6 +3,7 @@ import { databaseService, type StoredShipDesign } from '../services/database';
 import { initialDataService } from '../services/initialDataService';
 import type { ShipDesign } from '../types/ship';
 import { logger } from '../utils/logger';
+import { createEmptyCustomCrew } from '../utils/shipDefaults';
 
 interface SelectShipPanelProps {
   onNewShip: () => void;
@@ -50,6 +51,7 @@ function createDefaultShips() {
       vehicles: [],
       drones: [],
       custom_items: [],
+      custom_crew: createEmptyCustomCrew(),
       fuel_systems: [
         { system_type: 'fuel_scoop' as const, quantity: 1000, mass: 0, cost: 1000 },
         { system_type: 'fuel_processor' as const, quantity: 10, mass: 10000, cost: 500 },
