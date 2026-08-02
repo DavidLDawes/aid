@@ -268,7 +268,7 @@ const calcFM = (t, p, w, a) => { ... };
 - `cleanupScreensForTechLevel()`: clamp screen quantity down to the new `getMaxScreens()` ceiling (drop if it hits 0)
 - Called from `App.tsx`'s `updateShipDesign()` whenever `ship.tech_level` actually changes
 
-**`src/utils/crewCalculations.ts`**: Pilot/navigator crew-size formulas (see Staff Requirements Logic)
+**`src/utils/crewCalculations.ts`**: Pilot/navigator/engineer crew-size formulas (see Staff Requirements Logic)
 
 **`src/utils/csv.ts`**: `escapeCsvField()` — quotes/escapes a CSV field if it contains a comma, quote, or newline (ship names and generated item labels routinely do)
 
@@ -308,7 +308,7 @@ The `calculateMass()` function in App.tsx handles:
 Crew calculation in `calculateStaffRequirements()` (hoisted before JSX return in App.tsx, called once per render):
 - **Pilot**: `calculatePilotCount(maneuverPerformance)` — 8 pilots (24x7 coverage with spares) if the maneuver drive is M-1 or better; 1 (skeleton crew) if the structure is stationary (M-0 / no maneuver drive)
 - **Navigator**: `calculateNavigatorCount(ship.atmosphere_support)` — 0 by default (a plotted course is followed for decades, no standing navigator needed); 4 if `atmosphere_support` is set (a floating-city-style structure needs active navigation), toggled on the Megastructure panel (`ShipPanel.tsx`)
-- **Engineers**: at least 1 per engine (`max(engineCount, 1)`), plus `ceil(mass/100) - 1` extra for each engine whose mass exceeds 100 tons
+- **Engineers** (`calculateEngineerCount()` in `src/utils/crewCalculations.ts`): at least 1 per engine (minimum 1 total, even with none configured), plus `ceil(mass/100) - 1` extra for each engine whose mass exceeds 100 tons. If the Robotics rule is enabled (TL-F+, toggled via the Rules menu), each engine's own crew requirement is divided (rounded up, per engine) by `getRoboticsCrewDivisor(techLevel)`: TL-F=1/2, TL-G=1/4, TL-H=1/6, TL-J=1/8
 - **Gunners**:
   - 1 per 10 turrets/barbettes (rounded up)
   - 1 per 10 defense turrets (rounded up)
@@ -335,13 +335,14 @@ Use helper functions: `isTechLevelAtLeast()`, `getMaxPowerPlantByTechLevel()`, `
 
 ### Rules System
 
-`activeRules` state (Set<string>) is passed down to several components (`RulesMenu`, `EnginesPanel`, `MassSidebar`, `SummaryPanel`, `printContent.ts`), but **as of this branch, nothing actually reads `activeRules.has(...)`** — it's plumbing inherited from the `capital` branch that isn't wired to any calculation here. The real mechanics it used to gate are now driven directly by game state instead:
+`activeRules` state (Set<string>) is passed down to several components (`RulesMenu`, `EnginesPanel`, `MassSidebar`, `SummaryPanel`, `printContent.ts`). Most of it is still inert plumbing inherited from the `capital` branch, but `'robotics'` is a real exception — App.tsx's `calculateStaffRequirements()` reads `activeRules.has('robotics')` directly to drive the engineer-count reduction:
 - Antimatter fuel discount: driven by `hasAntimatterPlant(shipDesign.fuel_systems)`, not by toggling the "Antimatter" rule
 - `'spacecraft_design_srd'`: always enabled, can't be disabled (display-only)
 - `'high_guard_capital_ships'`: always shown disabled (display-only, not applicable to megastructures)
 - `'antimatter'`: toggleable in the UI (gated to TL-H+ ships) but currently has no effect on any calculation
+- `'robotics'`: toggleable in the UI (gated to TL-F+ ships) and **does** affect calculations — `calculateEngineerCount()` (`src/utils/crewCalculations.ts`) divides each engine's crew requirement (rounded up) by `getRoboticsCrewDivisor(techLevel)` when enabled: TL-F=1/2, TL-G=1/4, TL-H=1/6, TL-J=1/8
 
-If you add a new rule that should actually affect calculations, wire it through real game state (like the Antimatter Plant is) rather than `activeRules.has('rule_id')`, unless you're also adding the code that reads it.
+If you add a new rule that should actually affect calculations, wire it through real game state (like the Antimatter Plant is) rather than `activeRules.has('rule_id')`, unless you're also adding the code that reads it (as `'robotics'` does).
 
 ### Print Functionality
 

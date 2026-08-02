@@ -14,7 +14,7 @@ import { createEmptyShipDesign, createDefaultShip } from './utils/shipDefaults';
 import { sumMass, sumMassWithQuantity, sumCost, sumCostWithQuantity, sumCargoTonnage } from './utils/calculations';
 import { rescaleEnginesForTonnage, rescaleFittingsForTonnage } from './utils/tonnageRescale';
 import { cleanupVehiclesForTechLevel, cleanupBayWeaponsForTechLevel, cleanupScreensForTechLevel } from './utils/techLevelCleanup';
-import { calculatePilotCount, calculateNavigatorCount } from './utils/crewCalculations';
+import { calculatePilotCount, calculateNavigatorCount, calculateEngineerCount } from './utils/crewCalculations';
 import { generateShipPrintContent } from './utils/printContent';
 // Eagerly load only the ship selection panel (first screen)
 import SelectShipPanel from './components/SelectShipPanel';
@@ -193,14 +193,13 @@ function App() {
     const pilot = calculatePilotCount(maneuverPerformance);
     const navigator = calculateNavigatorCount(shipDesign.ship.atmosphere_support);
 
-    // Engineer count based on engine mass (megastructures are large ships)
-    const engineCount = shipDesign.engines.length;
-    let engineers = Math.max(engineCount, 1);
-    for (const engine of shipDesign.engines) {
-      if (engine.mass > 100) {
-        engineers += Math.ceil(engine.mass / 100) - 1;
-      }
-    }
+    // Engineer count based on engine mass (megastructures are large ships).
+    // Robotics (TL-F+ Rules menu toggle) reduces per-engine crew requirements.
+    const engineers = calculateEngineerCount(
+      shipDesign.engines,
+      shipDesign.ship.tech_level,
+      activeRules.has('robotics')
+    );
 
     const bayWeaponNames = BAY_WEAPON_TYPES.map(b => b.name);
     let turretsAndBarbettesGunners = 0;
@@ -244,7 +243,7 @@ function App() {
     const total = pilot + navigator + engineers + gunners + service + stewards + nurses + surgeons + techs;
 
     return { pilot, navigator, engineers, gunners, service, stewards, nurses, surgeons, techs, total };
-  }, [shipDesign]);
+  }, [shipDesign, activeRules]);
 
   const handleFilePrint = useCallback(() => {
     logger.info(`Printing megastructure "${shipDesign.ship.name}"`);

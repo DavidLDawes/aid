@@ -31,6 +31,18 @@ export function getMaxPowerPlantByTechLevel(techLevel: string): number {
   return 6;
 }
 
+// Robotics (TL-F+, toggled via the Rules menu): robot workers assist each
+// engineer, letting them cover more of an engine's own crew requirement as
+// tech level improves. Divisor to apply (rounded up) to each engine's crew:
+// TL-F=1/2, TL-G=1/4, TL-H=1/6, TL-J=1/8. Below TL-F, no reduction (1).
+export function getRoboticsCrewDivisor(techLevel: string): number {
+  if (isTechLevelAtLeast(techLevel, 'J')) return 8;
+  if (isTechLevelAtLeast(techLevel, 'H')) return 6;
+  if (isTechLevelAtLeast(techLevel, 'G')) return 4;
+  if (isTechLevelAtLeast(techLevel, 'F')) return 2;
+  return 1;
+}
+
 // Engine performance percentages as a function of ship displacement.
 // Levels 1-6 are from the Traveller SRD. Megastructures have no jump drive,
 // so power plant levels 7-12 extend the same +1.0%/step progression from
