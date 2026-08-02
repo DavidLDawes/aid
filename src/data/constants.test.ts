@@ -6,6 +6,7 @@ import {
   calculateEngineMassAndCost,
   getAvailableEngines,
   getMaxPowerPlantByTechLevel,
+  getRoboticsCrewDivisor,
   hasAntimatterPlant,
   calculateAntimatterAdjustedManeuverFuel,
   getWeaponMountLimit,
@@ -156,6 +157,20 @@ describe('getMaxPowerPlantByTechLevel', () => {
     expect(getMaxPowerPlantByTechLevel('G')).toBe(8);
     expect(getMaxPowerPlantByTechLevel('H')).toBe(10);
     expect(getMaxPowerPlantByTechLevel('J')).toBe(12);
+  });
+});
+
+describe('getRoboticsCrewDivisor', () => {
+  it('applies no reduction below TL-F', () => {
+    expect(getRoboticsCrewDivisor('A')).toBe(1);
+    expect(getRoboticsCrewDivisor('E')).toBe(1);
+  });
+
+  it('steps up with tech level: F=2, G=4, H=6, J=8', () => {
+    expect(getRoboticsCrewDivisor('F')).toBe(2);
+    expect(getRoboticsCrewDivisor('G')).toBe(4);
+    expect(getRoboticsCrewDivisor('H')).toBe(6);
+    expect(getRoboticsCrewDivisor('J')).toBe(8);
   });
 });
 
