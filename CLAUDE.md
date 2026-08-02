@@ -108,7 +108,7 @@ Test files are co-located with source files using .test.ts/.test.tsx extension
 - **Bundler Config**: `vite.config.js` - entry point is `index.html` → `src/main.tsx`
 - **Dev Server**: Vite defaults (dev 5173, preview 4173)
 - **Deployment**: Cloudflare Worker (`worker/index.js` + `wrangler.jsonc`), serving `dist/` under the `/CapitalShipDesign` path at `srd-tools.com` — the same origin as the main Starship Designer app (`/ShipDesign`), which is why the two apps must use different IndexedDB store names (see Database Persistence below)
-- **Node Version**: >=22 (specified in package.json engines)
+- **Node Version**: >=24 (LTS; specified in package.json engines)
 
 ## Architecture Overview
 
