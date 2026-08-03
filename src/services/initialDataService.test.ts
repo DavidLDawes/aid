@@ -154,33 +154,26 @@ describe('Initial Data Service', () => {
     });
   });
 
-  describe('resetToStandardShips', () => {
-    it('flushes the database before reloading, even when ships already exist', async () => {
+  describe('resetStandardShips', () => {
+    it('upserts the standard ships without flushing, even when ships already exist', async () => {
       (databaseService.hasAnyShips as jest.Mock).mockResolvedValue(true);
 
-      const result = await initialDataService.resetToStandardShips();
+      const result = await initialDataService.resetStandardShips();
 
       expect(databaseService.initialize).toHaveBeenCalled();
-      expect(databaseService.flushAllShips).toHaveBeenCalled();
+      expect(databaseService.flushAllShips).not.toHaveBeenCalled();
       expect(databaseService.hasAnyShips).not.toHaveBeenCalled();
       expect(result).toEqual({ loaded: 1, errors: 0 });
+      // saveOrUpdateShipByName matches by ship name, so this overwrites only
+      // the standard ships by name - it never touches any other saved ship.
       expect(databaseService.saveOrUpdateShipByName).toHaveBeenCalledWith(mockShipDesign);
-    });
-
-    it('flushes before checking for standard ship data, so a flush failure prevents reload', async () => {
-      (databaseService.flushAllShips as jest.Mock).mockRejectedValue(new Error('flush failed'));
-
-      await expect(initialDataService.resetToStandardShips()).rejects.toThrow('flush failed');
-      expect(global.fetch).not.toHaveBeenCalled();
-      expect(databaseService.saveOrUpdateShipByName).not.toHaveBeenCalled();
     });
 
     it('returns zero counts when no standard ship data is available', async () => {
       (global.fetch as jest.Mock).mockResolvedValue({ ok: false, status: 404 });
 
-      const result = await initialDataService.resetToStandardShips();
+      const result = await initialDataService.resetStandardShips();
 
-      expect(databaseService.flushAllShips).toHaveBeenCalled();
       expect(result).toEqual({ loaded: 0, errors: 0 });
       expect(databaseService.saveOrUpdateShipByName).not.toHaveBeenCalled();
     });
@@ -189,7 +182,7 @@ describe('Initial Data Service', () => {
       (databaseService.saveOrUpdateShipByName as jest.Mock).mockRejectedValue(new Error('Save failed'));
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
-      const result = await initialDataService.resetToStandardShips();
+      const result = await initialDataService.resetStandardShips();
 
       expect(result).toEqual({ loaded: 0, errors: 1 });
       expect(consoleSpy).toHaveBeenCalled();

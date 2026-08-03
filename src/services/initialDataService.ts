@@ -39,14 +39,16 @@ class InitialDataService {
     }
   }
 
-  // Deletes every ship in the database, then unconditionally reloads the
-  // standard ships from initial-ships.json - unlike loadInitialDataIfNeeded,
-  // which only loads when the database is empty. Used by the in-app
-  // "Reset to Standard Ships" action (SelectShipPanel).
-  async resetToStandardShips(): Promise<{ loaded: number; errors: number }> {
-    logger.info('Resetting database to standard ships');
+  // Restores the standard ships (Free Trader, Fat Trader, Far Trader, Scout)
+  // to their baseline designs, whether the user deleted or changed them -
+  // unconditionally, unlike loadInitialDataIfNeeded, which only loads when
+  // the database is empty. saveOrUpdateShipByName matches by ship name, so
+  // this only ever touches those standard names; any other ship the user
+  // has added is left completely alone. Used by the in-app "Reset Ships"
+  // action (SelectShipPanel).
+  async resetStandardShips(): Promise<{ loaded: number; errors: number }> {
+    logger.info('Resetting standard ships to their baseline designs');
     await databaseService.initialize();
-    await databaseService.flushAllShips();
 
     const initialData = await this.loadInitialData();
     if (!initialData || !initialData.ships || initialData.ships.length === 0) {

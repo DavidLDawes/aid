@@ -52,6 +52,11 @@ export const HULL_SIZES = [
   { tonnage: 2000, code: 'L', cost: 200 }
 ];
 
+// This branch designs 100-2,000 ton starships only (larger ships belong to
+// the sibling capital/megastructure branches). Derived from HULL_SIZES so it
+// always tracks the actual max hull size offered when creating a new ship.
+export const MAX_SHIP_TONNAGE = HULL_SIZES[HULL_SIZES.length - 1].tonnage;
+
 // Drive codes skip 'I' to avoid confusion with the digit '1'.
 export const ENGINE_DRIVES = {
   A: [

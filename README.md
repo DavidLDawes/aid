@@ -163,8 +163,9 @@ pnpm extractDB       # Export ships from IndexedDB to JSON files
 pnpm preloadDB       # Import ships from JSON files to IndexedDB
 pnpm flushDB         # Clear all ships from IndexedDB
 
-# To reset a user's saved ships to the standard set, use the in-app
-# "Reset to Standard Ships" button on the Select Ship screen instead.
+# To restore the standard ships (Free Trader, Fat Trader, Far Trader,
+# Scout) to their baseline designs, use the in-app "Reset Ships" button
+# on the Select Ship screen instead - it leaves any other saved ship untouched.
 ```
 
 ## Engine Performance Data
