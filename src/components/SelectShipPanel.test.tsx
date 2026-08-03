@@ -240,6 +240,40 @@ describe('SelectShipPanel', () => {
     window.confirm = originalConfirm;
   });
 
+  it('filters out saved ships over 2,000 tons', async () => {
+    const { databaseService } = await import('../services/database');
+    const smallShip = {
+      id: 10,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      ship: {
+        name: 'Compliant Trader',
+        tech_level: 'B',
+        tonnage: 2000,
+        configuration: 'standard' as const,
+        fuel_weeks: 2,
+        missile_reloads: 0,
+        sand_reloads: 0,
+        description: ''
+      },
+      engines: [], fittings: [], weapons: [], defenses: [], berths: [],
+      facilities: [], cargo: [], vehicles: [], drones: []
+    };
+    const oversizedShip = {
+      ...smallShip,
+      id: 11,
+      ship: { ...smallShip.ship, name: 'Oversized Cruiser', tonnage: 2400 }
+    };
+    (databaseService.getAllShips as ReturnType<typeof jest.fn>)
+      .mockResolvedValueOnce([smallShip, oversizedShip]);
+
+    render(<SelectShipPanel onNewShip={mockOnNewShip} onLoadShip={mockOnLoadShip} />);
+    await waitFor(() => {
+      expect(screen.getByText(/Compliant Trader/)).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/Oversized Cruiser/)).not.toBeInTheDocument();
+  });
+
   it('shows an error if resetToStandardShips rejects', async () => {
     const { initialDataService } = await import('../services/initialDataService');
     (initialDataService.resetToStandardShips as ReturnType<typeof jest.fn>)

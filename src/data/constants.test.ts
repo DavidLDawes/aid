@@ -13,7 +13,16 @@ import {
   getWeaponMountLimit,
   convertTechLevelToNumber,
   getAvailableVehicles,
+  HULL_SIZES,
+  MAX_SHIP_TONNAGE,
 } from './constants';
+
+describe('MAX_SHIP_TONNAGE', () => {
+  it('matches the largest hull size offered (2,000 tons)', () => {
+    expect(MAX_SHIP_TONNAGE).toBe(2000);
+    expect(MAX_SHIP_TONNAGE).toBe(HULL_SIZES[HULL_SIZES.length - 1].tonnage);
+  });
+});
 
 describe('getMaxJumpByTechLevel', () => {
   it('caps jump at TL index + 1 up to J-6', () => {

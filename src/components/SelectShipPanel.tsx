@@ -3,6 +3,14 @@ import { databaseService, type StoredShipDesign } from '../services/database';
 import { initialDataService } from '../services/initialDataService';
 import type { ShipDesign } from '../types/ship';
 import { logger } from '../utils/logger';
+import { MAX_SHIP_TONNAGE } from '../data/constants';
+
+// This branch only designs 100-2,000 ton starships. Filter out any saved
+// ship over that tonnage - e.g. leftover capital/megastructure-scale
+// records from before each branch got its own IndexedDB database.
+function filterToMainTonnage(ships: StoredShipDesign[]): StoredShipDesign[] {
+  return ships.filter(s => s.ship.tonnage <= MAX_SHIP_TONNAGE);
+}
 
 interface SelectShipPanelProps {
   onNewShip: () => void;
@@ -152,8 +160,8 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPan
       setLoading(true);
       setError(null);
       await databaseService.initialize();
-      let savedShips = await databaseService.getAllShips();
-      logger.info(`Loaded ${savedShips.length} ship(s) from database`);
+      let savedShips = filterToMainTonnage(await databaseService.getAllShips());
+      logger.info(`Loaded ${savedShips.length} ship(s) from database (≤${MAX_SHIP_TONNAGE} tons)`);
 
       if (savedShips.length === 0) {
         logger.info('No ships found, attempting to load initial data');
@@ -161,7 +169,7 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPan
         logger.info(`Initial data load result: ${loaded}`);
 
         if (loaded) {
-          savedShips = await databaseService.getAllShips();
+          savedShips = filterToMainTonnage(await databaseService.getAllShips());
           logger.info(`After initial load: ${savedShips.length} ship(s) available`);
         }
 
