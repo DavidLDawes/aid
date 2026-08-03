@@ -110,7 +110,9 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, shipT
     : 12;
   const effectiveMaxWeeks = Math.min(12, Math.max(2, maxPossibleWeeks));
 
-  const requiredConfigured = engines.some(e => e.engine_type === 'power_plant' && e.drive_code && e.performance >= 1);
+  // performance > 0 (not >= 1): fractional power plants (P-.01..P-.5) are
+  // valid selections too, matching App.tsx's isCurrentPanelValid() check.
+  const requiredConfigured = engines.some(e => e.engine_type === 'power_plant' && e.drive_code && e.performance > 0);
 
   return (
     <div className="panel-content">
