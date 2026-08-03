@@ -158,11 +158,13 @@ pnpm lint            # Lint source files
 pnpm test:run        # Run tests once (CI)
 pnpm test            # Run tests in watch mode
 
-# Database management
+# Database management (dev-only; these don't reach a real browser's saved ships - see CLAUDE.md)
 pnpm extractDB       # Export ships from IndexedDB to JSON files
 pnpm preloadDB       # Import ships from JSON files to IndexedDB
 pnpm flushDB         # Clear all ships from IndexedDB
-pnpm setInitialDB    # Reset DB to initial state
+
+# To reset a user's saved ships to the standard set, use the in-app
+# "Reset to Standard Ships" button on the Select Ship screen instead.
 ```
 
 ## Engine Performance Data

@@ -36,15 +36,16 @@ pnpm test               # Run tests in watch mode
 pnpm test:ui            # Run tests with UI
 pnpm test:run           # Run tests once (used in CI)
 
-# Database management
-pnpm extractDB          # Export ships from IndexedDB to JSON files
-pnpm preloadDB          # Import ships from JSON files to IndexedDB
-pnpm flushDB            # Clear all ships from IndexedDB
-pnpm setInitialDB       # Reset DB to initial state
+# Database management (see caveat below - these do NOT touch a real browser's saved ships)
+pnpm extractDB          # Export ships from a throwaway in-memory IndexedDB to JSON (see caveat)
+pnpm preloadDB          # Import ships from JSON into a throwaway in-memory IndexedDB (see caveat)
+pnpm flushDB            # Clear ships from a throwaway in-memory IndexedDB (see caveat)
 pnpm apply-feature      # Apply feature branches to ships
 ```
 
 **Note**: `pnpm test` may fail on Node v24 due to a fake-indexeddb compatibility issue. Use `node_modules\.bin\jest.cmd --no-coverage` directly.
+
+**Caveat — `extractDB`/`preloadDB`/`flushDB` are dev-only stubs, not real data tools**: these three scripts run in Node against `fake-indexeddb`, a pure in-memory reimplementation with no persistence across process runs and no connection whatsoever to a real browser's IndexedDB. Every invocation gets a fresh, empty, throwaway database, so `extractDB` always reports 0 ships and `flushDB` always reports "already empty" — they cannot read or write a real user's saved ship designs. There used to be a fourth script, `setInitialDB`, that chained these together and was documented as "reset DB to initial state"; in practice it did the opposite — because `extractDB` always found 0 ships, it silently copied a stale `data-dumps/ships-export.json` (whatever happened to be sitting on disk) over the real `public/initial-ships.json` baseline. It's been removed. **To actually reset a user's saved ships to the standard set, use the in-app "Reset to Standard Ships" button on the Select Ship screen** (`SelectShipPanel.tsx` → `initialDataService.resetToStandardShips()`) — that runs in the real browser and can actually reach the real IndexedDB.
 
 ## Project Directory Structure
 

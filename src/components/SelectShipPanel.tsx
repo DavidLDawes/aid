@@ -144,6 +144,7 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPan
   const [selectedShipId, setSelectedShipId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [resetting, setResetting] = useState(false);
 
   const loadShips = useCallback(async () => {
     logger.info('Loading ships from database');
@@ -199,6 +200,27 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPan
     } catch (err) {
       logger.error(`Failed to delete ship id=${selectedShipId}`, err);
       setError('Failed to delete ship');
+    }
+  };
+
+  const handleResetToStandardShips = async () => {
+    if (!window.confirm('Delete ALL saved ships and reload the standard ships? This cannot be undone.')) return;
+    logger.info('Resetting database to standard ships');
+    try {
+      setResetting(true);
+      setError(null);
+      const { loaded, errors } = await initialDataService.resetToStandardShips();
+      logger.info(`Reset result: ${loaded} loaded, ${errors} errors`);
+      setSelectedShipId(null);
+      await loadShips();
+      if (errors > 0) {
+        setError(`Reset completed with ${errors} error(s) - check the console for details.`);
+      }
+    } catch (err) {
+      logger.error('Failed to reset to standard ships', err);
+      setError('Failed to reset to standard ships');
+    } finally {
+      setResetting(false);
     }
   };
 
@@ -263,6 +285,9 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPan
         <div className="panel-actions">
           <button onClick={onNewShip} className="new-ship-button">
             New Ship
+          </button>
+          <button onClick={handleResetToStandardShips} disabled={resetting} className="reset-ships-button">
+            {resetting ? 'Resetting...' : 'Reset to Standard Ships'}
           </button>
         </div>
       </div>
@@ -331,6 +356,10 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPan
 
         <button onClick={onNewShip} className="new-ship-button">
           New Ship
+        </button>
+
+        <button onClick={handleResetToStandardShips} disabled={resetting} className="reset-ships-button">
+          {resetting ? 'Resetting...' : 'Reset to Standard Ships'}
         </button>
       </div>
     </div>
