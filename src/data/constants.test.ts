@@ -15,6 +15,9 @@ import {
   getAvailableVehicles,
   getScreenSpecs,
   getMaxScreens,
+  getMinPowerPlantForFuelEquipment,
+  formatPowerPlantCode,
+  FRACTIONAL_POWER_PLANT_LEVELS,
 } from './constants';
 
 describe('Tech Level Functions', () => {
@@ -82,9 +85,10 @@ describe('calculateManeuverFuel', () => {
 
 describe('getAvailableEngines', () => {
   it('should always return performance ratings 1 through maxPerformance', () => {
+    // Fractional (sub-1-gee) power plants are listed first; P-1 follows them.
     const engines = getAvailableEngines(200, 'power_plant');
     expect(engines.length).toBeGreaterThan(0);
-    expect(engines[0].performance).toBe(1);
+    expect(engines.some(e => e.performance === 1)).toBe(true);
   });
 
   it('should return non-empty array for any tonnage', () => {
@@ -276,10 +280,6 @@ describe('Fractional maneuver drives (sub-1-gee, megastructure branch only)', ()
     expect(calculateEngineMassAndCost(1_000_000, 'maneuver_drive', 0.01)).toEqual({ mass: 10, cost: 10 });
   });
 
-  it('does not apply the fractional table to power_plant', () => {
-    expect(calculateEngineMassAndCost(1_000_000, 'power_plant', 0.5)).toEqual({ mass: 0, cost: 0 });
-  });
-
   it('lists all seven fractional drives ahead of M-1 in getAvailableEngines', () => {
     const engines = getAvailableEngines(1_000_000, 'maneuver_drive');
     const codes = engines.map(e => e.code);
@@ -291,6 +291,72 @@ describe('Fractional maneuver drives (sub-1-gee, megastructure branch only)', ()
     const engines = getAvailableEngines(1_000_000, 'maneuver_drive', 1);
     const fractional = engines.filter(e => e.performance < 1);
     expect(fractional).toHaveLength(7);
+  });
+});
+
+describe('Fractional power plants (sub-1-gee, megastructure branch only)', () => {
+  // P-1 at 1,000,000 tons: 1.5% tons -> 15,000t, 2.0 MCr/ton -> 30,000 MCr.
+  // Fractional power plants are a percentage of P-1's tons - cost always
+  // matches P-1's cost exactly, unlike fractional maneuver drives.
+  it('computes P-.5 as 70% of P-1 tons, same cost as P-1', () => {
+    expect(calculateEngineMassAndCost(1_000_000, 'power_plant', 0.5)).toEqual({ mass: 10_500, cost: 30_000 });
+  });
+
+  it('computes P-.1 as 30% of P-1 tons, same cost as P-1', () => {
+    expect(calculateEngineMassAndCost(1_000_000, 'power_plant', 0.1)).toEqual({ mass: 4_500, cost: 30_000 });
+  });
+
+  it('computes P-.05 as 22% of P-1 tons, same cost as P-1', () => {
+    expect(calculateEngineMassAndCost(1_000_000, 'power_plant', 0.05)).toEqual({ mass: 3_300, cost: 30_000 });
+  });
+
+  it('computes P-.01 as 10% of P-1 tons, same cost as P-1', () => {
+    expect(calculateEngineMassAndCost(1_000_000, 'power_plant', 0.01)).toEqual({ mass: 1_500, cost: 30_000 });
+  });
+
+  it('returns zero for a fractional performance with no table entry', () => {
+    expect(calculateEngineMassAndCost(1_000_000, 'power_plant', 0.3)).toEqual({ mass: 0, cost: 0 });
+  });
+
+  it('lists all four fractional power plants ahead of P-1 in getAvailableEngines', () => {
+    const engines = getAvailableEngines(1_000_000, 'power_plant', undefined, 'A');
+    const codes = engines.map(e => e.code);
+    expect(codes.slice(0, 4)).toEqual(['P-.01', 'P-.05', 'P-.1', 'P-.5']);
+    expect(codes[4]).toBe('P-1');
+  });
+
+  it('formatPowerPlantCode formats fractional and integer performance', () => {
+    expect(formatPowerPlantCode(0.01)).toBe('P-.01');
+    expect(formatPowerPlantCode(0.05)).toBe('P-.05');
+    expect(formatPowerPlantCode(0.1)).toBe('P-.1');
+    expect(formatPowerPlantCode(0.5)).toBe('P-.5');
+    expect(formatPowerPlantCode(1)).toBe('P-1');
+    expect(formatPowerPlantCode(10)).toBe('P-10');
+  });
+
+  it('FRACTIONAL_POWER_PLANT_LEVELS all cost 100% of P-1 (mass-only reduction)', () => {
+    FRACTIONAL_POWER_PLANT_LEVELS.forEach(level => {
+      const p1 = calculateEngineMassAndCost(1_000_000, 'power_plant', 1);
+      const fractional = calculateEngineMassAndCost(1_000_000, 'power_plant', level.performance);
+      expect(fractional.cost).toBe(p1.cost);
+    });
+  });
+});
+
+describe('getMinPowerPlantForFuelEquipment', () => {
+  it('requires P-1 below 10,000,000 tons', () => {
+    expect(getMinPowerPlantForFuelEquipment(1_000_000)).toBe(1);
+    expect(getMinPowerPlantForFuelEquipment(9_999_999)).toBe(1);
+  });
+
+  it('requires only P-.1 at 10,000,000+ tons', () => {
+    expect(getMinPowerPlantForFuelEquipment(10_000_000)).toBe(0.1);
+    expect(getMinPowerPlantForFuelEquipment(99_999_999)).toBe(0.1);
+  });
+
+  it('requires only P-.01 (any level) at 100,000,000+ tons', () => {
+    expect(getMinPowerPlantForFuelEquipment(100_000_000)).toBe(0.01);
+    expect(getMinPowerPlantForFuelEquipment(1_000_000_000)).toBe(0.01);
   });
 });
 

@@ -150,15 +150,17 @@ Test files are co-located with source files using .test.ts/.test.tsx extension
 5. **`updateShipDesign()` side effects**: App.tsx's central update function isn't a pure merge — it runs several derived-state cleanups whenever the relevant field actually changes value (not just whenever it's present in the update payload):
    - Tonnage change → recompute `sections`, then rescale engine mass/cost and comms/sensors + computer fitting mass/cost (`src/utils/tonnageRescale.ts`) so those percentage-of-tonnage/per-section values don't go stale.
    - Tech level change → drop vehicles/bay weapons and clamp screen quantities that are no longer available at the new tech level (`src/utils/techLevelCleanup.ts`).
-   - Power plant dropped below P-10 → strip an installed Antimatter Plant from `fuel_systems` (it can no longer be supported).
+   - Power plant dropped below the tonnage-tiered fuel-equipment minimum (`getMinPowerPlantForFuelEquipment()`) → strip an installed Antimatter Plant from `fuel_systems` (it can no longer be supported). Re-checked on either an engine change or a tonnage change, since the minimum itself is tonnage-tiered — shrinking the structure can strand the plant even with an unchanged power plant.
 
 ### Critical Data Files
 
 **`src/data/constants.ts`**: Central source of truth for game rules
 - Tech levels (`TECH_LEVELS = ['A'..'H','J']`, skipping 'I'; TL-A=10 .. TL-H=17, TL-J=18)
-- `getMaxPowerPlantByTechLevel()`: power plant performance cap by TL (TL-F=P-7, TL-G=P-8, TL-H=P-10, TL-J=P-12) — this is what makes the P-10 Antimatter Plant requirement reachable
+- `getMaxPowerPlantByTechLevel()`: power plant performance cap by TL (TL-F=P-7, TL-G=P-8, TL-H=P-10, TL-J=P-12) — the ceiling on how large a power plant is selectable; unrelated to the (much lower, tonnage-tiered) minimum fuel equipment actually needs, see `getMinPowerPlantForFuelEquipment()` below
 - Engine performance tables for `power_plant` and `maneuver_drive` only — **no `jump_drive` engine type exists on this branch**
 - `FRACTIONAL_MANEUVER_DRIVE_LEVELS`: sub-1-gee maneuver drives (M-.01 through M-.5), megastructure-branch-only. Unlike the integer M-1..M-6/P-1..P-12 tables (a flat percentage of ship tonnage, cost = mass × `ENGINE_COST_PER_TON`), each fractional level is defined as a percentage of the **M-1 drive's own mass and cost**, and the two percentages diverge per level (e.g. M-.5 is 40% of M-1's tons but only 33% of M-1's cost) — so `calculateEngineMassAndCost()` special-cases `0 < performance < 1` for `maneuver_drive` rather than going through the shared table lookup. `getAvailableEngines()` always lists all seven ahead of M-1 for `maneuver_drive`; they're never excluded by the power-plant-performance gate since every level is under 1 gee
+- `FRACTIONAL_POWER_PLANT_LEVELS`: sub-1-gee power plants (P-.01, P-.05, P-.1, P-.5), megastructure-branch-only — exist so a structure can meet a low fuel-equipment power minimum without installing a full P-1 plant. Unlike fractional maneuver drives, **all four cost exactly the same as P-1** — only mass shrinks (P-.5=70% of P-1 tons, P-.1=30%, P-.05=22%, P-.01=10%). Same `calculateEngineMassAndCost()` special-case pattern (`0 < performance < 1` for `power_plant`); `getAvailableEngines()` lists all four ahead of P-1. `formatPowerPlantCode(performance)` renders a performance value as its drive code (`0.5` → `"P-.5"`, `1` → `"P-1"`) for UI display
+- `getMinPowerPlantForFuelEquipment(tonnage)`: minimum power plant performance to run fuel equipment (the Antimatter Plant) — tiered by structure tonnage, not a flat requirement: **P-1** below 10,000,000 tons, **P-.1** at 10,000,000+, **P-.01** (any level) at 100,000,000+. `FuelPanel.tsx` and `EnginesPanel.tsx` both call this with the current `shipTonnage`
 - Weapon types, defense types, vehicle types, drone types
 - Megastructure-specific formulas: `getMegastructureSections()`, `calculateControlCenterMass/Cost()`, `getMegastructureSensorMassAndCost()`, `getMegastructureComputerCost()`
 - `hasAntimatterPlant()` / `calculateAntimatterAdjustedManeuverFuel()`: an installed Antimatter Plant (in `fuel_systems`) cuts maneuver fuel to 1/10th
@@ -328,8 +330,8 @@ There is no small-ship pilot/navigator-combining or no-stewards toggle on this b
 ### Tech Level Dependencies
 
 Many features are tech-level gated:
-- Power plant performance: TL-F=P-7, TL-G=P-8, TL-H=P-10, TL-J=P-12 (`getMaxPowerPlantByTechLevel()`) — **not** jump-related; this exists purely to make the P-10 Antimatter Plant reachable
-- Antimatter Plant: requires a P-10+ power plant (TL-H+); installing one cuts maneuver fuel to 1/10th
+- Power plant performance: TL-F=P-7, TL-G=P-8, TL-H=P-10, TL-J=P-12 (`getMaxPowerPlantByTechLevel()`) — **not** jump-related; this is the selectable ceiling, independent of the lower tonnage-tiered minimum below
+- Antimatter Plant: requires a power plant at or above `getMinPowerPlantForFuelEquipment(shipTonnage)` — P-1 below 10,000,000 tons, P-.1 at 10,000,000+, P-.01 (any level) at 100,000,000+ — not tech-level gated at all; installing one cuts maneuver fuel to 1/10th
 - Computer models: gated by tech level directly in `FittingsPanel.tsx` (via `COMPUTER_TYPES[].techLevel`), independent of tonnage/jump
 - Vehicle, bay weapon, and screen availability: tech-level gated; see `src/utils/techLevelCleanup.ts` for what happens to already-selected components when tech level drops
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import type { Engine } from '../types/ship';
-import { getAvailableEngines, getMaxPowerPlantByTechLevel, calculateAntimatterAdjustedManeuverFuel } from '../data/constants';
+import { getAvailableEngines, getMaxPowerPlantByTechLevel, calculateAntimatterAdjustedManeuverFuel, getMinPowerPlantForFuelEquipment, formatPowerPlantCode } from '../data/constants';
 
 interface EnginesPanelProps {
   engines: Engine[];
@@ -15,6 +15,7 @@ interface EnginesPanelProps {
 
 const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, shipTechLevel, fuelWeeks, hasAmPlant, onUpdate, onFuelWeeksUpdate }) => {
   const maxPowerPlant = getMaxPowerPlantByTechLevel(shipTechLevel);
+  const minPowerForFuel = getMinPowerPlantForFuelEquipment(shipTonnage);
 
   const getEngine = (type: Engine['engine_type']): Engine => {
     const found = engines.find(e => e.engine_type === type);
@@ -77,7 +78,7 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, shipT
               <small>Limited by Power Plant P-{powerPlantPerformance}</small>
             )}
             {type === 'power_plant' && (
-              <small>Tech Level {shipTechLevel} allows up to P-{maxPowerPlant}{maxPowerPlant >= 10 ? ' (Antimatter Plant requires P-10+)' : ''}</small>
+              <small>Tech Level {shipTechLevel} allows up to P-{maxPowerPlant} (Antimatter Plant requires {formatPowerPlantCode(minPowerForFuel)}+ at this structure's tonnage)</small>
             )}
           </div>
         </div>
