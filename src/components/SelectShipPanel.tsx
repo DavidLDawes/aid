@@ -186,6 +186,7 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPan
   const [selectedShipId, setSelectedShipId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [resetting, setResetting] = useState(false);
 
   const loadShips = useCallback(async () => {
     try {
@@ -232,6 +233,47 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPan
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadShips();
   }, [loadShips]);
+
+  const handleDeleteSelectedShip = async () => {
+    if (!selectedShipId || selectedShipId < 0) return;
+    const ship = ships.find(s => s.id === selectedShipId);
+    if (!ship) return;
+    if (!window.confirm(`Delete "${ship.ship.name}"? This cannot be undone.`)) return;
+    try {
+      await databaseService.deleteShip(selectedShipId);
+      logger.info(`Deleted ship "${ship.ship.name}"`);
+      setSelectedShipId(null);
+      await loadShips();
+    } catch (err) {
+      logger.error(`Failed to delete ship id=${selectedShipId}`, err);
+      setError('Failed to delete ship');
+    }
+  };
+
+  const handleResetShips = async () => {
+    if (!window.confirm(
+      'Restore Large Liner and Destroyer to their standard designs? ' +
+      'Any of the two you deleted or changed will be overwritten with the standard set. ' +
+      'Other ships you\'ve added are not affected.'
+    )) return;
+    logger.info('Resetting standard ships');
+    try {
+      setResetting(true);
+      setError(null);
+      const { loaded, errors } = await initialDataService.resetStandardShips();
+      logger.info(`Reset result: ${loaded} loaded, ${errors} errors`);
+      setSelectedShipId(null);
+      await loadShips();
+      if (errors > 0) {
+        setError(`Reset completed with ${errors} error(s) - check the console for details.`);
+      }
+    } catch (err) {
+      logger.error('Failed to reset standard ships', err);
+      setError('Failed to reset standard ships');
+    } finally {
+      setResetting(false);
+    }
+  };
 
   const handleLoadSelectedShip = async () => {
     if (!selectedShipId) return;
@@ -295,6 +337,9 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPan
           <button onClick={onNewShip} className="new-ship-button">
             New Ship
           </button>
+          <button onClick={handleResetShips} disabled={resetting} className="reset-ships-button">
+            {resetting ? 'Resetting...' : 'Reset Ships'}
+          </button>
         </div>
       </div>
     );
@@ -351,9 +396,21 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPan
         >
           Load Selected Ship
         </button>
-        
+
+        <button
+          onClick={handleDeleteSelectedShip}
+          disabled={!selectedShipId || (selectedShipId !== null && selectedShipId < 0)}
+          className="delete-ship-button"
+        >
+          Delete Selected Ship
+        </button>
+
         <button onClick={onNewShip} className="new-ship-button">
           New Ship
+        </button>
+
+        <button onClick={handleResetShips} disabled={resetting} className="reset-ships-button">
+          {resetting ? 'Resetting...' : 'Reset Ships'}
         </button>
       </div>
     </div>
