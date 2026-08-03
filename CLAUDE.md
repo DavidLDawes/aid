@@ -76,7 +76,7 @@ aid/
 │   ├── data/                   # Game data and constants
 │   │   └── constants.ts        # Tech levels, engines, weapons, megastructure formulas, etc.
 │   ├── services/                # Business logic
-│   │   ├── database.ts         # IndexedDB wrapper (store `mega_ships`, see Database Persistence below)
+│   │   ├── database.ts         # IndexedDB wrapper (own `MegastructureDesignerDB` database, store `mega_ships` — see Database Persistence below)
 │   │   └── initialDataService.ts # Initial data loader
 │   ├── types/                  # TypeScript definitions
 │   │   └── ship.ts             # Ship interfaces
@@ -114,7 +114,7 @@ Test files are co-located with source files using .test.ts/.test.tsx extension
 - **Bundler Config**: `vite.config.js` - entry point is `index.html` → `src/main.tsx`
 - **Dev Server**: Vite defaults (dev 5173, preview 4173)
 - **Node Version**: >=24 (LTS; specified in package.json engines)
-- **Deployment**: Cloudflare Worker, path prefix `/MegaDesign` under `srd-tools.com` — same origin as the sibling `main` (`/ShipDesign`) and `capital` (`/CapitalShipDesign`) branch deployments. This is why the IndexedDB store name matters (see Database Persistence).
+- **Deployment**: Cloudflare Worker, path prefix `/MegaDesign` under `srd-tools.com` — same origin as the sibling `main` (`/ShipDesign`) and `capital` (`/CapitalShipDesign`) branch deployments. This is why each app uses its own IndexedDB **database name**, not just its own store (see Database Persistence).
 
 ## Architecture Overview
 
@@ -145,7 +145,7 @@ Test files are co-located with source files using .test.ts/.test.tsx extension
 4. **Database Service Pattern**: `src/services/database.ts` provides IndexedDB abstraction
    - Ships are stored with unique names (enforced by unique index)
    - Auto-initialization loads `public/initial-ships.json` on first run
-   - Handles version migrations (currently at version 3)
+   - Handles version migrations (currently at version 1, in its own `MegastructureDesignerDB` database — see Database Persistence)
    - `databaseService.initialize()` is called exactly once at App startup via a `useEffect([], [])` — do not call it again in save/load handlers or component renders
 
 5. **`updateShipDesign()` side effects**: App.tsx's central update function isn't a pure merge — it runs several derived-state cleanups whenever the relevant field actually changes value (not just whenever it's present in the update payload):
@@ -236,13 +236,14 @@ const calcFM = (t, p, w, a) => { ... };
 
 ### Database Persistence
 
-**IndexedDB Schema** (version 3):
-- **Database**: `StarshipDesignerDB` — shared name across the `main`/`capital`/`megastructure` branches, since all three deploy to the same origin (`srd-tools.com`)
-- **Object Store**: `mega_ships` — deliberately branch-specific (main uses `ship_ships`, capital uses `capital_ships`) to avoid same-origin IndexedDB collisions between the three deployed apps
+**IndexedDB Schema** (version 1):
+- **Database**: `MegastructureDesignerDB` — this app's own database, distinct from main's `StarshipDesignerDB` and capital's `CapitalDesignerDB`. All three deploy to the same origin (`srd-tools.com`) but each now owns a separate database name so their version numbers can evolve independently with zero coordination needed between branches.
+- **Object Store**: `mega_ships`
 - **Key Path**: `id` (auto-increment)
 - **Indexes**:
   - `name` (unique) on `ship.name` - enforces unique ship names
   - `createdAt` on `createdAt` - for sorting
+- **Why a dedicated database, not just a dedicated store**: `main`/`capital`/`megastructure` originally shared one database name (`StarshipDesignerDB`) at this origin, each with its own store but pinned to the *same* version number. IndexedDB only runs `onupgradeneeded` (which creates a missing store) when the requested version is higher than whatever's already in the browser for that database name — so whichever app a user opened first "claimed" that version and created only its own store, leaving the other two with a `db` handle silently missing their store (surfaced as `"'<store>' is not a known object store name"` on the first `transaction()` call, typically on save). Splitting into per-app database names removes the collision permanently. One consequence: any ships a user saved in the old shared `StarshipDesignerDB`'s `mega_ships` store before this change are orphaned (still present in the browser, just no longer visible from this app) — there's no migration path, since the affected population is largely the same users who were already hitting the save bug and had nothing to migrate.
 
 **Initial Data**: On first load, if the `mega_ships` store is empty, `SelectShipPanel` calls `initialDataService.loadInitialDataIfNeeded()`, which preloads ships from `public/initial-ships.json` (currently a single "Ring World Alpha" seed). If that fails too, `SelectShipPanel` falls back to an in-memory hardcoded copy of the same ship so the screen is never empty.
 
@@ -394,7 +395,7 @@ Production deploys as a Cloudflare Worker (`wrangler deploy`, see `wrangler.json
 
 ## Debugging Tips
 
-1. **Database Issues**: Check browser DevTools → Application → IndexedDB → StarshipDesignerDB → `mega_ships` object store
+1. **Database Issues**: Check browser DevTools → Application → IndexedDB → MegastructureDesignerDB → `mega_ships` object store
 2. **Mass Calculation Problems**: Add console.log in `calculateMass()` to trace component contributions
 3. **Panel Validation**: Check `isCurrentPanelValid()` and `canAdvance()` in App.tsx
 4. **Initial Data Loading**: Check `SelectShipPanel.tsx` and `initialDataService.ts` for DB initialization logic
