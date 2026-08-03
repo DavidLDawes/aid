@@ -306,6 +306,7 @@ Many features are tech-level gated:
 - Spinal weapons: Different weapons available at different TLs, require minimum power plant performance
 - Computer models: Minimum computer required based on tonnage + jump performance
 - Vehicle availability: Most vehicles have minimum TL requirements
+- Defensive screen quantity (`getMaxScreens()`, `SCREEN_TL_LIMITS` in `constants.ts`): Nuclear Damper and Meson Screen scale TL-C through TL-J (1/1, 2/2, 4/4, 6/6, 8/8, 10/9, 12/10 respectively); Black Globe unlocks at TL-F and scales TL-F through TL-J (3, 4, 6, 7). Per-unit mass/cost for all three instead scales with hull size (`getScreenSpecs()`, `SCREEN_SPECS_BY_HULL`), not TL.
 - Changing hull size (`handleShipInfoUpdate` in App.tsx) clears engine and fuel selections — engine mass/cost are computed from tonnage at selection time and don't auto-update — and re-tiers the bridge fitting. Changing tech level drops now-illegal jump drives and too-advanced vehicles from the design.
 
 Use helper functions: `isTechLevelAtLeast()`, `getMaxJumpByTechLevel()`, `getEffectiveMaxJump()`, `getTechLevelIndex()`

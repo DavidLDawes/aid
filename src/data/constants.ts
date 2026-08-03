@@ -484,11 +484,11 @@ export const DEFENSE_TYPES = [
   { name: 'Dual Point Defense Laser Turret', type: 'dual_point_defense_laser_turret', mass: 1, cost: 1.5 }
 ];
 
-// Screen types with TL-based quantity limits
+// Screen types with TL-based quantity limits. TL 16/17/18 = G/H/J.
 export const SCREEN_TL_LIMITS = {
-  nuclear_damper: { 12: 1, 13: 2, 14: 4, 15: 6 },
-  meson_screen: { 12: 1, 13: 2, 14: 4, 15: 6 },
-  black_globe: { 15: 3 }
+  nuclear_damper: { 12: 1, 13: 2, 14: 4, 15: 6, 16: 8, 17: 10, 18: 12 },
+  meson_screen: { 12: 1, 13: 2, 14: 4, 15: 6, 16: 8, 17: 9, 18: 10 },
+  black_globe: { 15: 3, 16: 4, 17: 6, 18: 7 }
 };
 
 // Screen specs by hull code
