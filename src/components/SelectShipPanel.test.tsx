@@ -18,7 +18,9 @@ jest.mock('../services/database', () => ({
 
 jest.mock('../services/initialDataService', () => ({
   initialDataService: {
-    loadInitialDataIfNeeded: jest.fn<() => Promise<boolean>>().mockResolvedValue(false)
+    loadInitialDataIfNeeded: jest.fn<() => Promise<boolean>>().mockResolvedValue(false),
+    resetToStandardShips: jest.fn<() => Promise<{ loaded: number; errors: number }>>()
+      .mockResolvedValue({ loaded: 3, errors: 0 })
   }
 }));
 
@@ -190,5 +192,71 @@ describe('SelectShipPanel', () => {
     expect(screen.queryByText(/Error:/)).not.toBeInTheDocument();
     // Default ships should be available
     expect(screen.getByText(/Scout/)).toBeInTheDocument();
+  });
+
+  it('Reset to Standard Ships is offered even when the DB already has ships', async () => {
+    render(<SelectShipPanel onNewShip={mockOnNewShip} onLoadShip={mockOnLoadShip} />);
+    await waitFor(() => {
+      expect(screen.getByRole('combobox')).toBeInTheDocument();
+    });
+    expect(screen.getByRole('button', { name: /Reset to Standard Ships/ })).toBeInTheDocument();
+  });
+
+  it('does nothing if the reset confirmation is declined', async () => {
+    const { initialDataService } = await import('../services/initialDataService');
+    const originalConfirm = window.confirm;
+    window.confirm = jest.fn<() => boolean>().mockReturnValue(false);
+
+    render(<SelectShipPanel onNewShip={mockOnNewShip} onLoadShip={mockOnLoadShip} />);
+    await waitFor(() => {
+      expect(screen.getByRole('combobox')).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Reset to Standard Ships/ }));
+
+    expect(initialDataService.resetToStandardShips).not.toHaveBeenCalled();
+    window.confirm = originalConfirm;
+  });
+
+  it('resets to standard ships and reloads the list after confirmation', async () => {
+    const { initialDataService } = await import('../services/initialDataService');
+    const { databaseService } = await import('../services/database');
+    const originalConfirm = window.confirm;
+    window.confirm = jest.fn<() => boolean>().mockReturnValue(true);
+
+    render(<SelectShipPanel onNewShip={mockOnNewShip} onLoadShip={mockOnLoadShip} />);
+    await waitFor(() => {
+      expect(screen.getByRole('combobox')).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Reset to Standard Ships/ }));
+
+    await waitFor(() => {
+      expect(initialDataService.resetToStandardShips).toHaveBeenCalledTimes(1);
+    });
+    // Ship list reloads via databaseService.getAllShips after the reset
+    await waitFor(() => {
+      expect((databaseService.getAllShips as ReturnType<typeof jest.fn>).mock.calls.length).toBeGreaterThan(1);
+    });
+
+    window.confirm = originalConfirm;
+  });
+
+  it('shows an error if resetToStandardShips rejects', async () => {
+    const { initialDataService } = await import('../services/initialDataService');
+    (initialDataService.resetToStandardShips as ReturnType<typeof jest.fn>)
+      .mockRejectedValueOnce(new Error('reset failed'));
+    const originalConfirm = window.confirm;
+    window.confirm = jest.fn<() => boolean>().mockReturnValue(true);
+
+    render(<SelectShipPanel onNewShip={mockOnNewShip} onLoadShip={mockOnLoadShip} />);
+    await waitFor(() => {
+      expect(screen.getByRole('combobox')).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Reset to Standard Ships/ }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Failed to reset to standard ships/)).toBeInTheDocument();
+    });
+
+    window.confirm = originalConfirm;
   });
 });

@@ -29,23 +29,7 @@ class InitialDataService {
         return false;
       }
 
-      logger.info(`Preloading ${initialData.ships.length} initial ships`);
-      let loaded = 0;
-      let errors = 0;
-
-      for (const shipData of initialData.ships) {
-        try {
-          const { _metadata, ...shipDesign } = shipData;
-          shipDesign.cargo = cleanInvalidCargo(shipDesign.cargo);
-          await databaseService.saveOrUpdateShipByName(shipDesign);
-          loaded++;
-          logger.info(`Loaded initial ship "${shipDesign.ship.name}"`);
-        } catch (error) {
-          logger.error(`Failed to load initial ship "${shipData.ship?.name || 'Unknown'}"`, error);
-          errors++;
-        }
-      }
-
+      const { loaded, errors } = await this.preloadShips(initialData);
       logger.info(`Initial data load complete: ${loaded} loaded, ${errors} errors`);
       return loaded > 0;
 
@@ -53,6 +37,47 @@ class InitialDataService {
       logger.error('Error during initial data load', error);
       return false;
     }
+  }
+
+  // Deletes every ship in the database, then unconditionally reloads the
+  // standard ships from initial-ships.json - unlike loadInitialDataIfNeeded,
+  // which only loads when the database is empty. Used by the in-app
+  // "Reset to Standard Ships" action (SelectShipPanel).
+  async resetToStandardShips(): Promise<{ loaded: number; errors: number }> {
+    logger.info('Resetting database to standard ships');
+    await databaseService.initialize();
+    await databaseService.flushAllShips();
+
+    const initialData = await this.loadInitialData();
+    if (!initialData || !initialData.ships || initialData.ships.length === 0) {
+      logger.info('No standard ship data available to reload');
+      return { loaded: 0, errors: 0 };
+    }
+
+    const { loaded, errors } = await this.preloadShips(initialData);
+    logger.info(`Reset complete: ${loaded} loaded, ${errors} errors`);
+    return { loaded, errors };
+  }
+
+  private async preloadShips(initialData: InitialDataExport): Promise<{ loaded: number; errors: number }> {
+    logger.info(`Preloading ${initialData.ships.length} ships`);
+    let loaded = 0;
+    let errors = 0;
+
+    for (const shipData of initialData.ships) {
+      try {
+        const { _metadata, ...shipDesign } = shipData;
+        shipDesign.cargo = cleanInvalidCargo(shipDesign.cargo);
+        await databaseService.saveOrUpdateShipByName(shipDesign);
+        loaded++;
+        logger.info(`Loaded ship "${shipDesign.ship.name}"`);
+      } catch (error) {
+        logger.error(`Failed to load ship "${shipData.ship?.name || 'Unknown'}"`, error);
+        errors++;
+      }
+    }
+
+    return { loaded, errors };
   }
 
   private async loadInitialData(): Promise<InitialDataExport | null> {
