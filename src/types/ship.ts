@@ -94,6 +94,26 @@ export interface CustomItem {
   cost: number;
 }
 
+// Crew assigned specifically to operate/service/repair/serve custom items.
+// Uses the same position categories as StaffRequirements, plus four that
+// have no other source in this app (infantry/armor/mp/security have no
+// baseline formula elsewhere - they're purely custom-crew-driven).
+export interface CustomCrew {
+  pilot: number;
+  navigator: number;
+  engineers: number;
+  gunners: number;
+  service: number;
+  stewards: number;
+  nurses: number;
+  surgeons: number;
+  techs: number;
+  infantry: number;
+  armor: number;
+  mp: number;
+  security: number;
+}
+
 export interface StaffRequirements {
   pilot: number;
   navigator: number;
@@ -104,6 +124,10 @@ export interface StaffRequirements {
   nurses: number;
   surgeons: number;
   techs: number;
+  infantry: number;
+  armor: number;
+  mp: number;
+  security: number;
   total: number;
 }
 
@@ -119,6 +143,7 @@ export interface ShipDesign {
   vehicles: Vehicle[];
   drones: Drone[];
   custom_items: CustomItem[];
+  custom_crew: CustomCrew;
 }
 
 export interface MassCalculation {

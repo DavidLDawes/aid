@@ -6,7 +6,8 @@ const baseMass: MassCalculation = { total: 200, used: 120, remaining: 80, isOver
 const baseCost: CostCalculation = { total: 45.5 };
 const baseStaff: StaffRequirements = {
   pilot: 1, navigator: 1, engineers: 2, gunners: 0,
-  service: 0, stewards: 0, nurses: 0, surgeons: 0, techs: 0, total: 4,
+  service: 0, stewards: 0, nurses: 0, surgeons: 0, techs: 0,
+  infantry: 0, armor: 0, mp: 0, security: 0, total: 4,
 };
 const baseRules = new Set(['spacecraft_design_srd']);
 
@@ -38,6 +39,10 @@ const baseShip: ShipDesign = {
   vehicles: [],
   drones: [],
   custom_items: [],
+  custom_crew: {
+    pilot: 0, navigator: 0, engineers: 0, gunners: 0, service: 0, stewards: 0,
+    nurses: 0, surgeons: 0, techs: 0, infantry: 0, armor: 0, mp: 0, security: 0,
+  },
 };
 
 describe('generateShipPrintContent', () => {
@@ -236,5 +241,22 @@ describe('generateShipPrintContent', () => {
     expect(html).toContain('Nurses');
     expect(html).toContain('Surgeons');
     expect(html).toContain('Medical Techs');
+  });
+
+  it('should hide custom crew rows (infantry/armor/mp/security) when zero', () => {
+    const html = generateShipPrintContent(baseShip, baseMass, baseCost, baseStaff, false, false, baseRules);
+    expect(html).not.toContain('Infantry');
+    expect(html).not.toContain('Armor');
+    expect(html).not.toContain('>MP:<');
+    expect(html).not.toContain('Security');
+  });
+
+  it('should show custom crew rows (infantry/armor/mp/security) only when present', () => {
+    const staffWithCustomCrew = { ...baseStaff, infantry: 4, armor: 2, mp: 1, security: 3, total: 20 };
+    const html = generateShipPrintContent(baseShip, baseMass, baseCost, staffWithCustomCrew, false, false, baseRules);
+    expect(html).toContain('Infantry');
+    expect(html).toContain('Armor');
+    expect(html).toContain('>MP:<');
+    expect(html).toContain('Security');
   });
 });

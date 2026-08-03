@@ -140,6 +140,75 @@ describe('RulesMenu Tech Level Restrictions', () => {
     });
   });
 
+  describe('Robotics Tech Level Restrictions', () => {
+    it('should disable Robotics for TL A ship', () => {
+      const shipDesign = createMockShipDesign('A');
+      render(<RulesMenu shipDesign={shipDesign} onRuleChange={mockOnRuleChange} />);
+
+      fireEvent.click(screen.getByText('Rules'));
+
+      const roboticsItem = screen.getByText('Robotics').closest('button');
+
+      expect(roboticsItem?.classList.contains('disabled')).toBe(true);
+    });
+
+    it('should disable Robotics for TL E ship', () => {
+      const shipDesign = createMockShipDesign('E');
+      render(<RulesMenu shipDesign={shipDesign} onRuleChange={mockOnRuleChange} />);
+
+      fireEvent.click(screen.getByText('Rules'));
+
+      const roboticsItem = screen.getByText('Robotics').closest('button');
+
+      expect(roboticsItem?.classList.contains('disabled')).toBe(true);
+    });
+
+    it('should enable Robotics for TL F ship', () => {
+      const shipDesign = createMockShipDesign('F');
+      render(<RulesMenu shipDesign={shipDesign} onRuleChange={mockOnRuleChange} />);
+
+      fireEvent.click(screen.getByText('Rules'));
+
+      const roboticsItem = screen.getByText('Robotics').closest('button');
+
+      expect(roboticsItem?.classList.contains('disabled')).toBe(false);
+    });
+
+    it('should allow toggling Robotics for TL F ship', () => {
+      const shipDesign = createMockShipDesign('F');
+      render(<RulesMenu shipDesign={shipDesign} onRuleChange={mockOnRuleChange} />);
+
+      fireEvent.click(screen.getByText('Rules'));
+
+      const roboticsItem = screen.getByText('Robotics').closest('button');
+      fireEvent.click(roboticsItem!);
+
+      expect(mockOnRuleChange).toHaveBeenCalledWith('robotics', true);
+    });
+
+    it('should not allow toggling Robotics for TL E ship', () => {
+      const shipDesign = createMockShipDesign('E');
+      render(<RulesMenu shipDesign={shipDesign} onRuleChange={mockOnRuleChange} />);
+
+      fireEvent.click(screen.getByText('Rules'));
+
+      const roboticsItem = screen.getByText('Robotics').closest('button');
+      fireEvent.click(roboticsItem!);
+
+      expect(mockOnRuleChange).not.toHaveBeenCalled();
+    });
+
+    it('should show tooltip for Robotics tech level restriction', () => {
+      const shipDesign = createMockShipDesign('E');
+      render(<RulesMenu shipDesign={shipDesign} onRuleChange={mockOnRuleChange} />);
+
+      fireEvent.click(screen.getByText('Rules'));
+
+      const roboticsIcon = screen.getByText('Robotics').closest('button')?.querySelector('.rule-status.disabled');
+      expect(roboticsIcon?.getAttribute('title')).toBe('Requires Tech Level F (current: E)');
+    });
+  });
+
   describe('Always Available Rules', () => {
     it('should always show Spacecraft Design SRD as enabled', () => {
       const shipDesign = createMockShipDesign('A');

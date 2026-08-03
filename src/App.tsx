@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import type { Ship, ShipDesign, MassCalculation, CostCalculation, StaffRequirements } from './types/ship';
-import { calculateTotalFuelMass, calculateVehicleServiceStaff, calculateDroneServiceStaff, calculateMedicalStaff, convertTechLevelToNumber, getBridgeMassAndCost, getEffectiveMaxJump, getHullCost, getNumberOfSections, getMinimumComputer, COMPUTER_TYPES, VEHICLE_TYPES, WEAPON_TYPES, BAY_WEAPON_TYPES, getAvailableSpinalWeapons } from './data/constants';
+import { calculateTotalFuelMass, calculateVehicleServiceStaff, calculateDroneServiceStaff, calculateMedicalStaff, convertTechLevelToNumber, getBridgeMassAndCost, getEffectiveMaxJump, getHullCost, getNumberOfSections, getMinimumComputer, getRoboticsCrewDivisor, getRoboticsGunnerDivisor, COMPUTER_TYPES, VEHICLE_TYPES, WEAPON_TYPES, BAY_WEAPON_TYPES, getAvailableSpinalWeapons } from './data/constants';
 import { databaseService } from './services/database';
 import { logger } from './utils/logger';
 import { createEmptyShipDesign, createDefaultShip } from './utils/shipDefaults';
@@ -137,15 +137,18 @@ function App() {
       engineers = 1;
     } else if (shipTonnage === 200 || shipTonnage === 300) {
       engineers = 2;
+    } else if (shipDesign.engines.length === 0) {
+      engineers = 1;
     } else {
-      const engineCount = shipDesign.engines.length;
-      engineers = Math.max(engineCount, 1);
-
-      for (const engine of shipDesign.engines) {
-        if (engine.mass > 100) {
-          engineers += Math.ceil(engine.mass / 100) - 1;
-        }
-      }
+      // Robotics (TL-F+ Rules menu toggle) reduces each engine's own crew
+      // requirement, rounded up, applied per engine before summing.
+      const roboticsDivisor = activeRules.has('robotics')
+        ? getRoboticsCrewDivisor(shipDesign.ship.tech_level)
+        : 1;
+      engineers = shipDesign.engines.reduce((sum, engine) => {
+        const baseCrew = 1 + (engine.mass > 100 ? Math.ceil(engine.mass / 100) - 1 : 0);
+        return sum + Math.ceil(baseCrew / roboticsDivisor);
+      }, 0);
     }
 
     const bayWeaponNames = BAY_WEAPON_TYPES.map(b => b.name);
@@ -178,7 +181,13 @@ function App() {
     const bayWeapons = shipDesign.weapons.filter(w => bayWeaponNames.includes(w.weapon_name));
     const bayWeaponGunners = bayWeapons.reduce((sum, weapon) => sum + (weapon.quantity * 2), 0);
 
-    const gunners = turretsAndBarbettesGunners + defenseTurretGunners + screenGunners + spinalWeaponGunners + bayWeaponGunners;
+    const baseGunners = turretsAndBarbettesGunners + defenseTurretGunners + screenGunners + spinalWeaponGunners + bayWeaponGunners;
+    // Robotics also automates gunnery support, one tier behind the
+    // engineering reduction above (starts at TL-G, not TL-F).
+    const gunnerDivisor = activeRules.has('robotics')
+      ? getRoboticsGunnerDivisor(shipDesign.ship.tech_level)
+      : 1;
+    const gunners = Math.ceil(baseGunners / gunnerDivisor);
 
     const vehicleService = calculateVehicleServiceStaff(shipDesign.vehicles);
     const droneService = calculateDroneServiceStaff(shipDesign.drones);
@@ -190,12 +199,31 @@ function App() {
     const stewards = Math.ceil(totalStaterooms / 8);
 
     const medicalStaff = calculateMedicalStaff(shipDesign.facilities);
-    const { nurses, surgeons, techs } = medicalStaff;
+    const { nurses: baseNurses, surgeons: baseSurgeons, techs: baseTechs } = medicalStaff;
 
-    const total = pilot + navigator + engineers + gunners + service + stewards + nurses + surgeons + techs;
+    // Crew assigned to operate/service/repair/serve custom items adds onto
+    // the corresponding position; infantry/armor/mp/security have no
+    // baseline formula elsewhere, so they're purely custom-crew-driven.
+    const customCrew = shipDesign.custom_crew;
+    const pilotTotal = pilot + customCrew.pilot;
+    const navigatorTotal = navigator + customCrew.navigator;
+    const engineersTotal = engineers + customCrew.engineers;
+    const gunnersTotal = gunners + customCrew.gunners;
+    const serviceTotal = service + customCrew.service;
+    const stewardsTotal = stewards + customCrew.stewards;
+    const nurses = baseNurses + customCrew.nurses;
+    const surgeons = baseSurgeons + customCrew.surgeons;
+    const techs = baseTechs + customCrew.techs;
+    const { infantry, armor, mp, security } = customCrew;
 
-    return { pilot, navigator, engineers, gunners, service, stewards, nurses, surgeons, techs, total };
-  }, [shipDesign]);
+    const total = pilotTotal + navigatorTotal + engineersTotal + gunnersTotal + serviceTotal + stewardsTotal
+      + nurses + surgeons + techs + infantry + armor + mp + security;
+
+    return {
+      pilot: pilotTotal, navigator: navigatorTotal, engineers: engineersTotal, gunners: gunnersTotal,
+      service: serviceTotal, stewards: stewardsTotal, nurses, surgeons, techs, infantry, armor, mp, security, total
+    };
+  }, [shipDesign, activeRules]);
 
   const handleFileSave = useCallback(async () => {
     if (!shipDesign.ship.name.trim()) {
@@ -553,7 +581,12 @@ function App() {
       case 8:
         return <DronesPanel drones={shipDesign.drones} onUpdate={(drones) => updateShipDesign({ drones })} />;
       case 9:
-        return <CustomPanel custom_items={shipDesign.custom_items} onUpdate={(custom_items) => updateShipDesign({ custom_items })} />;
+        return <CustomPanel
+          custom_items={shipDesign.custom_items}
+          custom_crew={shipDesign.custom_crew}
+          onUpdate={(custom_items) => updateShipDesign({ custom_items })}
+          onCrewUpdate={(custom_crew) => updateShipDesign({ custom_crew })}
+        />;
       case 10:
         return <BerthsPanel
           berths={shipDesign.berths}

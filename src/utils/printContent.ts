@@ -205,6 +205,10 @@ export function generateShipPrintContent(
   if (staff.nurses > 0) crewLines.push(`<p><strong>Nurses:</strong> ${staff.nurses}</p>`);
   if (staff.surgeons > 0) crewLines.push(`<p><strong>Surgeons:</strong> ${staff.surgeons}</p>`);
   if (staff.techs > 0) crewLines.push(`<p><strong>Medical Techs:</strong> ${staff.techs}</p>`);
+  if (staff.infantry > 0) crewLines.push(`<p><strong>Infantry:</strong> ${staff.infantry}</p>`);
+  if (staff.armor > 0) crewLines.push(`<p><strong>Armor:</strong> ${staff.armor}</p>`);
+  if (staff.mp > 0) crewLines.push(`<p><strong>MP:</strong> ${staff.mp}</p>`);
+  if (staff.security > 0) crewLines.push(`<p><strong>Security:</strong> ${staff.security}</p>`);
   crewLines.push(`<p><strong>Total Crew:</strong> ${adjustedTotal}</p>`);
 
   const nonStandardNotice = shipDesign.ship.tonnage < 3000

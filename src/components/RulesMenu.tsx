@@ -23,7 +23,8 @@ const RulesMenu: React.FC<RulesMenuProps> = ({ shipDesign, onRuleChange }) => {
   const currentTechLevel = shipDesign.ship.tech_level;
   const canUseAntimatter = isTechLevelAtLeast(currentTechLevel, 'H');
   const canUseLongerJumps = isTechLevelAtLeast(currentTechLevel, 'G');
-  
+  const canUseRobotics = isTechLevelAtLeast(currentTechLevel, 'F');
+
   const [enabledRuleIds, setEnabledRuleIds] = useState<Set<string>>(
     new Set(['spacecraft_design_srd'])
   );
@@ -66,6 +67,16 @@ const RulesMenu: React.FC<RulesMenuProps> = ({ shipDesign, onRuleChange }) => {
     onRuleChange?.('longer_jumps', longerJumpsEffective);
   }, [canUseLongerJumps, onRuleChange]);
 
+  const isFirstRoboticsCheck = useRef(true);
+  useEffect(() => {
+    if (isFirstRoboticsCheck.current) {
+      isFirstRoboticsCheck.current = false;
+      return;
+    }
+    const roboticsEffective = enabledRuleIdsRef.current.has('robotics') && canUseRobotics;
+    onRuleChange?.('robotics', roboticsEffective);
+  }, [canUseRobotics, onRuleChange]);
+
   // Derive full rule list each render; tech-level constraints are computed inline
   // so no useEffect is needed to sync disabled state.
   const rules: RuleItem[] = [
@@ -77,6 +88,9 @@ const RulesMenu: React.FC<RulesMenuProps> = ({ shipDesign, onRuleChange }) => {
     { id: 'longer_jumps', name: 'Longer Jumps',
       enabled: enabledRuleIds.has('longer_jumps') && canUseLongerJumps,
       disabled: !canUseLongerJumps },
+    { id: 'robotics', name: 'Robotics',
+      enabled: enabledRuleIds.has('robotics') && canUseRobotics,
+      disabled: !canUseRobotics },
   ];
 
   const toggleRule = (ruleId: string) => {
@@ -106,6 +120,8 @@ const RulesMenu: React.FC<RulesMenuProps> = ({ shipDesign, onRuleChange }) => {
         return <span className="rule-status disabled" title={`Requires Tech Level H (current: ${currentTechLevel})`}>—</span>;
       } else if (rule.id === 'longer_jumps' && !canUseLongerJumps) {
         return <span className="rule-status disabled" title={`Requires Tech Level G+ (current: ${currentTechLevel})`}>—</span>;
+      } else if (rule.id === 'robotics' && !canUseRobotics) {
+        return <span className="rule-status disabled" title={`Requires Tech Level F (current: ${currentTechLevel})`}>—</span>;
       }
       return <span className="rule-status disabled">—</span>;
     }

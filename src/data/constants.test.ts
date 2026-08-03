@@ -11,6 +11,8 @@ import {
   convertTechLevelToNumber,
   getAvailableVehicles,
   getMinimumComputer,
+  getRoboticsCrewDivisor,
+  getRoboticsGunnerDivisor,
 } from './constants';
 
 describe('Tech Level Functions', () => {
@@ -24,6 +26,7 @@ describe('Tech Level Functions', () => {
       expect(getTechLevelIndex('F')).toBe(5);
       expect(getTechLevelIndex('G')).toBe(6);
       expect(getTechLevelIndex('H')).toBe(7);
+      expect(getTechLevelIndex('J')).toBe(8);
     });
 
     it('should return -1 for invalid tech levels', () => {
@@ -66,6 +69,33 @@ describe('Tech Level Functions', () => {
       expect(isTechLevelAtLeast('G', 'G')).toBe(true); // TL G can use longer jumps
       expect(isTechLevelAtLeast('F', 'G')).toBe(false); // TL F cannot use longer jumps
       expect(isTechLevelAtLeast('A', 'G')).toBe(false); // TL A cannot use longer jumps
+    });
+  });
+
+  describe('getRoboticsCrewDivisor', () => {
+    it('should return 1 below TL-F (no reduction)', () => {
+      expect(getRoboticsCrewDivisor('A')).toBe(1);
+      expect(getRoboticsCrewDivisor('E')).toBe(1);
+    });
+
+    it('should return the correct divisor at TL-F through TL-J', () => {
+      expect(getRoboticsCrewDivisor('F')).toBe(2);
+      expect(getRoboticsCrewDivisor('G')).toBe(4);
+      expect(getRoboticsCrewDivisor('H')).toBe(6);
+      expect(getRoboticsCrewDivisor('J')).toBe(8);
+    });
+  });
+
+  describe('getRoboticsGunnerDivisor', () => {
+    it('should return 1 below TL-G (no reduction, including TL-F)', () => {
+      expect(getRoboticsGunnerDivisor('A')).toBe(1);
+      expect(getRoboticsGunnerDivisor('F')).toBe(1);
+    });
+
+    it('should return the correct divisor at TL-G through TL-J', () => {
+      expect(getRoboticsGunnerDivisor('G')).toBe(2);
+      expect(getRoboticsGunnerDivisor('H')).toBe(3);
+      expect(getRoboticsGunnerDivisor('J')).toBe(4);
     });
   });
 });
@@ -346,9 +376,14 @@ describe('convertTechLevelToNumber', () => {
     expect(convertTechLevelToNumber('H')).toBe(17);
   });
 
-  it('should map any A-Z letter to charCode offset + 10', () => {
-    // 'Z' is a valid single uppercase letter so returns 35, not 0
-    expect(convertTechLevelToNumber('Z')).toBe(35);
+  it('should map J to 18, skipping I per the Traveller TL convention', () => {
+    expect(convertTechLevelToNumber('J')).toBe(18);
+  });
+
+  it('should return 0 for a letter not in TECH_LEVELS', () => {
+    // 'Z' is not (yet) a supported tech level, unlike the old charCode-offset
+    // formula which treated any single uppercase letter as valid.
+    expect(convertTechLevelToNumber('Z')).toBe(0);
   });
 
   it('should return 0 for empty string', () => {

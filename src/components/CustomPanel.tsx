@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
-import type { CustomItem } from '../types/ship';
+import type { CustomItem, CustomCrew } from '../types/ship';
+import { CUSTOM_CREW_CATEGORIES } from '../data/constants';
 
 interface CustomPanelProps {
   custom_items: CustomItem[];
+  custom_crew: CustomCrew;
   onUpdate: (custom_items: CustomItem[]) => void;
+  onCrewUpdate: (custom_crew: CustomCrew) => void;
 }
 
-const CustomPanel: React.FC<CustomPanelProps> = ({ custom_items, onUpdate }) => {
+const CustomPanel: React.FC<CustomPanelProps> = ({ custom_items, custom_crew, onUpdate, onCrewUpdate }) => {
   const [newItemName, setNewItemName] = useState('');
   const [newItemMass, setNewItemMass] = useState('');
   const [newItemCost, setNewItemCost] = useState('');
@@ -41,6 +44,11 @@ const CustomPanel: React.FC<CustomPanelProps> = ({ custom_items, onUpdate }) => 
   const handleRemoveItem = (index: number) => {
     const newItems = custom_items.filter((_, i) => i !== index);
     onUpdate(newItems);
+  };
+
+  const handleCrewChange = (key: keyof CustomCrew, value: string) => {
+    const count = Math.max(0, parseInt(value, 10) || 0);
+    onCrewUpdate({ ...custom_crew, [key]: count });
   };
 
   const totalMass = custom_items.reduce((sum, item) => sum + item.mass, 0);
@@ -132,6 +140,28 @@ const CustomPanel: React.FC<CustomPanelProps> = ({ custom_items, onUpdate }) => 
           </>
         )}
       </div>
+
+      {custom_items.length > 0 && (
+        <div className="custom-crew">
+          <h3>Custom Crew</h3>
+          <p>Crew to operate, service, repair, and serve the custom items above. Added to the ship's total Staff Requirements.</p>
+          <div className="form-row">
+            {CUSTOM_CREW_CATEGORIES.map(({ key, label }) => (
+              <div key={key} className="form-group">
+                <label htmlFor={`custom-crew-${key}`}>{label}</label>
+                <input
+                  id={`custom-crew-${key}`}
+                  type="number"
+                  step="1"
+                  min="0"
+                  value={custom_crew[key]}
+                  onChange={(e) => handleCrewChange(key, e.target.value)}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
