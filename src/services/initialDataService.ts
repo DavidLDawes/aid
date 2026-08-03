@@ -31,25 +31,7 @@ class InitialDataService {
         return false;
       }
 
-      // Preload the initial ships
-      logger.info(`Preloading ${initialData.ships.length} initial ships`);
-      let loaded = 0;
-      let errors = 0;
-
-      for (const shipData of initialData.ships) {
-        try {
-          // Remove metadata before saving and clean invalid cargo entries
-          const { _metadata: _m, ...shipDesign } = shipData;
-          shipDesign.cargo = cleanInvalidCargo(shipDesign.cargo);
-          await databaseService.saveOrUpdateShipByName(shipDesign);
-          loaded++;
-          logger.info(`Loaded initial ship "${shipDesign.ship.name}"`);
-        } catch (error) {
-          logger.error(`Failed to load initial ship "${shipData.ship?.name || 'Unknown'}"`, error);
-          errors++;
-        }
-      }
-
+      const { loaded, errors } = await this.preloadShips(initialData);
       logger.info(`Initial data load complete: ${loaded} loaded, ${errors} errors`);
       return loaded > 0;
 
@@ -57,6 +39,50 @@ class InitialDataService {
       logger.error('Error during initial data load', error);
       return false;
     }
+  }
+
+  // Restores the standard structure (Ring World Alpha) to its baseline
+  // design, whether the user deleted or changed it - unconditionally,
+  // unlike loadInitialDataIfNeeded, which only loads when the database is
+  // empty. saveOrUpdateShipByName matches by ship name, so this only ever
+  // touches that standard name; any other structure the user has added is
+  // left completely alone. Used by the in-app "Reset Structures" action
+  // (SelectShipPanel).
+  async resetStandardShips(): Promise<{ loaded: number; errors: number }> {
+    logger.info('Resetting standard structures to their baseline designs');
+    await databaseService.initialize();
+
+    const initialData = await this.loadInitialData();
+    if (!initialData || !initialData.ships || initialData.ships.length === 0) {
+      logger.info('No standard structure data available to reload');
+      return { loaded: 0, errors: 0 };
+    }
+
+    const { loaded, errors } = await this.preloadShips(initialData);
+    logger.info(`Reset complete: ${loaded} loaded, ${errors} errors`);
+    return { loaded, errors };
+  }
+
+  private async preloadShips(initialData: InitialDataExport): Promise<{ loaded: number; errors: number }> {
+    logger.info(`Preloading ${initialData.ships.length} ships`);
+    let loaded = 0;
+    let errors = 0;
+
+    for (const shipData of initialData.ships) {
+      try {
+        // Remove metadata before saving and clean invalid cargo entries
+        const { _metadata: _m, ...shipDesign } = shipData;
+        shipDesign.cargo = cleanInvalidCargo(shipDesign.cargo);
+        await databaseService.saveOrUpdateShipByName(shipDesign);
+        loaded++;
+        logger.info(`Loaded ship "${shipDesign.ship.name}"`);
+      } catch (error) {
+        logger.error(`Failed to load ship "${shipData.ship?.name || 'Unknown'}"`, error);
+        errors++;
+      }
+    }
+
+    return { loaded, errors };
   }
 
   private async loadInitialData(): Promise<InitialDataExport | null> {

@@ -1059,6 +1059,31 @@
   transform: translateY(-1px);
 }
 
+.reset-ships-button {
+  padding: 1rem 2rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 150px;
+  background-color: #dc3545;
+  color: white;
+}
+
+.reset-ships-button:hover:not(:disabled) {
+  background-color: #c82333;
+  transform: translateY(-1px);
+}
+
+.reset-ships-button:disabled {
+  background-color: #bdc3c7;
+  cursor: not-allowed;
+  opacity: 0.6;
+  transform: none;
+}
+
 .error-message {
   background-color: #f8d7da;
   color: #721c24;

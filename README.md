@@ -148,11 +148,14 @@ pnpm test:run        # Run tests once (CI)
 pnpm test            # Run tests in watch mode
 pnpm test:ui         # Run tests with UI
 
-# Database management
+# Database management (dev-only; these don't reach a real browser's saved ships - see CLAUDE.md)
 pnpm extractDB       # Export ships from IndexedDB to JSON files
 pnpm preloadDB       # Import ships from JSON files to IndexedDB
 pnpm flushDB         # Clear all ships from IndexedDB
-pnpm setInitialDB    # Reset DB to initial state
+
+# To restore the standard structure (Ring World Alpha) to its baseline
+# design, use the in-app "Reset Structures" button on the Select
+# Structure screen instead - it leaves any other saved structure untouched.
 ```
 
 ## Engine Performance Data
