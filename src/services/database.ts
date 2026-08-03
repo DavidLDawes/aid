@@ -10,9 +10,22 @@ export interface StoredShipDesign extends ShipDesign {
 
 class DatabaseService {
   private db: IDBDatabase | null = null;
-  private readonly dbName = 'StarshipDesignerDB';
+  // Own database, distinct from main's StarshipDesignerDB and
+  // megastructure's MegastructureDesignerDB. All three previously shared
+  // one database name (StarshipDesignerDB) at the same origin
+  // (srd-tools.com), each with its own store but pinned to the same
+  // version number. IndexedDB only runs onupgradeneeded (which creates a
+  // missing store) when the requested version is HIGHER than what's
+  // already in the browser for that database name - so whichever of the
+  // three apps a user opened first "claimed" that version and created
+  // only its own store, leaving the other two with a db handle silently
+  // missing their store (surfaces as "'<store>' is not a known object
+  // store name" on the first transaction, typically on save). Giving each
+  // app its own database name removes the collision entirely; each can
+  // now version its own schema independently.
+  private readonly dbName = 'CapitalDesignerDB';
   private readonly storeName = 'capital_ships';
-  private readonly version = 3;
+  private readonly version = 1;
 
   async initialize(): Promise<void> {
     if (this.db) {
