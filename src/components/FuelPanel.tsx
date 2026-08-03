@@ -1,6 +1,6 @@
 import React from 'react';
 import type { FuelSystem, Engine } from '../types/ship';
-import { FUEL_SYSTEM_TYPES, PLANT_PER_SCOOP, getMegastructureSections } from '../data/constants';
+import { FUEL_SYSTEM_TYPES, PLANT_PER_SCOOP, getMegastructureSections, getMinPowerPlantForFuelEquipment, formatPowerPlantCode } from '../data/constants';
 
 interface FuelPanelProps {
   fuelSystems: FuelSystem[];
@@ -16,7 +16,8 @@ const FuelPanel: React.FC<FuelPanelProps> = ({ fuelSystems, engines, shipTonnage
 
   const powerPlant = engines.find(e => e.engine_type === 'power_plant');
   const powerPlantPerformance = powerPlant?.performance || 0;
-  const hasP10 = powerPlantPerformance >= 10;
+  const minPowerForFuel = getMinPowerPlantForFuelEquipment(shipTonnage);
+  const hasSufficientPower = powerPlantPerformance >= minPowerForFuel;
 
   const getSystem = (type: FuelSystem['system_type']): FuelSystem | undefined =>
     fuelSystems.find(s => s.system_type === type);
@@ -162,12 +163,15 @@ const FuelPanel: React.FC<FuelPanelProps> = ({ fuelSystems, engines, shipTonnage
         <h3>Antimatter Plant</h3>
         <p>
           100,000 tons per unit, 1,000 MCr per unit. Output: 1,200 tons AM fuel/day per unit.
-          <strong> Requires P-10 power plant.</strong> Installing at least one unit reduces the
+          <strong> Requires {formatPowerPlantCode(minPowerForFuel)}+ power plant</strong> at this structure's tonnage
+          (fuel equipment's power minimum drops as tonnage grows: {formatPowerPlantCode(0.1)}+ at 10,000,000+ tons,{' '}
+          {formatPowerPlantCode(0.01)}+ at 100,000,000+ tons). Installing at least one unit reduces the
           megastructure's maneuver fuel requirement (Engines panel) to 1/10th.
         </p>
-        {!hasP10 ? (
+        {!hasSufficientPower ? (
           <p className="warning-message">
-            ⚠ Antimatter Plant requires a P-10 Power Plant (current: {powerPlantPerformance > 0 ? `P-${powerPlantPerformance}` : 'none'}).
+            ⚠ Antimatter Plant requires a {formatPowerPlantCode(minPowerForFuel)} Power Plant at this tonnage
+            (current: {powerPlantPerformance > 0 ? formatPowerPlantCode(powerPlantPerformance) : 'none'}).
           </p>
         ) : (
           <div className="component-item">
@@ -241,7 +245,7 @@ const FuelPanel: React.FC<FuelPanelProps> = ({ fuelSystems, engines, shipTonnage
               <td>{tankQty.toLocaleString()}</td>
               <td>{(tankQty * 1000).toLocaleString()} ton capacity</td>
             </tr>
-            {hasP10 && (
+            {hasSufficientPower && (
               <tr>
                 <td>Antimatter Plant</td>
                 <td>{amPlantQty}</td>

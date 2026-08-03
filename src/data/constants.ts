@@ -141,6 +141,48 @@ function getFractionalManeuverDriveLevel(performance: number) {
   );
 }
 
+// Fractional (sub-1-gee) power plants, megastructure branch only. Unlike the
+// fractional maneuver drives above, these all cost the same as a P-1 - only
+// mass is reduced. Exist so a megastructure can meet the tonnage-tiered
+// minimum power fuel equipment requires (getMinPowerPlantForFuelEquipment)
+// without installing a full P-1 plant.
+export const FRACTIONAL_POWER_PLANT_LEVELS: {
+  performance: number;
+  suffix: string;
+  tonsPercentOfP1: number;
+}[] = [
+  { performance: 0.01, suffix: '.01', tonsPercentOfP1: 10 },
+  { performance: 0.05, suffix: '.05', tonsPercentOfP1: 22 },
+  { performance: 0.1, suffix: '.1', tonsPercentOfP1: 30 },
+  { performance: 0.5, suffix: '.5', tonsPercentOfP1: 70 },
+];
+
+function getFractionalPowerPlantLevel(performance: number) {
+  return FRACTIONAL_POWER_PLANT_LEVELS.find(
+    level => Math.abs(level.performance - performance) < 1e-9
+  );
+}
+
+// Formats a power plant performance value as its drive code (e.g. 0.5 ->
+// "P-.5", 1 -> "P-1"), matching the FRACTIONAL_POWER_PLANT_LEVELS suffixes
+// for fractional values instead of printing the raw decimal.
+export function formatPowerPlantCode(performance: number): string {
+  if (performance >= 1) return `P-${performance}`;
+  const level = getFractionalPowerPlantLevel(performance);
+  return level ? `P-${level.suffix}` : `P-${performance}`;
+}
+
+// Minimum power plant performance required to run fuel equipment (the
+// Antimatter Plant). Loosened from a flat P-10 requirement, tiered by
+// structure tonnage - fuel/power infrastructure needs scale far below
+// propulsion power on the largest structures. Tech level separately gates
+// which power plant levels are even selectable (getMaxPowerPlantByTechLevel).
+export function getMinPowerPlantForFuelEquipment(tonnage: number): number {
+  if (tonnage >= 100_000_000) return 0.01;
+  if (tonnage >= 10_000_000) return 0.1;
+  return 1;
+}
+
 // Calculate engine mass and cost based on performance and ship tonnage
 export function calculateEngineMassAndCost(
   shipTonnage: number,
@@ -156,6 +198,19 @@ export function calculateEngineMassAndCost(
     return {
       mass: (m1.mass * level.tonsPercentOfM1) / 100,
       cost: (m1.cost * level.costPercentOfM1) / 100
+    };
+  }
+
+  if (engineType === 'power_plant' && performance > 0 && performance < 1) {
+    const level = getFractionalPowerPlantLevel(performance);
+    if (!level) {
+      return { mass: 0, cost: 0 };
+    }
+    const p1 = calculateEngineMassAndCost(shipTonnage, 'power_plant', 1);
+    // All fractional power plant levels cost the same as a P-1; only mass shrinks.
+    return {
+      mass: (p1.mass * level.tonsPercentOfP1) / 100,
+      cost: p1.cost
     };
   }
 
@@ -201,9 +256,25 @@ export function getAvailableEngines(hullTonnage: number, engineType: string, pow
     }
   }
 
+  // Fractional (sub-1-gee) power plants, listed ascending before P-1. Let a
+  // megastructure meet a low tonnage-tiered fuel-equipment power minimum
+  // (getMinPowerPlantForFuelEquipment) without installing a full P-1 plant.
+  if (engineType === 'power_plant') {
+    for (const level of FRACTIONAL_POWER_PLANT_LEVELS) {
+      const { mass, cost } = calculateEngineMassAndCost(hullTonnage, 'power_plant', level.performance);
+      const code = `P-${level.suffix}`;
+      availableEngines.push({
+        code,
+        performance: level.performance,
+        mass,
+        cost,
+        label: `${code} (${mass.toFixed(1)}t, ${cost.toFixed(2)} MCr)`
+      });
+    }
+  }
+
   // Maneuver drives cap at 6. Power plants are instead gated directly by tech
-  // level via getMaxPowerPlantByTechLevel, up to P-12 at TL-J (needed to
-  // support the P-10 an Antimatter Plant requires).
+  // level via getMaxPowerPlantByTechLevel, up to P-12 at TL-J.
   let maxPerformance = 6;
   if (engineType === 'power_plant' && techLevel) {
     maxPerformance = getMaxPowerPlantByTechLevel(techLevel);

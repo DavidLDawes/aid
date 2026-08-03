@@ -7,7 +7,7 @@ import {
   calculateArmorMass, calculateArmorCost,
   getMegastructureSections, PLANT_PER_SCOOP,
   hasAntimatterPlant, calculateAntimatterAdjustedManeuverFuel,
-  getRoboticsGunnerDivisor
+  getRoboticsGunnerDivisor, getMinPowerPlantForFuelEquipment
 } from './data/constants';
 import { databaseService } from './services/database';
 import { logger } from './utils/logger';
@@ -385,14 +385,19 @@ function App() {
         newDesign.fittings = rescaleFittingsForTonnage(newDesign.fittings, newTonnage);
       }
 
-      // Dropping the power plant below P-10 strands an installed Antimatter
-      // Plant: it can no longer run (FuelPanel hides the control), but its
-      // mass/cost/fuel-discount would otherwise linger unnoticed. Remove it.
-      if (updates.engines !== undefined) {
-        const powerPlantPerformance = updates.engines.find(e => e.engine_type === 'power_plant')?.performance || 0;
+      // Dropping the power plant below the tonnage-tiered fuel-equipment
+      // minimum (getMinPowerPlantForFuelEquipment) strands an installed
+      // Antimatter Plant: it can no longer run (FuelPanel hides the
+      // control), but its mass/cost/fuel-discount would otherwise linger
+      // unnoticed. Remove it. Re-checked on either an engine change or a
+      // tonnage change, since the minimum itself is tonnage-tiered - even
+      // an unchanged power plant can fall below it if the structure shrinks.
+      if (updates.engines !== undefined || newTonnage !== undefined) {
+        const powerPlantPerformance = newDesign.engines.find(e => e.engine_type === 'power_plant')?.performance || 0;
         const existingFuelSystems = newDesign.fuel_systems || [];
-        if (powerPlantPerformance < 10 && hasAntimatterPlant(existingFuelSystems)) {
-          logger.info('Power plant dropped below P-10: removing Antimatter Plant');
+        const minPowerForFuel = getMinPowerPlantForFuelEquipment(newDesign.ship.tonnage);
+        if (powerPlantPerformance < minPowerForFuel && hasAntimatterPlant(existingFuelSystems)) {
+          logger.info(`Power plant below P-${minPowerForFuel} minimum: removing Antimatter Plant`);
           newDesign.fuel_systems = existingFuelSystems.filter(f => f.system_type !== 'antimatter_plant');
         }
       }
