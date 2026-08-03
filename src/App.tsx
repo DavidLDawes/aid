@@ -327,7 +327,9 @@ function App() {
                shipDesign.ship.tonnage >= 1_000_000;
 
       case 1: // Engines — power plant required, no jump drive
-        return shipDesign.engines.some(e => e.engine_type === 'power_plant' && e.drive_code && e.performance >= 1);
+        // performance > 0 (not >= 1): fractional power plants (P-.01..P-.5)
+        // are valid selections, not just the integer P-1..P-12 tiers.
+        return shipDesign.engines.some(e => e.engine_type === 'power_plant' && e.drive_code && e.performance > 0);
 
       case 2: { // Fittings — computer required
         return shipDesign.fittings.some(f => f.fitting_type === 'computer');
