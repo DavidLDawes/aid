@@ -124,7 +124,7 @@ Test files are co-located with source files using .test.ts/.test.tsx extension
 
 **Panel Flow**: Ship → Engines → Fittings → Weapons → Defenses → Rec/Health → Cargo → Vehicles → Drones → Custom → Berths → Staff → Ship Design
 
-**Note**: The Custom panel (index 9) was added to allow users to define custom items not in predefined lists.
+**Note**: The Custom panel (index 9) was added to allow users to define custom items not in predefined lists. Once at least one custom item exists, the panel also shows a "Custom Crew" section (`shipDesign.custom_crew`, type `CustomCrew`) with a number entry per crew category — the same 9 positions shown on the Staff panel, plus 4 (Infantry/Armor/MP/Security) that exist only as custom-crew entries. These counts add directly into `calculateStaffRequirements()`'s totals (see Staff Requirements Logic).
 
 ### Key Design Patterns
 
@@ -280,26 +280,29 @@ The `calculateMass()` function in App.tsx handles:
 
 Complex crew calculation in `calculateStaffRequirements()` (hoisted before JSX return in App.tsx, called once per render):
 - **Engineers**: Tiered by ship tonnage:
-  - 100 tons: fixed 1 engineer
-  - 200 or 300 tons: fixed 2 engineers
-  - 400+ tons: at least 1 per engine (`max(engineCount, 1)`), plus `ceil(mass/100) - 1` extra for each engine whose mass exceeds 100 tons
-  - Other sizes (fallback): `ceil(totalEnginesMass / 100)`
+  - 100 tons: fixed 1 engineer (not reduced by Robotics)
+  - 200 or 300 tons: fixed 2 engineers (not reduced by Robotics)
+  - 400+ tons (or any tonnage with at least one engine): 1 per engine, plus `ceil(mass/100) - 1` extra for each engine whose mass exceeds 100 tons; if the Robotics rule is active, each engine's own crew requirement (mass tier included) is divided by `getRoboticsCrewDivisor(techLevel)` and rounded up *before* summing across engines
+  - No engines configured: fixed 1 engineer (not reduced by Robotics)
 - **Gunners**:
   - 1 per 10 turrets/barbettes (rounded up)
   - 1 per 10 defense turrets (rounded up)
   - Defensive screens: minimum 4, or `ceil(totalScreenTons / 100)` if total screen tonnage >400
   - Spinal weapons: +10 gunners
   - Bay weapons: 2 gunners per bay weapon (per unit quantity)
+  - If the Robotics rule is active, the summed gunner total above is divided by `getRoboticsGunnerDivisor(techLevel)` and rounded up — one TL tier behind the engineer reduction (starts at TL-G, not TL-F)
 - **Stewards**: 1 per 8 staterooms (rounded up)
 - **Medical**: Calculated by `calculateMedicalStaff()` based on medical facilities
 - **Service**: Vehicle service (`calculateVehicleServiceStaff`) + drone service (`calculateDroneServiceStaff`) from `constants.ts`
+- **Custom Crew**: The Custom panel's per-category crew counts (`shipDesign.custom_crew`) are added on top of every formula-derived position above; `infantry`/`armor`/`mp`/`security` have no formula anywhere else, so their `StaffRequirements` totals are exactly whatever's entered there
 
 Small ships (**exactly** 100 or 200 tons — not 300+) can combine pilot/navigator roles and skip stewards.
 
 ### Tech Level Dependencies
 
 Many features are tech-level gated:
-- Maximum jump performance: TL A=J1, TL B=J2, ... TL F+=J6. With the Longer Jumps rule active, TL G allows J-8 and TL H allows J-10 (`getEffectiveMaxJump(techLevel, longerJumpsEnabled)`); power plants and maneuver drives can reach performance 10 to support those drives.
+- `TECH_LEVELS` runs `A`-`H`, then `J` (TL 18) — `I` is skipped per the Traveller TL convention, matching the letter-skip already used for capital-ship hull codes. `convertTechLevelToNumber()` derives its result from `TECH_LEVELS` position (`getTechLevelIndex(tl) + 10`), not raw character code, so the skip is handled correctly; don't revert it to a charCode formula.
+- Maximum jump performance: TL A=J1, TL B=J2, ... TL F+=J6. With the Longer Jumps rule active, TL G allows J-8 and TL H+ (including TL-J) allows J-10 (`getEffectiveMaxJump(techLevel, longerJumpsEnabled)`); power plants and maneuver drives can reach performance 10 to support those drives. TL-J doesn't currently unlock any jump/power-plant performance beyond what TL-H already gives — it exists to support the Robotics rule's TL-J tier (see Rules System) — so extending performance further at TL-J is a deliberate future addition, not an oversight.
 - Spinal weapons: Different weapons available at different TLs, require minimum power plant performance
 - Computer models: Minimum computer required based on tonnage + jump performance
 - Vehicle availability: Most vehicles have minimum TL requirements
@@ -321,6 +324,7 @@ Ships ≥3,000 tons are capital ships with special rules:
 - `'spacecraft_design_srd'`: Always enabled (base rules)
 - `'antimatter'`: Antimatter drives (TL-H, 1% of ship tons per Jump performance)
 - `'longer_jumps'`: Extended jumps (TL-G+) — raises the jump cap via `getEffectiveMaxJump()`
+- `'robotics'`: Robotic crew assistance (TL-F+) — reduces per-engine Engineer requirements via `getRoboticsCrewDivisor(techLevel)` (TL-F=1/2, TL-G=1/4, TL-H=1/6, TL-J=1/8) and, one TL tier later, total Gunner requirements via `getRoboticsGunnerDivisor(techLevel)` (TL-G=1/2, TL-H=1/3, TL-J=1/4). Both divisors are read directly in `calculateStaffRequirements()` — Robotics has no installed-component analog the way the Antimatter Plant does, it's a pure rules toggle
 - Additional rules can be added via RulesMenu component
 
 Rules affect calculations (e.g., fuel mass with antimatter) - check `activeRules.has('rule_id')` before applying rule-specific logic. `RulesMenu` computes `enabled`/`disabled` per-rule from the ship's tech level on every render, but that's purely for its own display — it must separately call `onRuleChange` whenever a tech-level change flips a rule's effective availability, or App's `activeRules` (the actual source of truth used in calculations) silently desyncs from what the menu shows.

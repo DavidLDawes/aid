@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import type { Ship, ShipDesign } from '../types/ship';
 import { TECH_LEVELS, HULL_SIZES, getTonnageCode, getNumberOfSections } from '../data/constants';
 import { databaseService } from '../services/database';
+import { createEmptyCustomCrew } from '../utils/shipDefaults';
 
 interface ShipPanelProps {
   ship: Ship;
@@ -57,7 +58,8 @@ const ShipPanel: React.FC<ShipPanelProps> = ({ ship, onUpdate, onLoadExistingShi
             cargo: existingShip.cargo,
             vehicles: existingShip.vehicles,
             drones: existingShip.drones,
-            custom_items: existingShip.custom_items || []
+            custom_items: existingShip.custom_items || [],
+            custom_crew: existingShip.custom_crew || createEmptyCustomCrew()
           }
         });
       } else {

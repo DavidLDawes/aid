@@ -1,6 +1,27 @@
-import type { Cargo } from '../types/ship';
+import type { Cargo, CustomCrew } from '../types/ship';
 
-export const TECH_LEVELS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+// Crew categories shown on the Custom panel's crew-tracking section, in
+// display order - the same positions shown on the Staff panel, plus four
+// (infantry/armor/mp/security) that only exist as custom-crew entries.
+export const CUSTOM_CREW_CATEGORIES: { key: keyof CustomCrew; label: string }[] = [
+  { key: 'pilot', label: 'Pilot' },
+  { key: 'navigator', label: 'Navigator' },
+  { key: 'engineers', label: 'Engineers' },
+  { key: 'gunners', label: 'Gunners' },
+  { key: 'service', label: 'Service' },
+  { key: 'stewards', label: 'Stewards' },
+  { key: 'nurses', label: 'Nurses' },
+  { key: 'surgeons', label: 'Surgeons' },
+  { key: 'techs', label: 'Techs' },
+  { key: 'infantry', label: 'Infantry' },
+  { key: 'armor', label: 'Armor' },
+  { key: 'mp', label: 'MP' },
+  { key: 'security', label: 'Security' },
+];
+
+// TL letters skip 'I' (visual confusion with the digit 1), matching the
+// Traveller convention: ...H=17, I skipped, J=18, K=19...
+export const TECH_LEVELS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J'];
 
 export function getTechLevelIndex(techLevel: string): number {
   return TECH_LEVELS.indexOf(techLevel);
@@ -16,6 +37,29 @@ export function isTechLevelAtLeast(currentLevel: string, requiredLevel: string):
   }
 
   return currentIndex >= requiredIndex;
+}
+
+// Robotics (TL-F+, toggled via the Rules menu): robot workers assist each
+// engineer, letting them cover more of an engine's own crew requirement as
+// tech level improves. Divisor to apply (rounded up) to each engine's crew:
+// TL-F=1/2, TL-G=1/4, TL-H=1/6, TL-J=1/8. Below TL-F, no reduction (1).
+export function getRoboticsCrewDivisor(techLevel: string): number {
+  if (isTechLevelAtLeast(techLevel, 'J')) return 8;
+  if (isTechLevelAtLeast(techLevel, 'H')) return 6;
+  if (isTechLevelAtLeast(techLevel, 'G')) return 4;
+  if (isTechLevelAtLeast(techLevel, 'F')) return 2;
+  return 1;
+}
+
+// Robotics also automates gunnery support, one tier behind the engineering
+// reduction above (starts at TL-G, not TL-F): divisor to apply (rounded up)
+// to the ship's total gunner requirement. TL-G=1/2, TL-H=1/3, TL-J=1/4.
+// Below TL-G, no reduction (1).
+export function getRoboticsGunnerDivisor(techLevel: string): number {
+  if (isTechLevelAtLeast(techLevel, 'J')) return 4;
+  if (isTechLevelAtLeast(techLevel, 'H')) return 3;
+  if (isTechLevelAtLeast(techLevel, 'G')) return 2;
+  return 1;
 }
 
 // Calculate maximum jump performance based on tech level
@@ -666,9 +710,11 @@ export function getWeaponMountLimit(shipTonnage: number): number {
 }
 
 export function convertTechLevelToNumber(techLevel: string): number {
-  // Convert A=10, B=11, C=12, etc.
-  if (techLevel.length === 1 && techLevel >= 'A' && techLevel <= 'Z') {
-    return techLevel.charCodeAt(0) - 'A'.charCodeAt(0) + 10;
+  // Derive from TECH_LEVELS position (not raw char code) so the numbering
+  // stays correct now that 'I' is skipped: H=17, J=18, K=19, ...
+  const index = getTechLevelIndex(techLevel);
+  if (index !== -1) {
+    return index + 10;
   }
   return parseInt(techLevel) || 0;
 }

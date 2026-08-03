@@ -3,6 +3,7 @@ import { databaseService, type StoredShipDesign } from '../services/database';
 import { initialDataService } from '../services/initialDataService';
 import type { ShipDesign } from '../types/ship';
 import { logger } from '../utils/logger';
+import { createEmptyCustomCrew } from '../utils/shipDefaults';
 
 interface SelectShipPanelProps {
   onNewShip: () => void;
@@ -87,6 +88,7 @@ function createDefaultShips() {
         { name: 'ATLAS Combat Droid', mass: 1, cost: 0.025 },
         { name: 'ATLAS Combat Droid', mass: 1, cost: 0.025 }
       ],
+      custom_crew: createEmptyCustomCrew(),
       createdAt: new Date(),
       updatedAt: new Date()
     };
@@ -171,6 +173,7 @@ function createDefaultShips() {
         mass: 1,
         cost: 0.024
       })),
+      custom_crew: createEmptyCustomCrew(),
       createdAt: new Date(),
       updatedAt: new Date()
     };

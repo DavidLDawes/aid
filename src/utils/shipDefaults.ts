@@ -1,5 +1,21 @@
-import type { ShipDesign, Ship } from '../types/ship';
+import type { ShipDesign, Ship, CustomCrew } from '../types/ship';
 import { getNumberOfSections } from '../data/constants';
+
+export const createEmptyCustomCrew = (): CustomCrew => ({
+  pilot: 0,
+  navigator: 0,
+  engineers: 0,
+  gunners: 0,
+  service: 0,
+  stewards: 0,
+  nurses: 0,
+  surgeons: 0,
+  techs: 0,
+  infantry: 0,
+  armor: 0,
+  mp: 0,
+  security: 0
+});
 
 export const createEmptyShipDesign = (shipInfo: Ship): ShipDesign => {
   return {
@@ -20,7 +36,8 @@ export const createEmptyShipDesign = (shipInfo: Ship): ShipDesign => {
     cargo: [],
     vehicles: [],
     drones: [],
-    custom_items: []
+    custom_items: [],
+    custom_crew: createEmptyCustomCrew()
   };
 };
 
