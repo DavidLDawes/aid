@@ -74,6 +74,7 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPan
   const [selectedShipId, setSelectedShipId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [resetting, setResetting] = useState(false);
 
   async function loadShips() {
     try {
@@ -120,6 +121,47 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPan
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadShips();
   }, []);
+
+  const handleDeleteSelectedShip = async () => {
+    if (!selectedShipId || selectedShipId < 0) return;
+    const ship = ships.find(s => s.id === selectedShipId);
+    if (!ship) return;
+    if (!window.confirm(`Delete "${ship.ship.name}"? This cannot be undone.`)) return;
+    try {
+      await databaseService.deleteShip(selectedShipId);
+      logger.info(`Deleted structure "${ship.ship.name}"`);
+      setSelectedShipId(null);
+      await loadShips();
+    } catch (err) {
+      logger.error(`Failed to delete structure id=${selectedShipId}`, err);
+      setError('Failed to delete structure');
+    }
+  };
+
+  const handleResetShips = async () => {
+    if (!window.confirm(
+      'Restore Ring World Alpha to its standard design? ' +
+      'If you deleted or changed it, it will be overwritten with the standard design. ' +
+      'Other structures you\'ve added are not affected.'
+    )) return;
+    logger.info('Resetting standard structures');
+    try {
+      setResetting(true);
+      setError(null);
+      const { loaded, errors } = await initialDataService.resetStandardShips();
+      logger.info(`Reset result: ${loaded} loaded, ${errors} errors`);
+      setSelectedShipId(null);
+      await loadShips();
+      if (errors > 0) {
+        setError(`Reset completed with ${errors} error(s) - check the console for details.`);
+      }
+    } catch (err) {
+      logger.error('Failed to reset standard structures', err);
+      setError('Failed to reset standard structures');
+    } finally {
+      setResetting(false);
+    }
+  };
 
   const handleLoadSelectedShip = async () => {
     if (!selectedShipId) return;
@@ -183,6 +225,9 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPan
           <button onClick={onNewShip} className="new-ship-button">
             New Structure
           </button>
+          <button onClick={handleResetShips} disabled={resetting} className="reset-ships-button">
+            {resetting ? 'Resetting...' : 'Reset Structures'}
+          </button>
         </div>
       </div>
     );
@@ -239,8 +284,20 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPan
           Load Selected Structure
         </button>
 
+        <button
+          onClick={handleDeleteSelectedShip}
+          disabled={!selectedShipId || (selectedShipId !== null && selectedShipId < 0)}
+          className="delete-ship-button"
+        >
+          Delete Selected Structure
+        </button>
+
         <button onClick={onNewShip} className="new-ship-button">
           New Structure
+        </button>
+
+        <button onClick={handleResetShips} disabled={resetting} className="reset-ships-button">
+          {resetting ? 'Resetting...' : 'Reset Structures'}
         </button>
       </div>
     </div>
