@@ -3,6 +3,8 @@ packages:
 
 allowBuilds:
   unrs-resolver: true
+  esbuild: true
+  workerd: true
 overrides:
   test-exclude: '7.0.1'
   babel-plugin-istanbul: '>=8.0.0'
