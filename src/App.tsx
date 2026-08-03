@@ -6,7 +6,8 @@ import {
   calculateControlCenterMass, calculateControlCenterCost,
   calculateArmorMass, calculateArmorCost,
   getMegastructureSections, PLANT_PER_SCOOP,
-  hasAntimatterPlant, calculateAntimatterAdjustedManeuverFuel
+  hasAntimatterPlant, calculateAntimatterAdjustedManeuverFuel,
+  getRoboticsGunnerDivisor
 } from './data/constants';
 import { databaseService } from './services/database';
 import { logger } from './utils/logger';
@@ -226,7 +227,13 @@ function App() {
     const bayWeaponGunners = bayWeapons.reduce((sum, weapon) => sum + (weapon.quantity * 2), 0);
 
     // No spinal weapon gunners — megastructures have no spinal mounts
-    const gunners = turretsAndBarbettesGunners + defenseTurretGunners + screenGunners + bayWeaponGunners;
+    const baseGunners = turretsAndBarbettesGunners + defenseTurretGunners + screenGunners + bayWeaponGunners;
+    // Robotics also automates gunnery support, one tier behind the
+    // engineering reduction above (starts at TL-G, not TL-F).
+    const gunnerDivisor = activeRules.has('robotics')
+      ? getRoboticsGunnerDivisor(shipDesign.ship.tech_level)
+      : 1;
+    const gunners = Math.ceil(baseGunners / gunnerDivisor);
 
     const vehicleService = calculateVehicleServiceStaff(shipDesign.vehicles);
     const droneService = calculateDroneServiceStaff(shipDesign.drones);

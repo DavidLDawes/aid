@@ -7,12 +7,14 @@ import {
   getAvailableEngines,
   getMaxPowerPlantByTechLevel,
   getRoboticsCrewDivisor,
+  getRoboticsGunnerDivisor,
   hasAntimatterPlant,
   calculateAntimatterAdjustedManeuverFuel,
   getWeaponMountLimit,
   convertTechLevelToNumber,
   getAvailableVehicles,
   getScreenSpecs,
+  getMaxScreens,
 } from './constants';
 
 describe('Tech Level Functions', () => {
@@ -171,6 +173,55 @@ describe('getRoboticsCrewDivisor', () => {
     expect(getRoboticsCrewDivisor('G')).toBe(4);
     expect(getRoboticsCrewDivisor('H')).toBe(6);
     expect(getRoboticsCrewDivisor('J')).toBe(8);
+  });
+});
+
+describe('getRoboticsGunnerDivisor', () => {
+  it('applies no reduction below TL-G (including TL-F)', () => {
+    expect(getRoboticsGunnerDivisor('A')).toBe(1);
+    expect(getRoboticsGunnerDivisor('F')).toBe(1);
+  });
+
+  it('steps up with tech level: G=2, H=3, J=4', () => {
+    expect(getRoboticsGunnerDivisor('G')).toBe(2);
+    expect(getRoboticsGunnerDivisor('H')).toBe(3);
+    expect(getRoboticsGunnerDivisor('J')).toBe(4);
+  });
+});
+
+describe('getMaxScreens', () => {
+  it('should return 0 below TL-C for nuclear dampers and meson screens', () => {
+    expect(getMaxScreens('nuclear_damper', 'B')).toBe(0);
+    expect(getMaxScreens('meson_screen', 'B')).toBe(0);
+  });
+
+  it('should scale nuclear dampers and meson screens from TL-C through TL-J', () => {
+    expect(getMaxScreens('nuclear_damper', 'C')).toBe(1);
+    expect(getMaxScreens('nuclear_damper', 'D')).toBe(2);
+    expect(getMaxScreens('nuclear_damper', 'E')).toBe(4);
+    expect(getMaxScreens('nuclear_damper', 'F')).toBe(6);
+    expect(getMaxScreens('nuclear_damper', 'G')).toBe(8);
+    expect(getMaxScreens('nuclear_damper', 'H')).toBe(10);
+    expect(getMaxScreens('nuclear_damper', 'J')).toBe(12);
+
+    expect(getMaxScreens('meson_screen', 'C')).toBe(1);
+    expect(getMaxScreens('meson_screen', 'D')).toBe(2);
+    expect(getMaxScreens('meson_screen', 'E')).toBe(4);
+    expect(getMaxScreens('meson_screen', 'F')).toBe(6);
+    expect(getMaxScreens('meson_screen', 'G')).toBe(8);
+    expect(getMaxScreens('meson_screen', 'H')).toBe(9);
+    expect(getMaxScreens('meson_screen', 'J')).toBe(10);
+  });
+
+  it('should return 0 for black globes below TL-F', () => {
+    expect(getMaxScreens('black_globe', 'E')).toBe(0);
+  });
+
+  it('should scale black globes from TL-F through TL-J', () => {
+    expect(getMaxScreens('black_globe', 'F')).toBe(3);
+    expect(getMaxScreens('black_globe', 'G')).toBe(4);
+    expect(getMaxScreens('black_globe', 'H')).toBe(6);
+    expect(getMaxScreens('black_globe', 'J')).toBe(7);
   });
 });
 
