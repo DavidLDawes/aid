@@ -35,11 +35,10 @@ pnpm test               # Run tests in watch mode
 pnpm test:ui            # Run tests with UI
 pnpm test:run           # Run tests once (used in CI)
 
-# Database management
-pnpm extractDB          # Export ships from IndexedDB to JSON files
-pnpm preloadDB          # Import ships from JSON files to IndexedDB
-pnpm flushDB            # Clear all ships from IndexedDB
-pnpm setInitialDB       # Reset DB to initial state
+# Database management (see caveat below - these do NOT touch a real browser's saved ships)
+pnpm extractDB          # Export ships from a throwaway in-memory IndexedDB to JSON (see caveat)
+pnpm preloadDB          # Import ships from JSON into a throwaway in-memory IndexedDB (see caveat)
+pnpm flushDB            # Clear ships from a throwaway in-memory IndexedDB (see caveat)
 pnpm apply-feature      # Apply feature branches to ships
 ```
 
@@ -420,7 +419,7 @@ The Custom panel (`src/components/CustomPanel.tsx`) is a recent addition that de
 - Ship names in DB are stored as `ship.name` (nested property) for indexing
 - `public/initial-ships.json` is loaded once on first DB initialization - subsequent changes require DB flush
 - Testing.md incorrectly mentions Vitest, but project uses Jest
-- `scripts/extractDB.mjs`, `scripts/flushDB.mjs`, and `scripts/preloadDB.mjs` run against `fake-indexeddb` (an isolated in-memory implementation), not a real browser's IndexedDB — they can't actually read or write a user's saved ships. `pnpm setInitialDB` (which chains `extractDB` → copies the export into `public/initial-ships.json`) is non-functional for the same reason. Treat `public/initial-ships.json` as hand-maintained until this is fixed.
+- `scripts/extractDB.mjs`, `scripts/flushDB.mjs`, and `scripts/preloadDB.mjs` run against `fake-indexeddb` (an isolated in-memory implementation), not a real browser's IndexedDB — they can't actually read or write a user's saved ships. There used to be a fourth script, `setInitialDB`, that chained these together and was documented as "reset DB to initial state"; in practice it did the opposite — because `extractDB` always found 0 ships, it silently copied a stale `data-dumps/ships-export.json` (whatever happened to be sitting on disk) over the real `public/initial-ships.json` baseline. It's been removed. **To actually restore the standard ships (Large Liner, Destroyer) to their baseline designs, use the in-app "Reset Ships" button on the Select Ship screen** (`SelectShipPanel.tsx` → `initialDataService.resetStandardShips()`) — that runs in the real browser and can actually reach the real IndexedDB. It matches by ship name (via `saveOrUpdateShipByName`), so it only overwrites those two names, whether the user deleted or changed them; any other ship the user has added is left untouched.
 - Weapon/defense turrets and bay weapons and the spinal weapon all share the same mount pool (`getWeaponMountLimit()` = hull tonnage / 100); WeaponsPanel, DefensesPanel, and the spinal weapon selection must each account for the others' usage when enforcing the limit.
 
 ## Case Study: Implementing the Custom Items Feature

@@ -136,6 +136,42 @@ describe('Initial Data Service', () => {
     });
   });
 
+  describe('resetStandardShips', () => {
+    it('upserts the standard ships without flushing, even when ships already exist', async () => {
+      (databaseService.hasAnyShips as jest.Mock).mockResolvedValue(true);
+
+      const result = await initialDataService.resetStandardShips();
+
+      expect(databaseService.initialize).toHaveBeenCalled();
+      expect(databaseService.hasAnyShips).not.toHaveBeenCalled();
+      expect(result).toEqual({ loaded: 1, errors: 0 });
+      // saveOrUpdateShipByName matches by ship name, so this overwrites only
+      // the standard ships by name - it never touches any other saved ship.
+      expect(databaseService.saveOrUpdateShipByName).toHaveBeenCalledWith(mockShipDesign);
+    });
+
+    it('returns zero counts when no standard ship data is available', async () => {
+      (global.fetch as jest.Mock).mockResolvedValue({ ok: false, status: 404 });
+
+      const result = await initialDataService.resetStandardShips();
+
+      expect(result).toEqual({ loaded: 0, errors: 0 });
+      expect(databaseService.saveOrUpdateShipByName).not.toHaveBeenCalled();
+    });
+
+    it('reports per-ship errors without throwing', async () => {
+      (databaseService.saveOrUpdateShipByName as jest.Mock).mockRejectedValue(new Error('Save failed'));
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      const result = await initialDataService.resetStandardShips();
+
+      expect(result).toEqual({ loaded: 0, errors: 1 });
+      expect(consoleSpy).toHaveBeenCalled();
+
+      consoleSpy.mockRestore();
+    });
+  });
+
   describe('hasInitialData', () => {
     it('should return true if initial data is available', async () => {
       const result = await initialDataService.hasInitialData();
