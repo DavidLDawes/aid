@@ -6,12 +6,15 @@ import {
   calculateEngineMassAndCost,
   getAvailableEngines,
   getMaxPowerPlantByTechLevel,
+  getRoboticsCrewDivisor,
+  getRoboticsGunnerDivisor,
   hasAntimatterPlant,
   calculateAntimatterAdjustedManeuverFuel,
   getWeaponMountLimit,
   convertTechLevelToNumber,
   getAvailableVehicles,
   getScreenSpecs,
+  getMaxScreens,
 } from './constants';
 
 describe('Tech Level Functions', () => {
@@ -159,6 +162,69 @@ describe('getMaxPowerPlantByTechLevel', () => {
   });
 });
 
+describe('getRoboticsCrewDivisor', () => {
+  it('applies no reduction below TL-F', () => {
+    expect(getRoboticsCrewDivisor('A')).toBe(1);
+    expect(getRoboticsCrewDivisor('E')).toBe(1);
+  });
+
+  it('steps up with tech level: F=2, G=4, H=6, J=8', () => {
+    expect(getRoboticsCrewDivisor('F')).toBe(2);
+    expect(getRoboticsCrewDivisor('G')).toBe(4);
+    expect(getRoboticsCrewDivisor('H')).toBe(6);
+    expect(getRoboticsCrewDivisor('J')).toBe(8);
+  });
+});
+
+describe('getRoboticsGunnerDivisor', () => {
+  it('applies no reduction below TL-G (including TL-F)', () => {
+    expect(getRoboticsGunnerDivisor('A')).toBe(1);
+    expect(getRoboticsGunnerDivisor('F')).toBe(1);
+  });
+
+  it('steps up with tech level: G=2, H=3, J=4', () => {
+    expect(getRoboticsGunnerDivisor('G')).toBe(2);
+    expect(getRoboticsGunnerDivisor('H')).toBe(3);
+    expect(getRoboticsGunnerDivisor('J')).toBe(4);
+  });
+});
+
+describe('getMaxScreens', () => {
+  it('should return 0 below TL-C for nuclear dampers and meson screens', () => {
+    expect(getMaxScreens('nuclear_damper', 'B')).toBe(0);
+    expect(getMaxScreens('meson_screen', 'B')).toBe(0);
+  });
+
+  it('should scale nuclear dampers and meson screens from TL-C through TL-J', () => {
+    expect(getMaxScreens('nuclear_damper', 'C')).toBe(1);
+    expect(getMaxScreens('nuclear_damper', 'D')).toBe(2);
+    expect(getMaxScreens('nuclear_damper', 'E')).toBe(4);
+    expect(getMaxScreens('nuclear_damper', 'F')).toBe(6);
+    expect(getMaxScreens('nuclear_damper', 'G')).toBe(8);
+    expect(getMaxScreens('nuclear_damper', 'H')).toBe(10);
+    expect(getMaxScreens('nuclear_damper', 'J')).toBe(12);
+
+    expect(getMaxScreens('meson_screen', 'C')).toBe(1);
+    expect(getMaxScreens('meson_screen', 'D')).toBe(2);
+    expect(getMaxScreens('meson_screen', 'E')).toBe(4);
+    expect(getMaxScreens('meson_screen', 'F')).toBe(6);
+    expect(getMaxScreens('meson_screen', 'G')).toBe(8);
+    expect(getMaxScreens('meson_screen', 'H')).toBe(9);
+    expect(getMaxScreens('meson_screen', 'J')).toBe(10);
+  });
+
+  it('should return 0 for black globes below TL-F', () => {
+    expect(getMaxScreens('black_globe', 'E')).toBe(0);
+  });
+
+  it('should scale black globes from TL-F through TL-J', () => {
+    expect(getMaxScreens('black_globe', 'F')).toBe(3);
+    expect(getMaxScreens('black_globe', 'G')).toBe(4);
+    expect(getMaxScreens('black_globe', 'H')).toBe(6);
+    expect(getMaxScreens('black_globe', 'J')).toBe(7);
+  });
+});
+
 describe('calculateEngineMassAndCost at extended power plant tiers', () => {
   it('computes mass/cost for P-11 and P-12', () => {
     const p11 = calculateEngineMassAndCost(1_000_000, 'power_plant', 11);
@@ -176,6 +242,55 @@ describe('calculateEngineMassAndCost at extended power plant tiers', () => {
   it('returns zero for maneuver_drive at performance 11+ (no table entry)', () => {
     // Unlike power_plant, maneuver_drive has no extended tiers.
     expect(calculateEngineMassAndCost(1_000_000, 'maneuver_drive', 11)).toEqual({ mass: 0, cost: 0 });
+  });
+});
+
+describe('Fractional maneuver drives (sub-1-gee, megastructure branch only)', () => {
+  // M-1 at 1,000,000 tons: 1.0% tons -> 10,000t, 2.0 MCr/ton -> 20,000 MCr.
+  // Fractional drives are a percentage of those M-1 figures, not of tonnage.
+  it('computes M-.5 as 40% of M-1 tons and 33% of M-1 cost', () => {
+    expect(calculateEngineMassAndCost(1_000_000, 'maneuver_drive', 0.5)).toEqual({ mass: 4_000, cost: 6_600 });
+  });
+
+  it('computes M-.4 as 33% of M-1 tons and 25% of M-1 cost', () => {
+    expect(calculateEngineMassAndCost(1_000_000, 'maneuver_drive', 0.4)).toEqual({ mass: 3_300, cost: 5_000 });
+  });
+
+  it('computes M-.3 as 25% of M-1 tons and 20% of M-1 cost', () => {
+    expect(calculateEngineMassAndCost(1_000_000, 'maneuver_drive', 0.3)).toEqual({ mass: 2_500, cost: 4_000 });
+  });
+
+  it('computes M-.2 as 10% of M-1 tons and 8% of M-1 cost', () => {
+    expect(calculateEngineMassAndCost(1_000_000, 'maneuver_drive', 0.2)).toEqual({ mass: 1_000, cost: 1_600 });
+  });
+
+  it('computes M-.1 as 10% of M-1 tons and 5% of M-1 cost', () => {
+    expect(calculateEngineMassAndCost(1_000_000, 'maneuver_drive', 0.1)).toEqual({ mass: 1_000, cost: 1_000 });
+  });
+
+  it('computes M-.05 as 5% of M-1 tons and 2% of M-1 cost', () => {
+    expect(calculateEngineMassAndCost(1_000_000, 'maneuver_drive', 0.05)).toEqual({ mass: 500, cost: 400 });
+  });
+
+  it('computes M-.01 as 0.1% of M-1 tons and 0.05% of M-1 cost', () => {
+    expect(calculateEngineMassAndCost(1_000_000, 'maneuver_drive', 0.01)).toEqual({ mass: 10, cost: 10 });
+  });
+
+  it('does not apply the fractional table to power_plant', () => {
+    expect(calculateEngineMassAndCost(1_000_000, 'power_plant', 0.5)).toEqual({ mass: 0, cost: 0 });
+  });
+
+  it('lists all seven fractional drives ahead of M-1 in getAvailableEngines', () => {
+    const engines = getAvailableEngines(1_000_000, 'maneuver_drive');
+    const codes = engines.map(e => e.code);
+    expect(codes.slice(0, 7)).toEqual(['M-.01', 'M-.05', 'M-.1', 'M-.2', 'M-.3', 'M-.4', 'M-.5']);
+    expect(codes[7]).toBe('M-1');
+  });
+
+  it('never filters fractional drives out via powerPlantPerformance gating', () => {
+    const engines = getAvailableEngines(1_000_000, 'maneuver_drive', 1);
+    const fractional = engines.filter(e => e.performance < 1);
+    expect(fractional).toHaveLength(7);
   });
 });
 

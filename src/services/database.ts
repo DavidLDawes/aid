@@ -10,9 +10,22 @@ export interface StoredShipDesign extends ShipDesign {
 
 class DatabaseService {
   private db: IDBDatabase | null = null;
-  private readonly dbName = 'StarshipDesignerDB';
+  // Own database, distinct from main's StarshipDesignerDB and capital's
+  // CapitalDesignerDB. All three previously shared one database name
+  // (StarshipDesignerDB) at the same origin (srd-tools.com), each with its
+  // own store but pinned to the same version number. IndexedDB only runs
+  // onupgradeneeded (which creates a missing store) when the requested
+  // version is HIGHER than what's already in the browser for that
+  // database name - so whichever of the three apps a user opened first
+  // "claimed" that version and created only its own store, leaving the
+  // other two with a db handle silently missing their store (surfaces as
+  // "'<store>' is not a known object store name" on the first
+  // transaction, typically on save). Giving each app its own database
+  // name removes the collision entirely; each can now version its own
+  // schema independently.
+  private readonly dbName = 'MegastructureDesignerDB';
   private readonly storeName = 'mega_ships';
-  private readonly version = 3;
+  private readonly version = 1;
 
   async initialize(): Promise<void> {
     if (this.db) {
@@ -36,16 +49,6 @@ class DatabaseService {
       // IMPORTANT: the versionchange transaction auto-commits once no requests
       // are pending, so all migration work must stay in synchronous code or
       // request callbacks — no async/await or foreign promises in here.
-      //
-      // The legacy 'ships' store (v1/v2) is shared with the main Starship
-      // Designer app at the same origin (srd-tools.com) and historically held
-      // both apps' ships commingled with no way to tell them apart by data
-      // alone. Megastructures now live in their own 'mega_ships' store so
-      // future records never collide, and a schema bump in either app never
-      // forces the other to open a database version it doesn't understand.
-      // We deliberately do NOT read from or delete the legacy 'ships' store
-      // here: this app cannot reliably tell which of those records are its
-      // own, and main is responsible for migrating its own data out of it.
       request.onupgradeneeded = (event) => {
         const db = (event.target as IDBOpenDBRequest).result;
         const oldVersion = event.oldVersion;

@@ -64,7 +64,7 @@ aid/
 │   │   ├── CargoPanel.tsx      # Cargo bays (panel 6)
 │   │   ├── VehiclesPanel.tsx   # Vehicles (panel 7)
 │   │   ├── DronesPanel.tsx     # Drones (panel 8)
-│   │   ├── CustomPanel.tsx     # Custom items (panel 9)
+│   │   ├── CustomPanel.tsx     # Custom items + custom crew (panel 9)
 │   │   ├── FuelPanel.tsx       # Fuel scoops, processors, tanks, antimatter plant (panel 10)
 │   │   ├── SectionsPanel.tsx   # Zone sections — residential/industrial/farm/etc. (panel 11)
 │   │   ├── BerthsPanel.tsx     # Berths (panel 12)
@@ -76,7 +76,7 @@ aid/
 │   ├── data/                   # Game data and constants
 │   │   └── constants.ts        # Tech levels, engines, weapons, megastructure formulas, etc.
 │   ├── services/                # Business logic
-│   │   ├── database.ts         # IndexedDB wrapper (store `mega_ships`, see Database Persistence below)
+│   │   ├── database.ts         # IndexedDB wrapper (own `MegastructureDesignerDB` database, store `mega_ships` — see Database Persistence below)
 │   │   └── initialDataService.ts # Initial data loader
 │   ├── types/                  # TypeScript definitions
 │   │   └── ship.ts             # Ship interfaces
@@ -114,7 +114,7 @@ Test files are co-located with source files using .test.ts/.test.tsx extension
 - **Bundler Config**: `vite.config.js` - entry point is `index.html` → `src/main.tsx`
 - **Dev Server**: Vite defaults (dev 5173, preview 4173)
 - **Node Version**: >=24 (LTS; specified in package.json engines)
-- **Deployment**: Cloudflare Worker, path prefix `/MegaDesign` under `srd-tools.com` — same origin as the sibling `main` (`/ShipDesign`) and `capital` (`/CapitalShipDesign`) branch deployments. This is why the IndexedDB store name matters (see Database Persistence).
+- **Deployment**: Cloudflare Worker, path prefix `/MegaDesign` under `srd-tools.com` — same origin as the sibling `main` (`/ShipDesign`) and `capital` (`/CapitalShipDesign`) branch deployments. This is why each app uses its own IndexedDB **database name**, not just its own store (see Database Persistence).
 
 ## Architecture Overview
 
@@ -145,7 +145,7 @@ Test files are co-located with source files using .test.ts/.test.tsx extension
 4. **Database Service Pattern**: `src/services/database.ts` provides IndexedDB abstraction
    - Ships are stored with unique names (enforced by unique index)
    - Auto-initialization loads `public/initial-ships.json` on first run
-   - Handles version migrations (currently at version 3)
+   - Handles version migrations (currently at version 1, in its own `MegastructureDesignerDB` database — see Database Persistence)
    - `databaseService.initialize()` is called exactly once at App startup via a `useEffect([], [])` — do not call it again in save/load handlers or component renders
 
 5. **`updateShipDesign()` side effects**: App.tsx's central update function isn't a pure merge — it runs several derived-state cleanups whenever the relevant field actually changes value (not just whenever it's present in the update payload):
@@ -159,17 +159,20 @@ Test files are co-located with source files using .test.ts/.test.tsx extension
 - Tech levels (`TECH_LEVELS = ['A'..'H','J']`, skipping 'I'; TL-A=10 .. TL-H=17, TL-J=18)
 - `getMaxPowerPlantByTechLevel()`: power plant performance cap by TL (TL-F=P-7, TL-G=P-8, TL-H=P-10, TL-J=P-12) — this is what makes the P-10 Antimatter Plant requirement reachable
 - Engine performance tables for `power_plant` and `maneuver_drive` only — **no `jump_drive` engine type exists on this branch**
+- `FRACTIONAL_MANEUVER_DRIVE_LEVELS`: sub-1-gee maneuver drives (M-.01 through M-.5), megastructure-branch-only. Unlike the integer M-1..M-6/P-1..P-12 tables (a flat percentage of ship tonnage, cost = mass × `ENGINE_COST_PER_TON`), each fractional level is defined as a percentage of the **M-1 drive's own mass and cost**, and the two percentages diverge per level (e.g. M-.5 is 40% of M-1's tons but only 33% of M-1's cost) — so `calculateEngineMassAndCost()` special-cases `0 < performance < 1` for `maneuver_drive` rather than going through the shared table lookup. `getAvailableEngines()` always lists all seven ahead of M-1 for `maneuver_drive`; they're never excluded by the power-plant-performance gate since every level is under 1 gee
 - Weapon types, defense types, vehicle types, drone types
 - Megastructure-specific formulas: `getMegastructureSections()`, `calculateControlCenterMass/Cost()`, `getMegastructureSensorMassAndCost()`, `getMegastructureComputerCost()`
 - `hasAntimatterPlant()` / `calculateAntimatterAdjustedManeuverFuel()`: an installed Antimatter Plant (in `fuel_systems`) cuts maneuver fuel to 1/10th
 - Staff calculation helpers (`calculateMedicalStaff`, `calculateVehicleServiceStaff`, `calculateDroneServiceStaff`)
 - `getScreenSpecs()`: defensive-screen (Nuclear Damper/Meson Screen/Black Globe) mass/cost, scaled by a 5x-per-tier tonnage bracket starting at 1,000,000 tons (see `getScreenTonnageTier()`) — not capital-ship hull codes, which topped out at 1,000,000 tons and didn't scale across the megastructure range
+- `getMaxScreens()` / `SCREEN_TL_LIMITS`: quantity cap per screen type, gated by TL (not tonnage). Nuclear Damper and Meson Screen scale TL-C through TL-J (1/1, 2/2, 4/4, 6/6, 8/8, 10/9, 12/10); Black Globe unlocks at TL-F and scales TL-F through TL-J (3, 4, 6, 7)
 
 **`src/types/ship.ts`**: TypeScript interfaces for all ship components
 - `ShipDesign`: Root interface containing all component arrays
 - `Ship`: includes `atmosphere_support?: boolean` — a floating-city-style structure that needs active navigation (see Staff Requirements Logic)
-- Component interfaces: `Engine` (`engine_type: 'power_plant' | 'maneuver_drive'`, no jump drive), `Fitting` (`fitting_type: 'control_center' | 'launch_tube' | 'comms_sensors' | 'computer'`, no bridge), `Weapon`, `Defense`, `Berth`, `Facility`, `Cargo`, `Vehicle`, `Drone`, `CustomItem`, `FuelSystem`, `ZoneSection`
+- Component interfaces: `Engine` (`engine_type: 'power_plant' | 'maneuver_drive'`, no jump drive), `Fitting` (`fitting_type: 'control_center' | 'launch_tube' | 'comms_sensors' | 'computer'`, no bridge), `Weapon`, `Defense`, `Berth`, `Facility`, `Cargo`, `Vehicle`, `Drone`, `CustomItem`, `CustomCrew`, `FuelSystem`, `ZoneSection`
 - `CustomItem`: User-defined items with name, mass, and cost (no predefined types)
+- `CustomCrew`: a single object (not an array) on `ShipDesign`, holding a count per crew category to operate/service/repair/serve custom items — the same 9 positions shown on the Staff panel (pilot/navigator/engineers/gunners/service/stewards/nurses/surgeons/techs), plus 4 that exist only as custom-crew entries (infantry/armor/mp/security, no baseline formula elsewhere). Every count adds directly onto the corresponding `StaffRequirements` field in `calculateStaffRequirements()` (see Staff Requirements Logic)
 - `StaffRequirements`: Crew calculation results
 
 ### Component Architecture
@@ -233,13 +236,14 @@ const calcFM = (t, p, w, a) => { ... };
 
 ### Database Persistence
 
-**IndexedDB Schema** (version 3):
-- **Database**: `StarshipDesignerDB` — shared name across the `main`/`capital`/`megastructure` branches, since all three deploy to the same origin (`srd-tools.com`)
-- **Object Store**: `mega_ships` — deliberately branch-specific (main uses `ship_ships`, capital uses `capital_ships`) to avoid same-origin IndexedDB collisions between the three deployed apps
+**IndexedDB Schema** (version 1):
+- **Database**: `MegastructureDesignerDB` — this app's own database, distinct from main's `StarshipDesignerDB` and capital's `CapitalDesignerDB`. All three deploy to the same origin (`srd-tools.com`) but each now owns a separate database name so their version numbers can evolve independently with zero coordination needed between branches.
+- **Object Store**: `mega_ships`
 - **Key Path**: `id` (auto-increment)
 - **Indexes**:
   - `name` (unique) on `ship.name` - enforces unique ship names
   - `createdAt` on `createdAt` - for sorting
+- **Why a dedicated database, not just a dedicated store**: `main`/`capital`/`megastructure` originally shared one database name (`StarshipDesignerDB`) at this origin, each with its own store but pinned to the *same* version number. IndexedDB only runs `onupgradeneeded` (which creates a missing store) when the requested version is higher than whatever's already in the browser for that database name — so whichever app a user opened first "claimed" that version and created only its own store, leaving the other two with a `db` handle silently missing their store (surfaced as `"'<store>' is not a known object store name"` on the first `transaction()` call, typically on save). Splitting into per-app database names removes the collision permanently. One consequence: any ships a user saved in the old shared `StarshipDesignerDB`'s `mega_ships` store before this change are orphaned (still present in the browser, just no longer visible from this app) — there's no migration path, since the affected population is largely the same users who were already hitting the save bug and had nothing to migrate.
 
 **Initial Data**: On first load, if the `mega_ships` store is empty, `SelectShipPanel` calls `initialDataService.loadInitialDataIfNeeded()`, which preloads ships from `public/initial-ships.json` (currently a single "Ring World Alpha" seed). If that fails too, `SelectShipPanel` falls back to an in-memory hardcoded copy of the same ship so the screen is never empty.
 
@@ -267,7 +271,7 @@ const calcFM = (t, p, w, a) => { ... };
 - `cleanupScreensForTechLevel()`: clamp screen quantity down to the new `getMaxScreens()` ceiling (drop if it hits 0)
 - Called from `App.tsx`'s `updateShipDesign()` whenever `ship.tech_level` actually changes
 
-**`src/utils/crewCalculations.ts`**: Pilot/navigator crew-size formulas (see Staff Requirements Logic)
+**`src/utils/crewCalculations.ts`**: Pilot/navigator/engineer crew-size formulas (see Staff Requirements Logic)
 
 **`src/utils/csv.ts`**: `escapeCsvField()` — quotes/escapes a CSV field if it contains a comma, quote, or newline (ship names and generated item labels routinely do)
 
@@ -307,16 +311,18 @@ The `calculateMass()` function in App.tsx handles:
 Crew calculation in `calculateStaffRequirements()` (hoisted before JSX return in App.tsx, called once per render):
 - **Pilot**: `calculatePilotCount(maneuverPerformance)` — 8 pilots (24x7 coverage with spares) if the maneuver drive is M-1 or better; 1 (skeleton crew) if the structure is stationary (M-0 / no maneuver drive)
 - **Navigator**: `calculateNavigatorCount(ship.atmosphere_support)` — 0 by default (a plotted course is followed for decades, no standing navigator needed); 4 if `atmosphere_support` is set (a floating-city-style structure needs active navigation), toggled on the Megastructure panel (`ShipPanel.tsx`)
-- **Engineers**: at least 1 per engine (`max(engineCount, 1)`), plus `ceil(mass/100) - 1` extra for each engine whose mass exceeds 100 tons
+- **Engineers** (`calculateEngineerCount()` in `src/utils/crewCalculations.ts`): at least 1 per engine (minimum 1 total, even with none configured), plus `ceil(mass/100) - 1` extra for each engine whose mass exceeds 100 tons. If the Robotics rule is enabled (TL-F+, toggled via the Rules menu), each engine's own crew requirement is divided (rounded up, per engine) by `getRoboticsCrewDivisor(techLevel)`: TL-F=1/2, TL-G=1/4, TL-H=1/6, TL-J=1/8
 - **Gunners**:
   - 1 per 10 turrets/barbettes (rounded up)
   - 1 per 10 defense turrets (rounded up)
   - Defensive screens: minimum 4, or `ceil(totalScreenTons / 100)` if total screen tonnage >400
   - Bay weapons: 2 gunners per bay weapon (per unit quantity)
   - No spinal weapon gunners — megastructures have no spinal mounts
+  - If the Robotics rule is enabled, the summed total above is divided (rounded up) by `getRoboticsGunnerDivisor(techLevel)` — one TL tier behind the Engineers reduction (starts at TL-G, not TL-F): TL-G=1/2, TL-H=1/3, TL-J=1/4
 - **Stewards**: 1 per 8 staterooms (rounded up)
 - **Medical**: Calculated by `calculateMedicalStaff()` based on medical facilities
 - **Service**: Vehicle service (`calculateVehicleServiceStaff`) + drone service (`calculateDroneServiceStaff`) from `constants.ts`
+- **Custom Crew** (`shipDesign.custom_crew`, entered on the Custom panel — see Common Modifications): added directly onto the corresponding field above for the 9 shared positions (pilot/navigator/engineers/gunners/service/stewards/nurses/surgeons/techs). **Infantry/Armor/MP/Security** have no baseline formula anywhere else in the app, so their `StaffRequirements` values are exactly whatever's entered as custom crew
 
 There is no small-ship pilot/navigator-combining or no-stewards toggle on this branch (that convention only applied to exactly-100/200-ton starships on the `main` branch; megastructures start at 1,000,000 tons, so it never applied here and was removed as dead code).
 
@@ -334,13 +340,14 @@ Use helper functions: `isTechLevelAtLeast()`, `getMaxPowerPlantByTechLevel()`, `
 
 ### Rules System
 
-`activeRules` state (Set<string>) is passed down to several components (`RulesMenu`, `EnginesPanel`, `MassSidebar`, `SummaryPanel`, `printContent.ts`), but **as of this branch, nothing actually reads `activeRules.has(...)`** — it's plumbing inherited from the `capital` branch that isn't wired to any calculation here. The real mechanics it used to gate are now driven directly by game state instead:
+`activeRules` state (Set<string>) is passed down to several components (`RulesMenu`, `EnginesPanel`, `MassSidebar`, `SummaryPanel`, `printContent.ts`). Most of it is still inert plumbing inherited from the `capital` branch, but `'robotics'` is a real exception — App.tsx's `calculateStaffRequirements()` reads `activeRules.has('robotics')` directly to drive the engineer-count reduction:
 - Antimatter fuel discount: driven by `hasAntimatterPlant(shipDesign.fuel_systems)`, not by toggling the "Antimatter" rule
 - `'spacecraft_design_srd'`: always enabled, can't be disabled (display-only)
 - `'high_guard_capital_ships'`: always shown disabled (display-only, not applicable to megastructures)
 - `'antimatter'`: toggleable in the UI (gated to TL-H+ ships) but currently has no effect on any calculation
+- `'robotics'`: toggleable in the UI (gated to TL-F+ ships) and **does** affect calculations — `calculateEngineerCount()` (`src/utils/crewCalculations.ts`) divides each engine's crew requirement (rounded up) by `getRoboticsCrewDivisor(techLevel)` when enabled: TL-F=1/2, TL-G=1/4, TL-H=1/6, TL-J=1/8. It also reduces total Gunners (in App.tsx's `calculateStaffRequirements()` directly, not a `crewCalculations.ts` helper) via `getRoboticsGunnerDivisor(techLevel)`, one TL tier later: TL-G=1/2, TL-H=1/3, TL-J=1/4
 
-If you add a new rule that should actually affect calculations, wire it through real game state (like the Antimatter Plant is) rather than `activeRules.has('rule_id')`, unless you're also adding the code that reads it.
+If you add a new rule that should actually affect calculations, wire it through real game state (like the Antimatter Plant is) rather than `activeRules.has('rule_id')`, unless you're also adding the code that reads it (as `'robotics'` does).
 
 ### Print Functionality
 
@@ -388,7 +395,7 @@ Production deploys as a Cloudflare Worker (`wrangler deploy`, see `wrangler.json
 
 ## Debugging Tips
 
-1. **Database Issues**: Check browser DevTools → Application → IndexedDB → StarshipDesignerDB → `mega_ships` object store
+1. **Database Issues**: Check browser DevTools → Application → IndexedDB → MegastructureDesignerDB → `mega_ships` object store
 2. **Mass Calculation Problems**: Add console.log in `calculateMass()` to trace component contributions
 3. **Panel Validation**: Check `isCurrentPanelValid()` and `canAdvance()` in App.tsx
 4. **Initial Data Loading**: Check `SelectShipPanel.tsx` and `initialDataService.ts` for DB initialization logic
@@ -415,6 +422,7 @@ The Custom panel (`src/components/CustomPanel.tsx`, panel index 9) demonstrates 
 - **UI Pattern**: Form with text/number inputs + table with remove buttons
 - **Different from other panels**: No predefined types or constants - fully user-defined
 - **Integration**: Same as other panels - appears in mass/cost calculations, CSV export, summary, print
+- **Custom Crew**: a second section on the same panel, gated on `custom_items.length > 0` (hidden entirely until at least one custom item exists, rather than shown-but-disabled). Iterates `CUSTOM_CREW_CATEGORIES` (`src/data/constants.ts`) to render one number input per crew position; unlike `CustomItem`, this list of categories **is** predefined (it mirrors the Staff panel's positions plus infantry/armor/mp/security) since the whole point is tracking crew against known position types, not arbitrary user-named ones
 
 **Modifying validation**:
 - Panel-specific validation in `isCurrentPanelValid()` switch statement

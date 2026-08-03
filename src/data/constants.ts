@@ -1,4 +1,23 @@
-import type { Cargo } from '../types/ship';
+import type { Cargo, CustomCrew } from '../types/ship';
+
+// Crew categories shown on the Custom panel's crew-tracking section, in
+// display order - the same positions shown on the Staff panel, plus four
+// (infantry/armor/mp/security) that only exist as custom-crew entries.
+export const CUSTOM_CREW_CATEGORIES: { key: keyof CustomCrew; label: string }[] = [
+  { key: 'pilot', label: 'Pilot' },
+  { key: 'navigator', label: 'Navigator' },
+  { key: 'engineers', label: 'Engineers' },
+  { key: 'gunners', label: 'Gunners' },
+  { key: 'service', label: 'Service' },
+  { key: 'stewards', label: 'Stewards' },
+  { key: 'nurses', label: 'Nurses' },
+  { key: 'surgeons', label: 'Surgeons' },
+  { key: 'techs', label: 'Techs' },
+  { key: 'infantry', label: 'Infantry' },
+  { key: 'armor', label: 'Armor' },
+  { key: 'mp', label: 'MP' },
+  { key: 'security', label: 'Security' },
+];
 
 // TL letters skip 'I' (visual confusion with the digit 1), matching the
 // Traveller convention: ...H=17, I skipped, J=18, K=19...
@@ -29,6 +48,29 @@ export function getMaxPowerPlantByTechLevel(techLevel: string): number {
   if (isTechLevelAtLeast(techLevel, 'G')) return 8;
   if (isTechLevelAtLeast(techLevel, 'F')) return 7;
   return 6;
+}
+
+// Robotics (TL-F+, toggled via the Rules menu): robot workers assist each
+// engineer, letting them cover more of an engine's own crew requirement as
+// tech level improves. Divisor to apply (rounded up) to each engine's crew:
+// TL-F=1/2, TL-G=1/4, TL-H=1/6, TL-J=1/8. Below TL-F, no reduction (1).
+export function getRoboticsCrewDivisor(techLevel: string): number {
+  if (isTechLevelAtLeast(techLevel, 'J')) return 8;
+  if (isTechLevelAtLeast(techLevel, 'H')) return 6;
+  if (isTechLevelAtLeast(techLevel, 'G')) return 4;
+  if (isTechLevelAtLeast(techLevel, 'F')) return 2;
+  return 1;
+}
+
+// Robotics also automates gunnery support, one tier behind the engineering
+// reduction above (starts at TL-G, not TL-F): divisor to apply (rounded up)
+// to the ship's total gunner requirement. TL-G=1/2, TL-H=1/3, TL-J=1/4.
+// Below TL-G, no reduction (1).
+export function getRoboticsGunnerDivisor(techLevel: string): number {
+  if (isTechLevelAtLeast(techLevel, 'J')) return 4;
+  if (isTechLevelAtLeast(techLevel, 'H')) return 3;
+  if (isTechLevelAtLeast(techLevel, 'G')) return 2;
+  return 1;
 }
 
 // Engine performance percentages as a function of ship displacement.
@@ -72,12 +114,51 @@ export const ENGINE_COST_PER_TON = {
   maneuver_drive: 2.0
 };
 
+// Fractional (sub-1-gee) maneuver drives, megastructure branch only. Mass and
+// cost are each a percentage of the M-1 drive's mass/cost - not a straight
+// percentage of ship tonnage - and the two percentages diverge (e.g. M-.5 is
+// 40% of M-1's tons but only 33% of M-1's cost), so these can't be folded
+// into ENGINE_PERFORMANCE_PERCENTAGES/ENGINE_COST_PER_TON's uniform
+// percentage-of-tonnage/cost-per-ton model.
+export const FRACTIONAL_MANEUVER_DRIVE_LEVELS: {
+  performance: number;
+  suffix: string;
+  tonsPercentOfM1: number;
+  costPercentOfM1: number;
+}[] = [
+  { performance: 0.01, suffix: '.01', tonsPercentOfM1: 0.1, costPercentOfM1: 0.05 },
+  { performance: 0.05, suffix: '.05', tonsPercentOfM1: 5, costPercentOfM1: 2 },
+  { performance: 0.1, suffix: '.1', tonsPercentOfM1: 10, costPercentOfM1: 5 },
+  { performance: 0.2, suffix: '.2', tonsPercentOfM1: 10, costPercentOfM1: 8 },
+  { performance: 0.3, suffix: '.3', tonsPercentOfM1: 25, costPercentOfM1: 20 },
+  { performance: 0.4, suffix: '.4', tonsPercentOfM1: 33, costPercentOfM1: 25 },
+  { performance: 0.5, suffix: '.5', tonsPercentOfM1: 40, costPercentOfM1: 33 },
+];
+
+function getFractionalManeuverDriveLevel(performance: number) {
+  return FRACTIONAL_MANEUVER_DRIVE_LEVELS.find(
+    level => Math.abs(level.performance - performance) < 1e-9
+  );
+}
+
 // Calculate engine mass and cost based on performance and ship tonnage
 export function calculateEngineMassAndCost(
   shipTonnage: number,
   engineType: 'power_plant' | 'maneuver_drive',
   performance: number
 ): { mass: number; cost: number } {
+  if (engineType === 'maneuver_drive' && performance > 0 && performance < 1) {
+    const level = getFractionalManeuverDriveLevel(performance);
+    if (!level) {
+      return { mass: 0, cost: 0 };
+    }
+    const m1 = calculateEngineMassAndCost(shipTonnage, 'maneuver_drive', 1);
+    return {
+      mass: (m1.mass * level.tonsPercentOfM1) / 100,
+      cost: (m1.cost * level.costPercentOfM1) / 100
+    };
+  }
+
   if (performance < 1 || performance > 12) {
     return { mass: 0, cost: 0 };
   }
@@ -100,6 +181,25 @@ export function getAvailableEngines(hullTonnage: number, engineType: string, pow
   const availableEngines = [];
 
   const performanceLabel = engineType === 'maneuver_drive' ? 'M' : 'P';
+
+  // Fractional (sub-1-gee) maneuver drives, listed ascending before M-1.
+  // Always available alongside the M-1..M-6 range: they require less than
+  // 1 gee of power plant performance, so the powerPlantPerformance gating
+  // below (which only excludes drives exceeding the power plant's rating)
+  // never filters them out.
+  if (engineType === 'maneuver_drive') {
+    for (const level of FRACTIONAL_MANEUVER_DRIVE_LEVELS) {
+      const { mass, cost } = calculateEngineMassAndCost(hullTonnage, 'maneuver_drive', level.performance);
+      const code = `M-${level.suffix}`;
+      availableEngines.push({
+        code,
+        performance: level.performance,
+        mass,
+        cost,
+        label: `${code} (${mass.toFixed(1)}t, ${cost.toFixed(2)} MCr)`
+      });
+    }
+  }
 
   // Maneuver drives cap at 6. Power plants are instead gated directly by tech
   // level via getMaxPowerPlantByTechLevel, up to P-12 at TL-J (needed to
@@ -244,11 +344,11 @@ export const DEFENSE_TYPES = [
   { name: 'Dual Point Defense Laser Turret', type: 'dual_point_defense_laser_turret', mass: 1, cost: 1.5 }
 ];
 
-// Screen types with TL-based quantity limits
+// Screen types with TL-based quantity limits. TL 16/17/18 = G/H/J.
 export const SCREEN_TL_LIMITS = {
-  nuclear_damper: { 12: 1, 13: 2, 14: 4, 15: 6 },
-  meson_screen: { 12: 1, 13: 2, 14: 4, 15: 6 },
-  black_globe: { 15: 3 }
+  nuclear_damper: { 12: 1, 13: 2, 14: 4, 15: 6, 16: 8, 17: 10, 18: 12 },
+  meson_screen: { 12: 1, 13: 2, 14: 4, 15: 6, 16: 8, 17: 9, 18: 10 },
+  black_globe: { 15: 3, 16: 4, 17: 6, 18: 7 }
 };
 
 // Screen specs by hull code

@@ -24,32 +24,24 @@ const FacilitiesPanel: React.FC<FacilitiesPanelProps> = ({ facilities, onUpdate 
     }
   }, [hasCommissary, facilities, onUpdate]);
 
-  const addFacility = (facilityType: typeof FACILITY_TYPES[0]) => {
+  const updateFacilityQuantity = (facilityType: typeof FACILITY_TYPES[0], requestedQuantity: number) => {
+    const validQuantity = Math.max(0, Math.floor(requestedQuantity));
     const existingFacility = facilities.find(f => f.facility_type === facilityType.type);
-    if (existingFacility) {
-      const newFacilities = facilities.map(f =>
-        f.facility_type === facilityType.type
-          ? { ...f, quantity: f.quantity + 1 }
-          : f
-      );
-      onUpdate(newFacilities);
+
+    if (validQuantity === 0) {
+      onUpdate(facilities.filter(f => f.facility_type !== facilityType.type));
+    } else if (existingFacility) {
+      onUpdate(facilities.map(f =>
+        f.facility_type === facilityType.type ? { ...f, quantity: validQuantity } : f
+      ));
     } else {
       onUpdate([...facilities, {
         facility_type: facilityType.type as Facility['facility_type'],
-        quantity: 1,
+        quantity: validQuantity,
         mass: facilityType.mass,
         cost: facilityType.cost
       }]);
     }
-  };
-
-  const removeFacility = (facilityType: string) => {
-    const newFacilities = facilities.map(f =>
-      f.facility_type === facilityType
-        ? { ...f, quantity: Math.max(0, f.quantity - 1) }
-        : f
-    ).filter(f => f.quantity > 0);
-    onUpdate(newFacilities);
   };
 
   return (
@@ -70,18 +62,16 @@ const FacilitiesPanel: React.FC<FacilitiesPanelProps> = ({ facilities, onUpdate 
                   <h4>{facilityType.name}, {facilityType.mass} tons, {facilityType.cost} MCr</h4>
                 </div>
                 <div className="quantity-control">
-                  <button 
-                    onClick={() => removeFacility(facilityType.type)}
-                    disabled={quantity === 0}
-                  >
-                    -
-                  </button>
-                  <span>{quantity}</span>
-                  <button 
-                    onClick={() => addFacility(facilityType)}
-                  >
-                    +
-                  </button>
+                  <label>
+                    Quantity:
+                    <input
+                      type="number"
+                      min="0"
+                      value={quantity}
+                      onChange={(e) => updateFacilityQuantity(facilityType, parseInt(e.target.value) || 0)}
+                      style={{ width: '60px', marginLeft: '0.5rem' }}
+                    />
+                  </label>
                 </div>
               </div>
             );
@@ -100,18 +90,16 @@ const FacilitiesPanel: React.FC<FacilitiesPanelProps> = ({ facilities, onUpdate 
                   <h4>{facilityType.name}, {facilityType.mass} tons, {facilityType.cost} MCr</h4>
                 </div>
                 <div className="quantity-control">
-                  <button 
-                    onClick={() => removeFacility(facilityType.type)}
-                    disabled={quantity === 0}
-                  >
-                    -
-                  </button>
-                  <span>{quantity}</span>
-                  <button 
-                    onClick={() => addFacility(facilityType)}
-                  >
-                    +
-                  </button>
+                  <label>
+                    Quantity:
+                    <input
+                      type="number"
+                      min="0"
+                      value={quantity}
+                      onChange={(e) => updateFacilityQuantity(facilityType, parseInt(e.target.value) || 0)}
+                      style={{ width: '60px', marginLeft: '0.5rem' }}
+                    />
+                  </label>
                 </div>
               </div>
             );
@@ -130,18 +118,16 @@ const FacilitiesPanel: React.FC<FacilitiesPanelProps> = ({ facilities, onUpdate 
                   <h4>{facilityType.name}, {facilityType.mass} tons, {facilityType.cost} MCr</h4>
                 </div>
                 <div className="quantity-control">
-                  <button 
-                    onClick={() => removeFacility(facilityType.type)}
-                    disabled={quantity === 0}
-                  >
-                    -
-                  </button>
-                  <span>{quantity}</span>
-                  <button 
-                    onClick={() => addFacility(facilityType)}
-                  >
-                    +
-                  </button>
+                  <label>
+                    Quantity:
+                    <input
+                      type="number"
+                      min="0"
+                      value={quantity}
+                      onChange={(e) => updateFacilityQuantity(facilityType, parseInt(e.target.value) || 0)}
+                      style={{ width: '60px', marginLeft: '0.5rem' }}
+                    />
+                  </label>
                 </div>
               </div>
             );
@@ -160,18 +146,16 @@ const FacilitiesPanel: React.FC<FacilitiesPanelProps> = ({ facilities, onUpdate 
                   <h4>{facilityType.name}, {facilityType.mass} tons, {facilityType.cost} MCr</h4>
                 </div>
                 <div className="quantity-control">
-                  <button 
-                    onClick={() => removeFacility(facilityType.type)}
-                    disabled={quantity === 0}
-                  >
-                    -
-                  </button>
-                  <span>{quantity}</span>
-                  <button 
-                    onClick={() => addFacility(facilityType)}
-                  >
-                    +
-                  </button>
+                  <label>
+                    Quantity:
+                    <input
+                      type="number"
+                      min="0"
+                      value={quantity}
+                      onChange={(e) => updateFacilityQuantity(facilityType, parseInt(e.target.value) || 0)}
+                      style={{ width: '60px', marginLeft: '0.5rem' }}
+                    />
+                  </label>
                 </div>
               </div>
             );
