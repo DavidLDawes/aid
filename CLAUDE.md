@@ -165,6 +165,7 @@ Test files are co-located with source files using .test.ts/.test.tsx extension
 - `hasAntimatterPlant()` / `calculateAntimatterAdjustedManeuverFuel()`: an installed Antimatter Plant (in `fuel_systems`) cuts maneuver fuel to 1/10th
 - Staff calculation helpers (`calculateMedicalStaff`, `calculateVehicleServiceStaff`, `calculateDroneServiceStaff`)
 - `getScreenSpecs()`: defensive-screen (Nuclear Damper/Meson Screen/Black Globe) mass/cost, scaled by a 5x-per-tier tonnage bracket starting at 1,000,000 tons (see `getScreenTonnageTier()`) — not capital-ship hull codes, which topped out at 1,000,000 tons and didn't scale across the megastructure range
+- `getMaxScreens()` / `SCREEN_TL_LIMITS`: quantity cap per screen type, gated by TL (not tonnage). Nuclear Damper and Meson Screen scale TL-C through TL-J (1/1, 2/2, 4/4, 6/6, 8/8, 10/9, 12/10); Black Globe unlocks at TL-F and scales TL-F through TL-J (3, 4, 6, 7)
 
 **`src/types/ship.ts`**: TypeScript interfaces for all ship components
 - `ShipDesign`: Root interface containing all component arrays
@@ -316,6 +317,7 @@ Crew calculation in `calculateStaffRequirements()` (hoisted before JSX return in
   - Defensive screens: minimum 4, or `ceil(totalScreenTons / 100)` if total screen tonnage >400
   - Bay weapons: 2 gunners per bay weapon (per unit quantity)
   - No spinal weapon gunners — megastructures have no spinal mounts
+  - If the Robotics rule is enabled, the summed total above is divided (rounded up) by `getRoboticsGunnerDivisor(techLevel)` — one TL tier behind the Engineers reduction (starts at TL-G, not TL-F): TL-G=1/2, TL-H=1/3, TL-J=1/4
 - **Stewards**: 1 per 8 staterooms (rounded up)
 - **Medical**: Calculated by `calculateMedicalStaff()` based on medical facilities
 - **Service**: Vehicle service (`calculateVehicleServiceStaff`) + drone service (`calculateDroneServiceStaff`) from `constants.ts`
@@ -342,7 +344,7 @@ Use helper functions: `isTechLevelAtLeast()`, `getMaxPowerPlantByTechLevel()`, `
 - `'spacecraft_design_srd'`: always enabled, can't be disabled (display-only)
 - `'high_guard_capital_ships'`: always shown disabled (display-only, not applicable to megastructures)
 - `'antimatter'`: toggleable in the UI (gated to TL-H+ ships) but currently has no effect on any calculation
-- `'robotics'`: toggleable in the UI (gated to TL-F+ ships) and **does** affect calculations — `calculateEngineerCount()` (`src/utils/crewCalculations.ts`) divides each engine's crew requirement (rounded up) by `getRoboticsCrewDivisor(techLevel)` when enabled: TL-F=1/2, TL-G=1/4, TL-H=1/6, TL-J=1/8
+- `'robotics'`: toggleable in the UI (gated to TL-F+ ships) and **does** affect calculations — `calculateEngineerCount()` (`src/utils/crewCalculations.ts`) divides each engine's crew requirement (rounded up) by `getRoboticsCrewDivisor(techLevel)` when enabled: TL-F=1/2, TL-G=1/4, TL-H=1/6, TL-J=1/8. It also reduces total Gunners (in App.tsx's `calculateStaffRequirements()` directly, not a `crewCalculations.ts` helper) via `getRoboticsGunnerDivisor(techLevel)`, one TL tier later: TL-G=1/2, TL-H=1/3, TL-J=1/4
 
 If you add a new rule that should actually affect calculations, wire it through real game state (like the Antimatter Plant is) rather than `activeRules.has('rule_id')`, unless you're also adding the code that reads it (as `'robotics'` does).
 

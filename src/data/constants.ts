@@ -62,6 +62,17 @@ export function getRoboticsCrewDivisor(techLevel: string): number {
   return 1;
 }
 
+// Robotics also automates gunnery support, one tier behind the engineering
+// reduction above (starts at TL-G, not TL-F): divisor to apply (rounded up)
+// to the ship's total gunner requirement. TL-G=1/2, TL-H=1/3, TL-J=1/4.
+// Below TL-G, no reduction (1).
+export function getRoboticsGunnerDivisor(techLevel: string): number {
+  if (isTechLevelAtLeast(techLevel, 'J')) return 4;
+  if (isTechLevelAtLeast(techLevel, 'H')) return 3;
+  if (isTechLevelAtLeast(techLevel, 'G')) return 2;
+  return 1;
+}
+
 // Engine performance percentages as a function of ship displacement.
 // Levels 1-6 are from the Traveller SRD. Megastructures have no jump drive,
 // so power plant levels 7-12 extend the same +1.0%/step progression from
@@ -333,11 +344,11 @@ export const DEFENSE_TYPES = [
   { name: 'Dual Point Defense Laser Turret', type: 'dual_point_defense_laser_turret', mass: 1, cost: 1.5 }
 ];
 
-// Screen types with TL-based quantity limits
+// Screen types with TL-based quantity limits. TL 16/17/18 = G/H/J.
 export const SCREEN_TL_LIMITS = {
-  nuclear_damper: { 12: 1, 13: 2, 14: 4, 15: 6 },
-  meson_screen: { 12: 1, 13: 2, 14: 4, 15: 6 },
-  black_globe: { 15: 3 }
+  nuclear_damper: { 12: 1, 13: 2, 14: 4, 15: 6, 16: 8, 17: 10, 18: 12 },
+  meson_screen: { 12: 1, 13: 2, 14: 4, 15: 6, 16: 8, 17: 9, 18: 10 },
+  black_globe: { 15: 3, 16: 4, 17: 6, 18: 7 }
 };
 
 // Screen specs by hull code
