@@ -62,11 +62,11 @@ export function getRoboticsCrewDivisor(techLevel: string): number {
   return 1;
 }
 
-// Robotics also automates gunnery support, one tier behind the engineering
-// reduction above (starts at TL-G, not TL-F): divisor to apply (rounded up)
-// to the ship's total gunner requirement. TL-G=1/2, TL-H=1/3, TL-J=1/4.
-// Below TL-G, no reduction (1).
-export function getRoboticsGunnerDivisor(techLevel: string): number {
+// Robotics also automates gunnery, service (vehicle/drone maintenance), and
+// steward support, one tier behind the engineering reduction above (starts
+// at TL-G, not TL-F): divisor to apply (rounded up) to each of those crew
+// totals. TL-G=1/2, TL-H=1/3, TL-J=1/4. Below TL-G, no reduction (1).
+export function getRoboticsSupportDivisor(techLevel: string): number {
   if (isTechLevelAtLeast(techLevel, 'J')) return 4;
   if (isTechLevelAtLeast(techLevel, 'H')) return 3;
   if (isTechLevelAtLeast(techLevel, 'G')) return 2;

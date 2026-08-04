@@ -319,10 +319,10 @@ Crew calculation in `calculateStaffRequirements()` (hoisted before JSX return in
   - Defensive screens: minimum 4, or `ceil(totalScreenTons / 100)` if total screen tonnage >400
   - Bay weapons: 2 gunners per bay weapon (per unit quantity)
   - No spinal weapon gunners — megastructures have no spinal mounts
-  - If the Robotics rule is enabled, the summed total above is divided (rounded up) by `getRoboticsGunnerDivisor(techLevel)` — one TL tier behind the Engineers reduction (starts at TL-G, not TL-F): TL-G=1/2, TL-H=1/3, TL-J=1/4
-- **Stewards**: 1 per 8 staterooms (rounded up)
+  - If the Robotics rule is enabled, the summed total above is divided (rounded up) by `getRoboticsSupportDivisor(techLevel)` — one TL tier behind the Engineers reduction (starts at TL-G, not TL-F): TL-G=1/2, TL-H=1/3, TL-J=1/4
+- **Stewards**: 1 per 8 staterooms (rounded up); same `getRoboticsSupportDivisor(techLevel)` reduction as Gunners when the Robotics rule is enabled
 - **Medical**: Calculated by `calculateMedicalStaff()` based on medical facilities
-- **Service**: Vehicle service (`calculateVehicleServiceStaff`) + drone service (`calculateDroneServiceStaff`) from `constants.ts`
+- **Service**: Vehicle service (`calculateVehicleServiceStaff`) + drone service (`calculateDroneServiceStaff`) from `constants.ts`; same `getRoboticsSupportDivisor(techLevel)` reduction as Gunners when the Robotics rule is enabled
 - **Custom Crew** (`shipDesign.custom_crew`, entered on the Custom panel — see Common Modifications): added directly onto the corresponding field above for the 9 shared positions (pilot/navigator/engineers/gunners/service/stewards/nurses/surgeons/techs). **Infantry/Armor/MP/Security** have no baseline formula anywhere else in the app, so their `StaffRequirements` values are exactly whatever's entered as custom crew
 
 There is no small-ship pilot/navigator-combining or no-stewards toggle on this branch (that convention only applied to exactly-100/200-ton starships on the `main` branch; megastructures start at 1,000,000 tons, so it never applied here and was removed as dead code).
@@ -346,7 +346,7 @@ Use helper functions: `isTechLevelAtLeast()`, `getMaxPowerPlantByTechLevel()`, `
 - `'spacecraft_design_srd'`: always enabled, can't be disabled (display-only)
 - `'high_guard_capital_ships'`: always shown disabled (display-only, not applicable to megastructures)
 - `'antimatter'`: toggleable in the UI (gated to TL-H+ ships) but currently has no effect on any calculation
-- `'robotics'`: toggleable in the UI (gated to TL-F+ ships) and **does** affect calculations — `calculateEngineerCount()` (`src/utils/crewCalculations.ts`) divides each engine's crew requirement (rounded up) by `getRoboticsCrewDivisor(techLevel)` when enabled: TL-F=1/2, TL-G=1/4, TL-H=1/6, TL-J=1/8. It also reduces total Gunners (in App.tsx's `calculateStaffRequirements()` directly, not a `crewCalculations.ts` helper) via `getRoboticsGunnerDivisor(techLevel)`, one TL tier later: TL-G=1/2, TL-H=1/3, TL-J=1/4
+- `'robotics'`: toggleable in the UI (gated to TL-F+ ships) and **does** affect calculations — `calculateEngineerCount()` (`src/utils/crewCalculations.ts`) divides each engine's crew requirement (rounded up) by `getRoboticsCrewDivisor(techLevel)` when enabled: TL-F=1/2, TL-G=1/4, TL-H=1/6, TL-J=1/8. It also reduces total Gunners, Service, and Stewards (in App.tsx's `calculateStaffRequirements()` directly, not a `crewCalculations.ts` helper) via `getRoboticsSupportDivisor(techLevel)`, one TL tier later: TL-G=1/2, TL-H=1/3, TL-J=1/4
 
 If you add a new rule that should actually affect calculations, wire it through real game state (like the Antimatter Plant is) rather than `activeRules.has('rule_id')`, unless you're also adding the code that reads it (as `'robotics'` does).
 

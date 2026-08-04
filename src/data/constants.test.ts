@@ -7,7 +7,7 @@ import {
   getAvailableEngines,
   getMaxPowerPlantByTechLevel,
   getRoboticsCrewDivisor,
-  getRoboticsGunnerDivisor,
+  getRoboticsSupportDivisor,
   hasAntimatterPlant,
   calculateAntimatterAdjustedManeuverFuel,
   getWeaponMountLimit,
@@ -180,16 +180,16 @@ describe('getRoboticsCrewDivisor', () => {
   });
 });
 
-describe('getRoboticsGunnerDivisor', () => {
+describe('getRoboticsSupportDivisor', () => {
   it('applies no reduction below TL-G (including TL-F)', () => {
-    expect(getRoboticsGunnerDivisor('A')).toBe(1);
-    expect(getRoboticsGunnerDivisor('F')).toBe(1);
+    expect(getRoboticsSupportDivisor('A')).toBe(1);
+    expect(getRoboticsSupportDivisor('F')).toBe(1);
   });
 
   it('steps up with tech level: G=2, H=3, J=4', () => {
-    expect(getRoboticsGunnerDivisor('G')).toBe(2);
-    expect(getRoboticsGunnerDivisor('H')).toBe(3);
-    expect(getRoboticsGunnerDivisor('J')).toBe(4);
+    expect(getRoboticsSupportDivisor('G')).toBe(2);
+    expect(getRoboticsSupportDivisor('H')).toBe(3);
+    expect(getRoboticsSupportDivisor('J')).toBe(4);
   });
 });
 
