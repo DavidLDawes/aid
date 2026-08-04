@@ -191,7 +191,11 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPan
     }
   }, []);
 
+  // Standard fetch-on-mount pattern; loadShips manages its own loading/error
+  // state internally, which react-hooks/set-state-in-effect flags but is the
+  // intended, documented way to trigger data fetching from an effect.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadShips();
   }, [loadShips]);
 
