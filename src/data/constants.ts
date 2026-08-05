@@ -114,6 +114,11 @@ export const ENGINE_COST_PER_TON = {
   maneuver_drive: 2.0
 };
 
+// A maneuver drive can't physically be installed smaller than this,
+// regardless of how tiny the percentage-of-tonnage math works out (e.g. a
+// fractional M-.01 drive on the smallest megastructures).
+export const MIN_MANEUVER_DRIVE_TONS = 100;
+
 // Fractional (sub-1-gee) maneuver drives, megastructure branch only. Mass and
 // cost are each a percentage of the M-1 drive's mass/cost - not a straight
 // percentage of ship tonnage - and the two percentages diverge (e.g. M-.5 is
@@ -196,7 +201,10 @@ export function calculateEngineMassAndCost(
     }
     const m1 = calculateEngineMassAndCost(shipTonnage, 'maneuver_drive', 1);
     return {
-      mass: (m1.mass * level.tonsPercentOfM1) / 100,
+      // Maneuver drives can't be installed smaller than 100 tons, however
+      // tiny the percentage math works out at this performance/tonnage
+      // combination (e.g. M-.01 on the smallest megastructures).
+      mass: Math.max(MIN_MANEUVER_DRIVE_TONS, (m1.mass * level.tonsPercentOfM1) / 100),
       cost: (m1.cost * level.costPercentOfM1) / 100
     };
   }
@@ -225,7 +233,12 @@ export function calculateEngineMassAndCost(
   if (percentage === undefined) {
     return { mass: 0, cost: 0 };
   }
-  const mass = (shipTonnage * percentage) / 100;
+  let mass = (shipTonnage * percentage) / 100;
+  if (engineType === 'maneuver_drive') {
+    // Maneuver drives can't be installed smaller than 100 tons. Floor mass
+    // before computing cost so the two stay consistent (cost = mass × rate).
+    mass = Math.max(MIN_MANEUVER_DRIVE_TONS, mass);
+  }
   const costPerTon = ENGINE_COST_PER_TON[engineType];
   const cost = mass * costPerTon;
 

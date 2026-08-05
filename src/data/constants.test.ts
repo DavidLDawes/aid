@@ -276,8 +276,26 @@ describe('Fractional maneuver drives (sub-1-gee, megastructure branch only)', ()
     expect(calculateEngineMassAndCost(1_000_000, 'maneuver_drive', 0.05)).toEqual({ mass: 500, cost: 400 });
   });
 
-  it('computes M-.01 as 0.1% of M-1 tons and 0.05% of M-1 cost', () => {
-    expect(calculateEngineMassAndCost(1_000_000, 'maneuver_drive', 0.01)).toEqual({ mass: 10, cost: 10 });
+  it('computes M-.01 as 0.1% of M-1 tons and 0.05% of M-1 cost, floored to the 100-ton minimum', () => {
+    // Unfloored this would be 10 tons (0.1% of M-1's 10,000t) - below the
+    // 100-ton minimum a maneuver drive can be installed at, so it's clamped
+    // up. Cost is unaffected by the floor (it's an independent percentage
+    // of M-1's cost, not derived from mass).
+    expect(calculateEngineMassAndCost(1_000_000, 'maneuver_drive', 0.01)).toEqual({ mass: 100, cost: 10 });
+  });
+
+  it('does not floor M-.01 once the unfloored mass already exceeds 100 tons', () => {
+    // M-1 at 20,000,000 tons: 1.0% -> 200,000t. M-.01 = 0.1% of that = 200t,
+    // already above the 100-ton floor, so the raw percentage math stands.
+    expect(calculateEngineMassAndCost(20_000_000, 'maneuver_drive', 0.01)).toEqual({ mass: 200, cost: 200 });
+  });
+
+  it('never floors power plants, only maneuver drives', () => {
+    // 1,000 tons is below any real megastructure's minimum tonnage - used
+    // here purely to force a sub-100-ton result and prove the 100-ton
+    // floor is maneuver-drive-specific; power plants are unaffected.
+    const p01 = calculateEngineMassAndCost(1_000, 'power_plant', 0.01);
+    expect(p01.mass).toBeLessThan(100);
   });
 
   it('lists all seven fractional drives ahead of M-1 in getAvailableEngines', () => {
