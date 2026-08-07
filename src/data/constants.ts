@@ -62,11 +62,11 @@ export function getRoboticsCrewDivisor(techLevel: string): number {
   return 1;
 }
 
-// Robotics also automates gunnery support, one tier behind the engineering
-// reduction above (starts at TL-G, not TL-F): divisor to apply (rounded up)
-// to the ship's total gunner requirement. TL-G=1/2, TL-H=1/3, TL-J=1/4.
-// Below TL-G, no reduction (1).
-export function getRoboticsGunnerDivisor(techLevel: string): number {
+// Robotics also automates gunnery, service (vehicle/drone maintenance), and
+// steward support, one tier behind the engineering reduction above (starts
+// at TL-G, not TL-F): divisor to apply (rounded up) to each of those crew
+// totals. TL-G=1/2, TL-H=1/3, TL-J=1/4. Below TL-G, no reduction (1).
+export function getRoboticsSupportDivisor(techLevel: string): number {
   if (isTechLevelAtLeast(techLevel, 'J')) return 4;
   if (isTechLevelAtLeast(techLevel, 'H')) return 3;
   if (isTechLevelAtLeast(techLevel, 'G')) return 2;
@@ -113,6 +113,11 @@ export const ENGINE_COST_PER_TON = {
   power_plant: 2.0,
   maneuver_drive: 2.0
 };
+
+// A maneuver drive can't physically be installed smaller than this,
+// regardless of how tiny the percentage-of-tonnage math works out (e.g. a
+// fractional M-.01 drive on the smallest megastructures).
+export const MIN_MANEUVER_DRIVE_TONS = 100;
 
 // Fractional (sub-1-gee) maneuver drives, megastructure branch only. Mass and
 // cost are each a percentage of the M-1 drive's mass/cost - not a straight
@@ -196,7 +201,10 @@ export function calculateEngineMassAndCost(
     }
     const m1 = calculateEngineMassAndCost(shipTonnage, 'maneuver_drive', 1);
     return {
-      mass: (m1.mass * level.tonsPercentOfM1) / 100,
+      // Maneuver drives can't be installed smaller than 100 tons, however
+      // tiny the percentage math works out at this performance/tonnage
+      // combination (e.g. M-.01 on the smallest megastructures).
+      mass: Math.max(MIN_MANEUVER_DRIVE_TONS, (m1.mass * level.tonsPercentOfM1) / 100),
       cost: (m1.cost * level.costPercentOfM1) / 100
     };
   }
@@ -225,7 +233,12 @@ export function calculateEngineMassAndCost(
   if (percentage === undefined) {
     return { mass: 0, cost: 0 };
   }
-  const mass = (shipTonnage * percentage) / 100;
+  let mass = (shipTonnage * percentage) / 100;
+  if (engineType === 'maneuver_drive') {
+    // Maneuver drives can't be installed smaller than 100 tons. Floor mass
+    // before computing cost so the two stay consistent (cost = mass × rate).
+    mass = Math.max(MIN_MANEUVER_DRIVE_TONS, mass);
+  }
   const costPerTon = ENGINE_COST_PER_TON[engineType];
   const cost = mass * costPerTon;
 

@@ -7,7 +7,7 @@ import {
   calculateArmorMass, calculateArmorCost,
   getMegastructureSections, PLANT_PER_SCOOP,
   hasAntimatterPlant, calculateAntimatterAdjustedManeuverFuel,
-  getRoboticsGunnerDivisor, getMinPowerPlantForFuelEquipment
+  getRoboticsSupportDivisor, getMinPowerPlantForFuelEquipment
 } from './data/constants';
 import { databaseService } from './services/database';
 import { logger } from './utils/logger';
@@ -228,21 +228,24 @@ function App() {
 
     // No spinal weapon gunners — megastructures have no spinal mounts
     const baseGunners = turretsAndBarbettesGunners + defenseTurretGunners + screenGunners + bayWeaponGunners;
-    // Robotics also automates gunnery support, one tier behind the
-    // engineering reduction above (starts at TL-G, not TL-F).
-    const gunnerDivisor = activeRules.has('robotics')
-      ? getRoboticsGunnerDivisor(shipDesign.ship.tech_level)
+    // Robotics also automates gunnery, service (vehicle/drone maintenance),
+    // and steward support, one tier behind the engineering reduction above
+    // (starts at TL-G, not TL-F). Same divisor applied to all three.
+    const roboticsSupportDivisor = activeRules.has('robotics')
+      ? getRoboticsSupportDivisor(shipDesign.ship.tech_level)
       : 1;
-    const gunners = Math.ceil(baseGunners / gunnerDivisor);
+    const gunners = Math.ceil(baseGunners / roboticsSupportDivisor);
 
     const vehicleService = calculateVehicleServiceStaff(shipDesign.vehicles);
     const droneService = calculateDroneServiceStaff(shipDesign.drones);
-    const service = vehicleService + droneService;
+    const baseService = vehicleService + droneService;
+    const service = Math.ceil(baseService / roboticsSupportDivisor);
 
     const totalStaterooms = shipDesign.berths
       .filter(berth => berth.berth_type === 'staterooms' || berth.berth_type === 'luxury_staterooms')
       .reduce((sum, berth) => sum + berth.quantity, 0);
-    const stewards = Math.ceil(totalStaterooms / 8);
+    const baseStewards = Math.ceil(totalStaterooms / 8);
+    const stewards = Math.ceil(baseStewards / roboticsSupportDivisor);
 
     const medicalStaff = calculateMedicalStaff(shipDesign.facilities);
     const { nurses: baseNurses, surgeons: baseSurgeons, techs: baseTechs } = medicalStaff;
