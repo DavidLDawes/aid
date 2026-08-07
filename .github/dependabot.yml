@@ -21,6 +21,15 @@ updates:
         update-types:
           - minor
           - patch
+    ignore:
+      # @babel/preset-typescript 8.0.1 mis-parses generic call/instantiation
+      # expressions (new Set<string>(), jest.fn<T>(), useState<T>()), and
+      # @babel/core 8.0.1 breaks the still-7.x preset-typescript peer dep.
+      # See PRs #218/#229/#230/#231/#233. Re-enable once babel fixes this.
+      - dependency-name: "@babel/core"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@babel/preset-typescript"
+        update-types: ["version-update:semver-major"]
 
   # ── npm packages → capital ───────────────────────────────────────────────
   - package-ecosystem: npm
@@ -42,6 +51,12 @@ updates:
         update-types:
           - minor
           - patch
+    ignore:
+      # See "npm packages → main" ignore block above for why.
+      - dependency-name: "@babel/core"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@babel/preset-typescript"
+        update-types: ["version-update:semver-major"]
 
  # ── npm packages → megastructure ───────────────────────────────────────────────
   - package-ecosystem: npm
@@ -63,6 +78,12 @@ updates:
         update-types:
           - minor
           - patch
+    ignore:
+      # See "npm packages → main" ignore block above for why.
+      - dependency-name: "@babel/core"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@babel/preset-typescript"
+        update-types: ["version-update:semver-major"]
 
   # ── GitHub Actions → main ────────────────────────────────────────────────
   - package-ecosystem: github-actions
