@@ -51,10 +51,6 @@ function App() {
   const [activeRules, setActiveRules] = useState<Set<string>>(new Set(['spacecraft_design_srd']));
   const [shipDesign, setShipDesign] = useState<ShipDesign>(EMPTY_SHIP_DESIGN);
 
-  useEffect(() => {
-    checkExistingShips();
-  }, []);
-
   const checkExistingShips = async () => {
     logger.info('Initializing database');
     try {
@@ -63,6 +59,10 @@ function App() {
       logger.error('Error initializing database', error);
     }
   };
+
+  useEffect(() => {
+    checkExistingShips();
+  }, []);
 
   const handleFileSave = useCallback(async () => {
     if (!shipDesign.ship.name.trim()) {

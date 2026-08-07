@@ -65,13 +65,19 @@ const ShipPanel: React.FC<ShipPanelProps> = ({ ship, onUpdate, onLoadExistingShi
     }
   }, []);
 
+  // checkShipName sets isChecking synchronously before its await, which
+  // react-hooks/set-state-in-effect flags, but triggering an async name
+  // lookup in response to a changed name is exactly what this effect is for.
   useEffect(() => {
     // Check immediately when name changes
     if (ship.name.trim() && ship.name.length >= 2) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       checkShipName(ship.name);
     }
-    
-    // Also check after a delay for final validation
+
+    // Also check after a delay for final validation. Not flagged like the
+    // immediate call above - it runs in a setTimeout callback, not the
+    // effect body itself.
     const timeoutId = setTimeout(() => {
       checkShipName(ship.name);
     }, 1500); // Debounce for 1500ms

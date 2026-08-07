@@ -52,12 +52,18 @@ const RulesMenu: React.FC<RulesMenuProps> = ({ shipDesign, onRuleChange }) => {
   ]);
   
   // Keep a ref of the latest rules so the tech-level effect can see current
-  // enabled states without re-running on every rules update.
+  // enabled states without re-running on every rules update. Synced via its
+  // own effect (not during render) per react-hooks/refs.
   const rulesRef = useRef(rules);
-  rulesRef.current = rules;
+  useEffect(() => {
+    rulesRef.current = rules;
+  }, [rules]);
 
   // Update rules when tech level changes. Rules that get force-disabled must
   // also be reported upward, otherwise App's activeRules keeps applying them.
+  // Reconciling derived UI state (disabled/enabled) up to the parent on a
+  // dependency change is exactly what this effect is for, so the
+  // react-hooks/set-state-in-effect warning here is a false positive.
   useEffect(() => {
     const forceDisabled = rulesRef.current.filter(rule =>
       rule.enabled && (
@@ -66,6 +72,7 @@ const RulesMenu: React.FC<RulesMenuProps> = ({ shipDesign, onRuleChange }) => {
       )
     );
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setRules(prevRules => prevRules.map(rule => {
       if (rule.id === 'antimatter') {
         return {
