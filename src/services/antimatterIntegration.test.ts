@@ -102,6 +102,7 @@ describe('Antimatter Integration Tests', () => {
     facilities: [],
     cargo: [],
     vehicles: [],
+    modular_cutter_modules: [],
     drones: []
   });
 

@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import type { ShipDesign, MassCalculation, CostCalculation, StaffRequirements } from '../types/ship';
-import { COMMS_SENSORS_TYPES, DEFENSE_TYPES, FACILITY_TYPES, CARGO_TYPES, VEHICLE_TYPES, DRONE_TYPES, BERTH_TYPES, getHullCost } from '../data/constants';
+import {
+  COMMS_SENSORS_TYPES, DEFENSE_TYPES, FACILITY_TYPES, CARGO_TYPES,
+  VEHICLE_TYPES, DRONE_TYPES, BERTH_TYPES, MODULE_TYPES, getHullCost,
+  getModularCutterCount, calculateModularCutterBayMass
+} from '../data/constants';
 import { databaseService } from '../services/database';
 import { logger } from '../utils/logger';
 
@@ -23,6 +27,14 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
   const isSmallShip = shipDesign.ship.tonnage >= 100 && shipDesign.ship.tonnage <= 200;
   const applyCombine = combinePilotNavigator && isSmallShip;
   const applyNoStewards = noStewards && isSmallShip;
+
+  const modularCutterModules = shipDesign.modular_cutter_modules || [];
+  const modularCutterCount = getModularCutterCount(shipDesign.vehicles);
+  const spareModuleCount = modularCutterModules.reduce((sum, m) => sum + m.quantity, 0);
+  const moduleBayMass = calculateModularCutterBayMass(modularCutterCount, spareModuleCount);
+  // The 30 tons/module is itemized per selected module below; the remainder
+  // is the reload-bay retrofit tonnage, which has no module type of its own.
+  const moduleBayOverheadMass = moduleBayMass - spareModuleCount * 30;
 
   const handleSaveDesign = async () => {
     if (!shipDesign.ship.name.trim()) {
@@ -261,7 +273,16 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
         cost: vehicle.cost * vehicle.quantity
       });
     });
-    
+
+    modularCutterModules.filter(m => m.quantity > 0).forEach(module => {
+      const moduleType = MODULE_TYPES.find(mt => mt.type === module.module_type);
+      const display = module.quantity === 1 ? (moduleType?.name ?? module.module_type) : `${moduleType?.name ?? module.module_type} (x${module.quantity})`;
+      allRows.push({ category: '', item: display, mass: module.quantity * 30, cost: (moduleType?.cost ?? 0) * module.quantity });
+    });
+    if (moduleBayOverheadMass > 0) {
+      allRows.push({ category: '', item: 'Modular Cutter Reload Bay', mass: moduleBayOverheadMass, cost: 0 });
+    }
+
     // Drones
     const activeDrones = shipDesign.drones.filter(drone => drone.quantity > 0);
     activeDrones.forEach((drone, index) => {
@@ -613,10 +634,36 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
                   vehicleRowIndex++;
                 });
               }
-              
+
+              modularCutterModules.filter(m => m.quantity > 0).forEach(module => {
+                const moduleType = MODULE_TYPES.find(mt => mt.type === module.module_type);
+                const display = module.quantity === 1 ? (moduleType?.name ?? module.module_type) : `${moduleType?.name ?? module.module_type} (x${module.quantity})`;
+                rows.push(
+                  <tr key={`module_${module.module_type}`}>
+                    <td>{vehicleRowIndex === 0 ? 'Vehicles' : ''}</td>
+                    <td>{display}</td>
+                    <td>{(module.quantity * 30).toFixed(1)} tons</td>
+                    <td>{((moduleType?.cost ?? 0) * module.quantity).toFixed(2)} MCr</td>
+                  </tr>
+                );
+                vehicleRowIndex++;
+              });
+
+              if (moduleBayOverheadMass > 0) {
+                rows.push(
+                  <tr key="module_bay_overhead">
+                    <td>{vehicleRowIndex === 0 ? 'Vehicles' : ''}</td>
+                    <td>Modular Cutter Reload Bay</td>
+                    <td>{moduleBayOverheadMass.toFixed(1)} tons</td>
+                    <td>—</td>
+                  </tr>
+                );
+                vehicleRowIndex++;
+              }
+
               return rows;
             })()}
-            
+
             {/* Drones */}
             {(() => {
               const rows: React.ReactElement[] = [];

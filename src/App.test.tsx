@@ -340,6 +340,7 @@ describe('App', () => {
       facilities: [],
       cargo: [],
       vehicles: [],
+      modular_cutter_modules: [],
       drones: []
     };
     (databaseService.getAllShips as ReturnType<typeof jest.fn>).mockResolvedValueOnce([shipWithBadWeapon]);

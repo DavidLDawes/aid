@@ -97,6 +97,7 @@ class DatabaseService {
         const ships = request.result.map((ship: StoredShipDesign) => ({
           ...ship,
           cargo: cleanInvalidCargo(ship.cargo),
+          modular_cutter_modules: ship.modular_cutter_modules || [],
           createdAt: new Date(ship.createdAt),
           updatedAt: new Date(ship.updatedAt)
         }));
@@ -121,6 +122,7 @@ class DatabaseService {
           resolve({
             ...ship,
             cargo: cleanInvalidCargo(ship.cargo),
+            modular_cutter_modules: ship.modular_cutter_modules || [],
             createdAt: new Date(ship.createdAt),
             updatedAt: new Date(ship.updatedAt)
           });
@@ -329,6 +331,7 @@ class DatabaseService {
           resolve({
             ...ship,
             cargo: cleanInvalidCargo(ship.cargo),
+            modular_cutter_modules: ship.modular_cutter_modules || [],
             createdAt: new Date(ship.createdAt),
             updatedAt: new Date(ship.updatedAt)
           });
