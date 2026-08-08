@@ -73,10 +73,20 @@ export interface Cargo {
 
 export interface Vehicle {
   id?: number;
-  vehicle_type: 'honey_badger_off_roader' | 'atv_tracked' | 'atv_wheeled' | 'air_raft_truck' | 'open_top_air_raft' | 'fire_scorpion_walker' | 'socrates_field_car' | 'ufo_floating_home' | 'sealed_air_raft_4t' | 'iderati_afv' | 'aat_infantry_support' | 'sealed_air_raft_3t' | 'pug_armored_car' | 'exploration_gbike' | 'awesome_walker' | 'socrates_field_car_variant' | 'armored_fighting_vehicle' | 'fury_helicopter_gunship';
+  vehicle_type: 'honey_badger_off_roader' | 'atv_tracked' | 'atv_wheeled' | 'air_raft_truck' | 'open_top_air_raft' | 'fire_scorpion_walker' | 'socrates_field_car' | 'ufo_floating_home' | 'sealed_air_raft_4t' | 'iderati_afv' | 'aat_infantry_support' | 'sealed_air_raft_3t' | 'pug_armored_car' | 'exploration_gbike' | 'awesome_walker' | 'socrates_field_car_variant' | 'armored_fighting_vehicle' | 'fury_helicopter_gunship' | 'shuttle' | 'modular_cutter' | 'light_fighter' | 'medium_fighter' | 'heavy_fighter';
   quantity: number;
   mass: number;
   cost: number;
+}
+
+// Swappable 30-ton modules for the Modular Cutter. Tracked as a flat count
+// per type across every Modular Cutter on the design (not per individual
+// cutter) — see calculateModularCutterBayMass() in constants.ts for why the
+// extra bay tonnage can't be attributed to a single module entry.
+export interface ModularCutterModule {
+  id?: number;
+  module_type: 'sensor_module' | 'fuel_module' | 'residence_module' | 'weapons_module' | 'stealth_module' | 'mining_module';
+  quantity: number;
 }
 
 export interface Drone {
@@ -157,6 +167,7 @@ export interface ShipDesign {
   facilities: Facility[];
   cargo: Cargo[];
   vehicles: Vehicle[];
+  modular_cutter_modules: ModularCutterModule[];
   drones: Drone[];
   custom_items: CustomItem[];
   custom_crew: CustomCrew;

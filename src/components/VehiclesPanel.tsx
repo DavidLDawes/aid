@@ -1,16 +1,43 @@
 import React from 'react';
-import type { Vehicle } from '../types/ship';
-import { getAvailableVehicles, calculateVehicleServiceStaff } from '../data/constants';
+import type { Vehicle, ModularCutterModule } from '../types/ship';
+import {
+  getAvailableVehicles, calculateVehicleServiceStaff,
+  MODULE_TYPES, getModularCutterCount, calculateModularCutterBayMass, calculateModularCutterModuleCost
+} from '../data/constants';
 
 interface VehiclesPanelProps {
   vehicles: Vehicle[];
   shipTechLevel: string;
+  modularCutterModules: ModularCutterModule[];
   onUpdate: (vehicles: Vehicle[]) => void;
+  onModulesUpdate: (modules: ModularCutterModule[]) => void;
 }
 
-const VehiclesPanel: React.FC<VehiclesPanelProps> = ({ vehicles, shipTechLevel, onUpdate }) => {
+const VehiclesPanel: React.FC<VehiclesPanelProps> = ({ vehicles, shipTechLevel, modularCutterModules, onUpdate, onModulesUpdate }) => {
   const availableVehicles = getAvailableVehicles(shipTechLevel);
   const totalServiceStaff = calculateVehicleServiceStaff(vehicles);
+  const modularCutterCount = getModularCutterCount(vehicles);
+  const spareModuleCount = modularCutterModules.reduce((sum, m) => sum + m.quantity, 0);
+  const bayMass = calculateModularCutterBayMass(modularCutterCount, spareModuleCount);
+  const moduleCost = calculateModularCutterModuleCost(modularCutterModules);
+
+  const updateModuleQuantity = (moduleType: typeof MODULE_TYPES[0], quantity: number) => {
+    const validQuantity = Math.max(0, Math.floor(quantity));
+    const existingModule = modularCutterModules.find(m => m.module_type === moduleType.type);
+
+    if (validQuantity === 0) {
+      onModulesUpdate(modularCutterModules.filter(m => m.module_type !== moduleType.type));
+    } else if (existingModule) {
+      onModulesUpdate(modularCutterModules.map(m =>
+        m.module_type === moduleType.type ? { ...m, quantity: validQuantity } : m
+      ));
+    } else {
+      onModulesUpdate([...modularCutterModules, {
+        module_type: moduleType.type as ModularCutterModule['module_type'],
+        quantity: validQuantity
+      }]);
+    }
+  };
 
   const updateVehicleQuantity = (vehicleType: typeof availableVehicles[0], quantity: number) => {
     const validQuantity = Math.max(0, Math.floor(quantity));
@@ -123,6 +150,49 @@ const VehiclesPanel: React.FC<VehiclesPanelProps> = ({ vehicles, shipTechLevel, 
           </table>
         )}
       </div>
+
+      {modularCutterCount > 0 && (
+        <div className="module-bay-section">
+          <h3>Modular Cutter Modules</h3>
+          <p>
+            Each Modular Cutter's 50 tons already includes one installed module at no extra cost.
+            Carrying spare modules to swap in requires a reload bay retrofit across all {modularCutterCount} cutter{modularCutterCount === 1 ? '' : 's'}:
+            the first spare costs 60 tons/cutter (bay + module), every spare after that is a flat +30 tons.
+          </p>
+          <p><strong>Spare Modules:</strong> {spareModuleCount} &nbsp; <strong>Reload Bay + Spares Mass:</strong> {bayMass.toFixed(1)} tons &nbsp; <strong>Spare Modules Cost:</strong> {moduleCost.toFixed(1)} MCr</p>
+
+          <div className="vehicles-grouped-layout">
+            <div className="vehicle-group-row">
+              {MODULE_TYPES.map(moduleType => {
+                const currentModule = modularCutterModules.find(m => m.module_type === moduleType.type);
+                const quantity = currentModule?.quantity || 0;
+
+                return (
+                  <div key={moduleType.type} className="component-item">
+                    <div className="component-info">
+                      <h4>{moduleType.name}</h4>
+                      <p>{moduleType.mass} tons, {moduleType.cost} MCr</p>
+                      <p>{moduleType.description}</p>
+                    </div>
+                    <div className="quantity-control">
+                      <label>
+                        Quantity:
+                        <input
+                          type="number"
+                          min="0"
+                          value={quantity}
+                          onChange={(e) => updateModuleQuantity(moduleType, parseInt(e.target.value) || 0)}
+                          style={{ width: '60px', marginLeft: '0.5rem' }}
+                        />
+                      </label>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="vehicle-attribution">
         <p>

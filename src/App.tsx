@@ -7,7 +7,8 @@ import {
   calculateArmorMass, calculateArmorCost,
   getMegastructureSections, PLANT_PER_SCOOP,
   hasAntimatterPlant, calculateAntimatterAdjustedManeuverFuel,
-  getRoboticsSupportDivisor, getMinPowerPlantForFuelEquipment
+  getRoboticsSupportDivisor, getMinPowerPlantForFuelEquipment,
+  getModularCutterCount, calculateModularCutterBayMass, calculateModularCutterModuleCost
 } from './data/constants';
 import { databaseService } from './services/database';
 import { logger } from './utils/logger';
@@ -113,6 +114,11 @@ function App() {
     used += sumMassWithQuantity(shipDesign.drones);
     used += sumMass(shipDesign.custom_items);
 
+    // Modular Cutter spare-module reload bays (see calculateModularCutterBayMass)
+    const modularCutterCount = getModularCutterCount(shipDesign.vehicles);
+    const spareModuleCount = (shipDesign.modular_cutter_modules || []).reduce((sum, m) => sum + m.quantity, 0);
+    used += calculateModularCutterBayMass(modularCutterCount, spareModuleCount);
+
     // Maneuver fuel only — no jump drives on megastructures. An installed
     // Antimatter Plant reduces this to 1/10th (see hasAntimatterPlant).
     const maneuverDrive = shipDesign.engines.find(e => e.engine_type === 'maneuver_drive');
@@ -162,6 +168,9 @@ function App() {
     total += sumCostWithQuantity(shipDesign.vehicles);
     total += sumCostWithQuantity(shipDesign.drones);
     total += sumCost(shipDesign.custom_items);
+
+    // Modular Cutter spare modules (the reload bay itself is structural, no MCr cost)
+    total += calculateModularCutterModuleCost(shipDesign.modular_cutter_modules || []);
 
     total += shipDesign.ship.missile_reloads;
     total += shipDesign.ship.sand_reloads * 0.1;
@@ -447,7 +456,8 @@ function App() {
     let cleanedShipDesign: ShipDesign = {
       ...loadedShipDesign,
       fuel_systems: loadedShipDesign.fuel_systems || [],
-      zone_sections: loadedShipDesign.zone_sections || []
+      zone_sections: loadedShipDesign.zone_sections || [],
+      modular_cutter_modules: loadedShipDesign.modular_cutter_modules || []
     };
 
     if (removedWeapons.length > 0) {
@@ -485,7 +495,8 @@ function App() {
           onLoadExistingShip={(loadedShipDesign) => setShipDesign({
             ...loadedShipDesign,
             fuel_systems: loadedShipDesign.fuel_systems || [],
-            zone_sections: loadedShipDesign.zone_sections || []
+            zone_sections: loadedShipDesign.zone_sections || [],
+            modular_cutter_modules: loadedShipDesign.modular_cutter_modules || []
           })}
         />;
       case 1:
@@ -537,7 +548,13 @@ function App() {
       case 6:
         return <CargoPanel cargo={shipDesign.cargo} remainingMass={mass.remaining} shipTonnage={shipDesign.ship.tonnage} onUpdate={(cargo) => updateShipDesign({ cargo })} />;
       case 7:
-        return <VehiclesPanel vehicles={shipDesign.vehicles} shipTechLevel={shipDesign.ship.tech_level} onUpdate={(vehicles) => updateShipDesign({ vehicles })} />;
+        return <VehiclesPanel
+          vehicles={shipDesign.vehicles}
+          shipTechLevel={shipDesign.ship.tech_level}
+          modularCutterModules={shipDesign.modular_cutter_modules || []}
+          onUpdate={(vehicles) => updateShipDesign({ vehicles })}
+          onModulesUpdate={(modular_cutter_modules) => updateShipDesign({ modular_cutter_modules })}
+        />;
       case 8:
         return <DronesPanel drones={shipDesign.drones} onUpdate={(drones) => updateShipDesign({ drones })} />;
       case 9:

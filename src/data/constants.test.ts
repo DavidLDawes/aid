@@ -18,6 +18,10 @@ import {
   getMinPowerPlantForFuelEquipment,
   formatPowerPlantCode,
   FRACTIONAL_POWER_PLANT_LEVELS,
+  getModularCutterCount,
+  calculateModularCutterBayMass,
+  calculateModularCutterModuleCost,
+  MODULE_TYPES,
 } from './constants';
 
 describe('Tech Level Functions', () => {
@@ -444,6 +448,58 @@ describe('getAvailableVehicles', () => {
     vehicles.forEach(v => {
       expect(v.techLevel).toBeLessThanOrEqual(shipTLNum);
     });
+  });
+});
+
+describe('getModularCutterCount', () => {
+  it('sums quantity across modular cutter entries', () => {
+    expect(getModularCutterCount([
+      { vehicle_type: 'modular_cutter', quantity: 3 },
+      { vehicle_type: 'shuttle', quantity: 5 }
+    ])).toBe(3);
+  });
+
+  it('returns 0 when no modular cutters are present', () => {
+    expect(getModularCutterCount([{ vehicle_type: 'shuttle', quantity: 2 }])).toBe(0);
+  });
+});
+
+describe('calculateModularCutterBayMass', () => {
+  it('is 0 with no spare modules', () => {
+    expect(calculateModularCutterBayMass(1, 0)).toBe(0);
+    expect(calculateModularCutterBayMass(3, 0)).toBe(0);
+  });
+
+  it('is 0 with no cutters even if spares are requested', () => {
+    expect(calculateModularCutterBayMass(0, 2)).toBe(0);
+  });
+
+  it('matches the single-cutter progression: 60, 90, 120 tons for 1, 2, 3 spares', () => {
+    expect(calculateModularCutterBayMass(1, 1)).toBe(60);
+    expect(calculateModularCutterBayMass(1, 2)).toBe(90);
+    expect(calculateModularCutterBayMass(1, 3)).toBe(120);
+  });
+
+  it('retrofits every cutter at once for the first spare, then +30 tons/spare after', () => {
+    expect(calculateModularCutterBayMass(2, 1)).toBe(120);
+    expect(calculateModularCutterBayMass(2, 2)).toBe(150);
+    expect(calculateModularCutterBayMass(3, 1)).toBe(180);
+  });
+});
+
+describe('calculateModularCutterModuleCost', () => {
+  it('sums quantity × per-type cost, ignoring the reload bay (structural, no MCr cost)', () => {
+    const cost = calculateModularCutterModuleCost([
+      { module_type: 'sensor_module', quantity: 2 },
+      { module_type: 'weapons_module', quantity: 1 }
+    ]);
+    const sensorCost = MODULE_TYPES.find(m => m.type === 'sensor_module')!.cost;
+    const weaponsCost = MODULE_TYPES.find(m => m.type === 'weapons_module')!.cost;
+    expect(cost).toBe(sensorCost * 2 + weaponsCost);
+  });
+
+  it('returns 0 for an empty list', () => {
+    expect(calculateModularCutterModuleCost([])).toBe(0);
   });
 });
 

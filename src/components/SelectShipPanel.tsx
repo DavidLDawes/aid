@@ -49,6 +49,7 @@ function createDefaultShips() {
       ],
       cargo: [],
       vehicles: [],
+      modular_cutter_modules: [],
       drones: [],
       custom_items: [],
       custom_crew: createEmptyCustomCrew(),
