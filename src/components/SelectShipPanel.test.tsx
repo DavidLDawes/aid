@@ -140,6 +140,7 @@ describe('SelectShipPanel', () => {
       facilities: [],
       cargo: [],
       vehicles: [],
+      modular_cutter_modules: [],
       drones: []
     };
     (databaseService.getAllShips as ReturnType<typeof jest.fn>)
@@ -257,7 +258,7 @@ describe('SelectShipPanel', () => {
         description: ''
       },
       engines: [], fittings: [], weapons: [], defenses: [], berths: [],
-      facilities: [], cargo: [], vehicles: [], drones: []
+      facilities: [], cargo: [], vehicles: [], modular_cutter_modules: [], drones: []
     };
     const oversizedShip = {
       ...smallShip,

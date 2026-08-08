@@ -28,6 +28,7 @@ describe('Database Service', () => {
     facilities: [],
     cargo: [],
     vehicles: [],
+    modular_cutter_modules: [],
     drones: []
   };
 

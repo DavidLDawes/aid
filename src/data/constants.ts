@@ -583,8 +583,50 @@ export const VEHICLE_TYPES = [
   { name: 'Awesome AWS-8Q 80 ton Walker', type: 'awesome_walker', mass: 80, cost: 22, techLevel: 10, serviceStaff: 4 },
   { name: 'Socrates Field Car (Variant)', type: 'socrates_field_car_variant', mass: 5, cost: 0.168, techLevel: 9, serviceStaff: 1 },
   { name: 'Armored Fighting Vehicle', type: 'armored_fighting_vehicle', mass: 10, cost: 0.198, techLevel: 12, serviceStaff: 1 },
-  { name: 'Fury Helicopter Gunship (Refit)', type: 'fury_helicopter_gunship', mass: 8, cost: 1.2, techLevel: 8, serviceStaff: 1 }
+  { name: 'Fury Helicopter Gunship (Refit)', type: 'fury_helicopter_gunship', mass: 8, cost: 1.2, techLevel: 8, serviceStaff: 1 },
+  { name: 'Shuttle', type: 'shuttle', mass: 90, cost: 12, techLevel: 9, serviceStaff: 2 },
+  { name: 'Modular Cutter', type: 'modular_cutter', mass: 50, cost: 14, techLevel: 9, serviceStaff: 2 },
+  { name: 'Light Fighter', type: 'light_fighter', mass: 30, cost: 36, techLevel: 9, serviceStaff: 1 },
+  { name: 'Medium Fighter', type: 'medium_fighter', mass: 60, cost: 80, techLevel: 10, serviceStaff: 2 },
+  { name: 'Heavy Fighter', type: 'heavy_fighter', mass: 90, cost: 124, techLevel: 12, serviceStaff: 3 }
 ];
+
+// Swappable modules for the Modular Cutter — see ModularCutterModule in
+// types/ship.ts and calculateModularCutterBayMass() below for the tonnage
+// mechanic that governs how many of these a design can actually carry.
+export const MODULE_TYPES = [
+  { name: 'Sensor Module', type: 'sensor_module', mass: 30, cost: 40, description: 'Optical, radio/magnetic, and mass sensors.' },
+  { name: 'Fuel Module', type: 'fuel_module', mass: 30, cost: 3, description: '29.5 tons of fuel in a .5 ton bladder.' },
+  { name: 'Residence Module', type: 'residence_module', mass: 30, cost: 30, description: 'Reconfigurable up to 7 cabins, 3 smaller homes, or 2 large homes.' },
+  { name: 'Weapons Module', type: 'weapons_module', mass: 30, cost: 60, description: 'A selection of turrets (any laser, up to triple) and antipersonnel weapons with local power.' },
+  { name: 'Stealth Module', type: 'stealth_module', mass: 30, cost: 120, description: 'Advanced passive and active electromagnetic sensors, jammers, chaff, flares, and weasels (small mobile jammers with chaff and flares).' },
+  { name: 'Mining Module', type: 'mining_module', mass: 30, cost: 45, description: 'A mining laser and bulk processing machinery for asteroid mining and purification.' }
+];
+
+export function getModularCutterCount(vehicles: { vehicle_type: string; quantity: number }[]): number {
+  return vehicles
+    .filter(v => v.vehicle_type === 'modular_cutter')
+    .reduce((sum, v) => sum + v.quantity, 0);
+}
+
+// Each Modular Cutter's 50-ton hull already includes its one installed
+// module at no extra tonnage. Carrying any spares beyond that requires a
+// reload bay retrofit on every cutter at once (30 tons bay + 30 tons for
+// the first spare, per cutter = 60 tons/cutter); every spare beyond that
+// first one is a flat +30 tons with no further bay cost.
+export function calculateModularCutterBayMass(cutterCount: number, spareModuleCount: number): number {
+  if (cutterCount <= 0 || spareModuleCount <= 0) {
+    return 0;
+  }
+  return 60 * cutterCount + 30 * (spareModuleCount - 1);
+}
+
+export function calculateModularCutterModuleCost(modules: { module_type: string; quantity: number }[]): number {
+  return modules.reduce((sum, m) => {
+    const moduleType = MODULE_TYPES.find(mt => mt.type === m.module_type);
+    return sum + (moduleType ? moduleType.cost * m.quantity : 0);
+  }, 0);
+}
 
 export const DRONE_TYPES = [
   { name: 'War', type: 'war', mass: 10, cost: 2 },

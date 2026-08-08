@@ -48,6 +48,7 @@ const ShipPanel: React.FC<ShipPanelProps> = ({ ship, onUpdate, onLoadExistingShi
             facilities: existingShip.facilities,
             cargo: existingShip.cargo,
             vehicles: existingShip.vehicles,
+            modular_cutter_modules: existingShip.modular_cutter_modules || [],
             drones: existingShip.drones
           }
         });

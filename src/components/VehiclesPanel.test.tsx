@@ -2,12 +2,12 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 import '@testing-library/jest-dom';
 import VehiclesPanel from './VehiclesPanel';
-import type { Vehicle } from '../types/ship';
+import type { Vehicle, ModularCutterModule } from '../types/ship';
 
 const noOp = jest.fn();
 
-const renderPanel = (vehicles: Vehicle[] = [], shipTechLevel = 'A') =>
-  render(<VehiclesPanel vehicles={vehicles} shipTechLevel={shipTechLevel} onUpdate={noOp} />);
+const renderPanel = (vehicles: Vehicle[] = [], shipTechLevel = 'A', modularCutterModules: ModularCutterModule[] = []) =>
+  render(<VehiclesPanel vehicles={vehicles} shipTechLevel={shipTechLevel} modularCutterModules={modularCutterModules} onUpdate={noOp} onModulesUpdate={noOp} />);
 
 describe('VehiclesPanel', () => {
   beforeEach(() => jest.clearAllMocks());
@@ -36,7 +36,7 @@ describe('VehiclesPanel', () => {
 
   it('+ button adds a vehicle', () => {
     const onUpdate = jest.fn();
-    render(<VehiclesPanel vehicles={[]} shipTechLevel="A" onUpdate={onUpdate} />);
+    render(<VehiclesPanel vehicles={[]} shipTechLevel="A" modularCutterModules={[]} onUpdate={onUpdate} onModulesUpdate={noOp} />);
     const plusButtons = screen.getAllByText('+');
     fireEvent.click(plusButtons[0]); // first available vehicle at TL A
     expect(onUpdate).toHaveBeenCalledWith(
@@ -47,7 +47,7 @@ describe('VehiclesPanel', () => {
   it('+ button increments existing vehicle quantity', () => {
     const onUpdate = jest.fn();
     const vehicles: Vehicle[] = [{ vehicle_type: 'open_top_air_raft', quantity: 1, mass: 4, cost: 0.045 }];
-    render(<VehiclesPanel vehicles={vehicles} shipTechLevel="A" onUpdate={onUpdate} />);
+    render(<VehiclesPanel vehicles={vehicles} shipTechLevel="A" modularCutterModules={[]} onUpdate={onUpdate} onModulesUpdate={noOp} />);
     const plusButtons = screen.getAllByText('+');
     // Find + for open_top_air_raft (which is first available at TL A)
     fireEvent.click(plusButtons[0]);
@@ -59,7 +59,7 @@ describe('VehiclesPanel', () => {
   it('- button decrements vehicle and removes at 0', () => {
     const onUpdate = jest.fn();
     const vehicles: Vehicle[] = [{ vehicle_type: 'open_top_air_raft', quantity: 1, mass: 4, cost: 0.045 }];
-    render(<VehiclesPanel vehicles={vehicles} shipTechLevel="A" onUpdate={onUpdate} />);
+    render(<VehiclesPanel vehicles={vehicles} shipTechLevel="A" modularCutterModules={[]} onUpdate={onUpdate} onModulesUpdate={noOp} />);
     const minusButtons = screen.getAllByText('-');
     const enabledMinus = minusButtons.find(btn => !btn.hasAttribute('disabled'));
     fireEvent.click(enabledMinus!);
@@ -76,7 +76,7 @@ describe('VehiclesPanel', () => {
   it('shows service staff count when vehicles with serviceStaff > 0 are present', () => {
     // Air/Raft Truck has serviceStaff: 1, available at TL C
     const vehicles: Vehicle[] = [{ vehicle_type: 'air_raft_truck', quantity: 1, mass: 5, cost: 0.55 }];
-    const { container } = render(<VehiclesPanel vehicles={vehicles} shipTechLevel="C" onUpdate={noOp} />);
+    const { container } = render(<VehiclesPanel vehicles={vehicles} shipTechLevel="C" modularCutterModules={[]} onUpdate={noOp} onModulesUpdate={noOp} />);
     // <p><strong>Total Service Staff Required:</strong> 1</p>
     expect(container.textContent).toMatch(/Total Service Staff Required:.*1/);
   });

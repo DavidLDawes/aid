@@ -53,6 +53,7 @@ function createDefaultShips(): StoredShipDesign[] {
       { cargo_type: 'secure_storage_bay', tonnage: 1, cost: 0.7 }
     ],
     vehicles: [{ vehicle_type: 'air_raft_truck', quantity: 1, mass: 5, cost: 0.55 }],
+    modular_cutter_modules: [],
     drones: [],
     createdAt: new Date(),
     updatedAt: new Date()
@@ -91,6 +92,7 @@ function createDefaultShips(): StoredShipDesign[] {
       { cargo_type: 'spares', tonnage: 1, cost: 0.5 }
     ],
     vehicles: [],
+    modular_cutter_modules: [],
     drones: [],
     createdAt: new Date(),
     updatedAt: new Date()
@@ -139,6 +141,7 @@ function createDefaultShips(): StoredShipDesign[] {
       { cargo_type: 'secure_storage_bay', tonnage: 1, cost: 0.7 }
     ],
     vehicles: [{ vehicle_type: 'air_raft_truck', quantity: 1, mass: 5, cost: 0.55 }],
+    modular_cutter_modules: [],
     drones: [],
     createdAt: new Date(),
     updatedAt: new Date()

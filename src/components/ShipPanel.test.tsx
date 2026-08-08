@@ -38,6 +38,7 @@ const _createMockShipDesign = (ship: Ship): ShipDesign => ({
   facilities: [],
   cargo: [],
   vehicles: [],
+  modular_cutter_modules: [],
   drones: []
 });
 
@@ -146,6 +147,7 @@ describe('ShipPanel', () => {
       facilities: [],
       cargo: [],
       vehicles: [],
+      modular_cutter_modules: [],
       drones: []
     });
 

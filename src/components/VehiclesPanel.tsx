@@ -1,16 +1,48 @@
 import React from 'react';
-import type { Vehicle } from '../types/ship';
-import { getAvailableVehicles, calculateVehicleServiceStaff } from '../data/constants';
+import type { Vehicle, ModularCutterModule } from '../types/ship';
+import {
+  getAvailableVehicles, calculateVehicleServiceStaff,
+  MODULE_TYPES, getModularCutterCount, calculateModularCutterBayMass, calculateModularCutterModuleCost
+} from '../data/constants';
 
 interface VehiclesPanelProps {
   vehicles: Vehicle[];
   shipTechLevel: string;
+  modularCutterModules: ModularCutterModule[];
   onUpdate: (vehicles: Vehicle[]) => void;
+  onModulesUpdate: (modules: ModularCutterModule[]) => void;
 }
 
-const VehiclesPanel: React.FC<VehiclesPanelProps> = ({ vehicles, shipTechLevel, onUpdate }) => {
+const VehiclesPanel: React.FC<VehiclesPanelProps> = ({ vehicles, shipTechLevel, modularCutterModules, onUpdate, onModulesUpdate }) => {
   const availableVehicles = getAvailableVehicles(shipTechLevel);
   const totalServiceStaff = calculateVehicleServiceStaff(vehicles);
+  const modularCutterCount = getModularCutterCount(vehicles);
+  const spareModuleCount = modularCutterModules.reduce((sum, m) => sum + m.quantity, 0);
+  const moduleBayMass = calculateModularCutterBayMass(modularCutterCount, spareModuleCount);
+  const moduleCost = calculateModularCutterModuleCost(modularCutterModules);
+
+  const addModule = (moduleType: typeof MODULE_TYPES[0]) => {
+    const existingModule = modularCutterModules.find(m => m.module_type === moduleType.type);
+    if (existingModule) {
+      onModulesUpdate(modularCutterModules.map(m =>
+        m.module_type === moduleType.type ? { ...m, quantity: m.quantity + 1 } : m
+      ));
+    } else {
+      onModulesUpdate([...modularCutterModules, {
+        module_type: moduleType.type as ModularCutterModule['module_type'],
+        quantity: 1
+      }]);
+    }
+  };
+
+  const removeModule = (moduleType: string) => {
+    const newModules = modularCutterModules.map(m =>
+      m.module_type === moduleType
+        ? { ...m, quantity: Math.max(0, m.quantity - 1) }
+        : m
+    ).filter(m => m.quantity > 0);
+    onModulesUpdate(newModules);
+  };
 
   const addVehicle = (vehicleType: typeof availableVehicles[0]) => {
     const existingVehicle = vehicles.find(v => v.vehicle_type === vehicleType.type);
@@ -122,10 +154,87 @@ const VehiclesPanel: React.FC<VehiclesPanelProps> = ({ vehicles, shipTechLevel, 
         )}
       </div>
 
+      {modularCutterCount > 0 && (
+        <div className="module-bay-section">
+          <h3>Modular Cutter Modules</h3>
+          <p>
+            Each Modular Cutter's 50 tons already includes one installed module at no extra cost.
+            Carrying spare modules to swap in requires a reload bay retrofit across all {modularCutterCount} cutter{modularCutterCount === 1 ? '' : 's'}:
+            the first spare costs 60 tons/cutter (bay + module), every spare after that is a flat +30 tons.
+          </p>
+          <p><strong>Spare Modules:</strong> {spareModuleCount} &nbsp; <strong>Reload Bay + Spares Mass:</strong> {moduleBayMass.toFixed(1)} tons &nbsp; <strong>Spare Modules Cost:</strong> {moduleCost.toFixed(1)} MCr</p>
+
+          <div className="vehicles-grouped-layout">
+            <div className="vehicle-group-row">
+              {MODULE_TYPES.map(moduleType => {
+                const currentModule = modularCutterModules.find(m => m.module_type === moduleType.type);
+                const quantity = currentModule?.quantity || 0;
+
+                return (
+                  <div key={moduleType.type} className="component-item">
+                    <div className="component-info">
+                      <h4>{moduleType.name}</h4>
+                      <p>{moduleType.mass} tons, {moduleType.cost} MCr</p>
+                      <p>{moduleType.description}</p>
+                    </div>
+                    <div className="quantity-control">
+                      <button
+                        onClick={() => removeModule(moduleType.type)}
+                        disabled={quantity === 0}
+                      >
+                        -
+                      </button>
+                      <span>{quantity}</span>
+                      <button
+                        onClick={() => addModule(moduleType)}
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="vehicle-summary">
+            <h3>Module Summary</h3>
+            {modularCutterModules.length === 0 ? (
+              <p>No modules configured.</p>
+            ) : (
+              <table>
+                <thead>
+                  <tr>
+                    <th>Module Type</th>
+                    <th>Quantity</th>
+                    <th>Mass (t)</th>
+                    <th>Cost (MCr)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {modularCutterModules.map(module => {
+                    const moduleType = MODULE_TYPES.find(mt => mt.type === module.module_type);
+
+                    return (
+                      <tr key={module.module_type}>
+                        <td>{moduleType?.name || module.module_type}</td>
+                        <td>{module.quantity}</td>
+                        <td>{(module.quantity * 30).toFixed(1)}</td>
+                        <td>{((moduleType?.cost ?? 0) * module.quantity).toFixed(3)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="vehicle-attribution">
         <p>
-          <a 
-            href="https://drive.google.com/drive/folders/1DKuxqeL2wTd8Hh9rsScdXkm2WdMubYps" 
+          <a
+            href="https://drive.google.com/drive/folders/1DKuxqeL2wTd8Hh9rsScdXkm2WdMubYps"
             target="_blank" 
             rel="noopener noreferrer"
           >

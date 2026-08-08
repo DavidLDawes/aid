@@ -14,6 +14,7 @@ describe('Database Flush and Auto-reload', () => {
     facilities: [],
     cargo: [],
     vehicles: [],
+    modular_cutter_modules: [],
     drones: []
   };
 

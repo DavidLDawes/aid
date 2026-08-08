@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Ship, ShipDesign, MassCalculation, CostCalculation, StaffRequirements } from './types/ship';
-import { calculateTotalFuelMass, calculateVehicleServiceStaff, calculateDroneServiceStaff, calculateMedicalStaff, convertTechLevelToNumber, getBridgeMassAndCost, getHullCost, getMaxJumpByTechLevel, VEHICLE_TYPES, WEAPON_TYPES } from './data/constants';
+import { calculateTotalFuelMass, calculateVehicleServiceStaff, calculateDroneServiceStaff, calculateMedicalStaff, convertTechLevelToNumber, getBridgeMassAndCost, getHullCost, getMaxJumpByTechLevel, VEHICLE_TYPES, WEAPON_TYPES, getModularCutterCount, calculateModularCutterBayMass, calculateModularCutterModuleCost } from './data/constants';
 import { databaseService } from './services/database';
 import { generateShipPrintContent } from './utils/printContent';
 import { logger } from './utils/logger';
@@ -40,6 +40,7 @@ const EMPTY_SHIP_DESIGN: ShipDesign = {
   facilities: [],
   cargo: [],
   vehicles: [],
+  modular_cutter_modules: [],
   drones: []
 };
 
@@ -113,6 +114,10 @@ function App() {
     used += shipDesign.facilities.reduce((sum, facility) => sum + (facility.mass * facility.quantity), 0);
     used += shipDesign.cargo.reduce((sum, cargo) => sum + cargo.tonnage, 0);
     used += shipDesign.vehicles.reduce((sum, vehicle) => sum + (vehicle.mass * vehicle.quantity), 0);
+    // Modular Cutter spare-module reload bays (see calculateModularCutterBayMass)
+    const modularCutterCount = getModularCutterCount(shipDesign.vehicles);
+    const spareModuleCount = (shipDesign.modular_cutter_modules || []).reduce((sum, m) => sum + m.quantity, 0);
+    used += calculateModularCutterBayMass(modularCutterCount, spareModuleCount);
     used += shipDesign.drones.reduce((sum, drone) => sum + (drone.mass * drone.quantity), 0);
     const jumpDrive = shipDesign.engines.find(e => e.engine_type === 'jump_drive');
     const maneuverDrive = shipDesign.engines.find(e => e.engine_type === 'maneuver_drive');
@@ -138,6 +143,8 @@ function App() {
     total += shipDesign.facilities.reduce((sum, facility) => sum + (facility.cost * facility.quantity), 0);
     total += shipDesign.cargo.reduce((sum, cargo) => sum + cargo.cost, 0);
     total += shipDesign.vehicles.reduce((sum, vehicle) => sum + (vehicle.cost * vehicle.quantity), 0);
+    // Modular Cutter spare modules (the reload bay itself is structural, no MCr cost)
+    total += calculateModularCutterModuleCost(shipDesign.modular_cutter_modules || []);
     total += shipDesign.drones.reduce((sum, drone) => sum + (drone.cost * drone.quantity), 0);
     total += shipDesign.ship.missile_reloads;
     total += shipDesign.ship.sand_reloads * 0.1;
@@ -467,7 +474,13 @@ function App() {
       case 6:
         return <CargoPanel cargo={shipDesign.cargo} remainingMass={mass.remaining} shipTonnage={shipDesign.ship.tonnage} onUpdate={(cargo) => updateShipDesign({ cargo })} />;
       case 7:
-        return <VehiclesPanel vehicles={shipDesign.vehicles} shipTechLevel={shipDesign.ship.tech_level} onUpdate={(vehicles) => updateShipDesign({ vehicles })} />;
+        return <VehiclesPanel
+          vehicles={shipDesign.vehicles}
+          shipTechLevel={shipDesign.ship.tech_level}
+          modularCutterModules={shipDesign.modular_cutter_modules || []}
+          onUpdate={(vehicles) => updateShipDesign({ vehicles })}
+          onModulesUpdate={(modular_cutter_modules) => updateShipDesign({ modular_cutter_modules })}
+        />;
       case 8:
         return <DronesPanel drones={shipDesign.drones} onUpdate={(drones) => updateShipDesign({ drones })} />;
       case 9:

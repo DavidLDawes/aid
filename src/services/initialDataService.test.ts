@@ -36,6 +36,7 @@ describe('Initial Data Service', () => {
     facilities: [],
     cargo: [],
     vehicles: [],
+    modular_cutter_modules: [],
     drones: []
   };
 

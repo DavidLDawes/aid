@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { MassCalculation, CostCalculation, ShipDesign } from '../types/ship';
-import { calculateTotalFuelMass } from '../data/constants';
+import { calculateTotalFuelMass, getModularCutterCount, calculateModularCutterBayMass } from '../data/constants';
 
 interface MassSidebarProps {
   mass: MassCalculation;
@@ -29,7 +29,10 @@ const MassSidebar: React.FC<MassSidebarProps> = ({ mass, cost, shipDesign, activ
   const defensesMass = shipDesign.defenses.reduce((sum, defense) => sum + (defense.mass * defense.quantity), 0);
   const facilitiesMass = shipDesign.facilities.reduce((sum, facility) => sum + (facility.mass * facility.quantity), 0);
   const cargoMass = shipDesign.cargo.reduce((sum, cargo) => sum + cargo.tonnage, 0);
-  const vehiclesMass = shipDesign.vehicles.reduce((sum, vehicle) => sum + (vehicle.mass * vehicle.quantity), 0);
+  const modularCutterCount = getModularCutterCount(shipDesign.vehicles);
+  const spareModuleCount = (shipDesign.modular_cutter_modules || []).reduce((sum, m) => sum + m.quantity, 0);
+  const moduleBayMass = calculateModularCutterBayMass(modularCutterCount, spareModuleCount);
+  const vehiclesMass = shipDesign.vehicles.reduce((sum, vehicle) => sum + (vehicle.mass * vehicle.quantity), 0) + moduleBayMass;
   const dronesMass = shipDesign.drones.reduce((sum, drone) => sum + (drone.mass * drone.quantity), 0);
   const berthsMass = shipDesign.berths.reduce((sum, berth) => sum + (berth.mass * berth.quantity), 0);
 
@@ -105,10 +108,13 @@ const MassSidebar: React.FC<MassSidebarProps> = ({ mass, cost, shipDesign, activ
       name: 'Vehicles',
       mass: vehiclesMass,
       alwaysVisible: false,
-      items: shipDesign.vehicles.filter(v => v.quantity > 0).map(vehicle => ({
-        name: `${vehicle.vehicle_type.replace('_', ' ')} (${vehicle.quantity})`,
-        mass: vehicle.mass * vehicle.quantity
-      }))
+      items: [
+        ...shipDesign.vehicles.filter(v => v.quantity > 0).map(vehicle => ({
+          name: `${vehicle.vehicle_type.replace('_', ' ')} (${vehicle.quantity})`,
+          mass: vehicle.mass * vehicle.quantity
+        })),
+        ...(moduleBayMass > 0 ? [{ name: `Module reload bay + spares (${spareModuleCount})`, mass: moduleBayMass }] : [])
+      ]
     },
     {
       name: 'Drones',
