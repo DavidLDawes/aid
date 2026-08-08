@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import type { MassCalculation, CostCalculation, ShipDesign } from '../types/ship';
 import {
   calculateControlCenterMass, calculateArmorMass, PLANT_PER_SCOOP,
-  hasAntimatterPlant, calculateAntimatterAdjustedManeuverFuel
+  hasAntimatterPlant, calculateAntimatterAdjustedManeuverFuel,
+  getModularCutterCount, calculateModularCutterBayMass
 } from '../data/constants';
 import { sumMass, sumMassWithQuantity, sumCargoTonnage } from '../utils/calculations';
 
@@ -32,7 +33,10 @@ const MassSidebar: React.FC<MassSidebarProps> = ({ mass, cost, shipDesign }) => 
   const defensesMass = sumMassWithQuantity(shipDesign.defenses);
   const facilitiesMass = sumMassWithQuantity(shipDesign.facilities);
   const cargoMass = sumCargoTonnage(shipDesign.cargo);
-  const vehiclesMass = sumMassWithQuantity(shipDesign.vehicles);
+  const modularCutterCount = getModularCutterCount(shipDesign.vehicles);
+  const spareModuleCount = (shipDesign.modular_cutter_modules || []).reduce((sum, m) => sum + m.quantity, 0);
+  const moduleBayMass = calculateModularCutterBayMass(modularCutterCount, spareModuleCount);
+  const vehiclesMass = sumMassWithQuantity(shipDesign.vehicles) + moduleBayMass;
   const dronesMass = sumMassWithQuantity(shipDesign.drones);
   const customItemsMass = sumMass(shipDesign.custom_items);
   const berthsMass = sumMassWithQuantity(shipDesign.berths);
@@ -139,10 +143,13 @@ const MassSidebar: React.FC<MassSidebarProps> = ({ mass, cost, shipDesign }) => 
       name: 'Vehicles',
       mass: vehiclesMass,
       alwaysVisible: false,
-      items: shipDesign.vehicles.filter(v => v.quantity > 0).map(vehicle => ({
-        name: `${vehicle.vehicle_type.replace(/_/g, ' ')} (${vehicle.quantity})`,
-        mass: vehicle.mass * vehicle.quantity
-      }))
+      items: [
+        ...shipDesign.vehicles.filter(v => v.quantity > 0).map(vehicle => ({
+          name: `${vehicle.vehicle_type.replace(/_/g, ' ')} (${vehicle.quantity})`,
+          mass: vehicle.mass * vehicle.quantity
+        })),
+        ...(moduleBayMass > 0 ? [{ name: `Module reload bay + spares (${spareModuleCount})`, mass: moduleBayMass }] : [])
+      ]
     },
     {
       name: 'Drones',

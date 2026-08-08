@@ -2,11 +2,12 @@ import { useState } from 'react';
 import type { ShipDesign, MassCalculation, CostCalculation, StaffRequirements } from '../types/ship';
 import {
   COMMS_SENSORS_TYPES, DEFENSE_TYPES, FACILITY_TYPES, CARGO_TYPES,
-  VEHICLE_TYPES, DRONE_TYPES, BERTH_TYPES, ZONE_SECTION_TYPES,
+  VEHICLE_TYPES, DRONE_TYPES, BERTH_TYPES, ZONE_SECTION_TYPES, MODULE_TYPES,
   calculateControlCenterMass, calculateControlCenterCost,
   calculateArmorMass, calculateArmorCost,
   getMegastructureSections, PLANT_PER_SCOOP,
-  hasAntimatterPlant, calculateAntimatterAdjustedManeuverFuel
+  hasAntimatterPlant, calculateAntimatterAdjustedManeuverFuel,
+  getModularCutterCount, calculateModularCutterBayMass
 } from '../data/constants';
 import { databaseService } from '../services/database';
 import { escapeCsvField } from '../utils/csv';
@@ -52,6 +53,14 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
   const armorCost = calculateArmorCost(armorMass);
 
   const zoneSections = shipDesign.zone_sections || [];
+
+  const modularCutterModules = shipDesign.modular_cutter_modules || [];
+  const modularCutterCount = getModularCutterCount(shipDesign.vehicles);
+  const spareModuleCount = modularCutterModules.reduce((sum, m) => sum + m.quantity, 0);
+  const moduleBayMass = calculateModularCutterBayMass(modularCutterCount, spareModuleCount);
+  // The 30 tons/module is itemized per selected module below; the remainder
+  // is the reload-bay retrofit tonnage, which has no module type of its own.
+  const moduleBayOverheadMass = moduleBayMass - spareModuleCount * 30;
 
   const handleSaveDesign = async () => {
     if (!shipDesign.ship.name.trim()) {
@@ -202,6 +211,14 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
       const display = vehicle.quantity === 1 ? name : `${name} (x${vehicle.quantity})`;
       allRows.push({ category: index === 0 ? 'Vehicles' : '', item: display, mass: vehicle.mass * vehicle.quantity, cost: vehicle.cost * vehicle.quantity });
     });
+    modularCutterModules.filter(m => m.quantity > 0).forEach(module => {
+      const moduleType = MODULE_TYPES.find(mt => mt.type === module.module_type);
+      const display = module.quantity === 1 ? (moduleType?.name ?? module.module_type) : `${moduleType?.name ?? module.module_type} (x${module.quantity})`;
+      allRows.push({ category: '', item: display, mass: module.quantity * 30, cost: (moduleType?.cost ?? 0) * module.quantity });
+    });
+    if (moduleBayOverheadMass > 0) {
+      allRows.push({ category: '', item: 'Modular Cutter Reload Bay', mass: moduleBayOverheadMass, cost: 0 });
+    }
 
     // Drones
     shipDesign.drones.filter(d => d.quantity > 0).forEach((drone, index) => {
@@ -394,6 +411,19 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
               const display = vehicle.quantity === 1 ? name : `${name} (x${vehicle.quantity})`;
               return <tr key={`vehicle_${vehicle.vehicle_type}`}><td>{index === 0 ? 'Vehicles' : ''}</td><td>{display}</td><td>{(vehicle.mass * vehicle.quantity).toFixed(1)} tons</td><td>{(vehicle.cost * vehicle.quantity).toFixed(2)} MCr</td></tr>;
             })}
+            {modularCutterModules.filter(m => m.quantity > 0).map(module => {
+              const moduleType = MODULE_TYPES.find(mt => mt.type === module.module_type);
+              const display = module.quantity === 1 ? (moduleType?.name ?? module.module_type) : `${moduleType?.name ?? module.module_type} (x${module.quantity})`;
+              return <tr key={`module_${module.module_type}`}><td></td><td>{display}</td><td>{(module.quantity * 30).toFixed(1)} tons</td><td>{((moduleType?.cost ?? 0) * module.quantity).toFixed(2)} MCr</td></tr>;
+            })}
+            {moduleBayOverheadMass > 0 && (
+              <tr key="module_bay_overhead">
+                <td></td>
+                <td>Modular Cutter Reload Bay</td>
+                <td>{moduleBayOverheadMass.toFixed(1)} tons</td>
+                <td>—</td>
+              </tr>
+            )}
 
             {/* Drones */}
             {shipDesign.drones.filter(d => d.quantity > 0).map((drone, index) => {
