@@ -76,6 +76,7 @@ function createDefaultShips() {
         { vehicle_type: 'air_raft_truck' as const, quantity: 2, mass: 5, cost: 0.55 },
         { vehicle_type: 'pug_armored_car' as const, quantity: 1, mass: 4, cost: 0.03 }
       ],
+      modular_cutter_modules: [],
       drones: [
         { drone_type: 'comms' as const, quantity: 10, mass: 0.1, cost: 0.2 },
         { drone_type: 'sensor' as const, quantity: 4, mass: 1, cost: 1 },
@@ -161,6 +162,7 @@ function createDefaultShips() {
         { vehicle_type: 'aat_infantry_support' as const, quantity: 1, mass: 22, cost: 2 },
         { vehicle_type: 'fury_helicopter_gunship' as const, quantity: 4, mass: 8, cost: 1.2 }
       ],
+      modular_cutter_modules: [],
       drones: [
         { drone_type: 'comms' as const, quantity: 80, mass: 0.1, cost: 0.2 },
         { drone_type: 'sensor' as const, quantity: 20, mass: 1, cost: 1 },

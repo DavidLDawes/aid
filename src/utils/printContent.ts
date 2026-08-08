@@ -1,8 +1,9 @@
 import type { ShipDesign, MassCalculation, CostCalculation, StaffRequirements } from '../types/ship';
 import {
   COMMS_SENSORS_TYPES, DEFENSE_TYPES, FACILITY_TYPES, CARGO_TYPES,
-  VEHICLE_TYPES, DRONE_TYPES, BERTH_TYPES,
-  getTonnageCode, getNumberOfSections, calculateTotalFuelMass, getHullCost, getAvailableSpinalWeapons
+  VEHICLE_TYPES, DRONE_TYPES, BERTH_TYPES, MODULE_TYPES,
+  getTonnageCode, getNumberOfSections, calculateTotalFuelMass, getHullCost, getAvailableSpinalWeapons,
+  getModularCutterCount, calculateModularCutterBayMass
 } from '../data/constants';
 
 function escapeHtml(str: string): string {
@@ -159,6 +160,22 @@ export function generateShipPrintContent(
     const display = vehicle.quantity === 1 ? name : `${name} (x${vehicle.quantity})`;
     addRow(index === 0 ? 'Vehicles' : '', display, vehicle.mass * vehicle.quantity, vehicle.cost * vehicle.quantity);
   });
+
+  // Modular Cutter spare modules + reload bay
+  const modularCutterModules = shipDesign.modular_cutter_modules || [];
+  const modularCutterCount = getModularCutterCount(shipDesign.vehicles);
+  const spareModuleCount = modularCutterModules.reduce((sum, m) => sum + m.quantity, 0);
+  const moduleBayMass = calculateModularCutterBayMass(modularCutterCount, spareModuleCount);
+  const moduleBayOverheadMass = moduleBayMass - spareModuleCount * 30;
+  modularCutterModules.filter(m => m.quantity > 0).forEach(module => {
+    const moduleType = MODULE_TYPES.find(mt => mt.type === module.module_type);
+    const name = moduleType?.name || module.module_type;
+    const display = module.quantity === 1 ? name : `${name} (x${module.quantity})`;
+    addRow('', display, module.quantity * 30, (moduleType?.cost ?? 0) * module.quantity);
+  });
+  if (moduleBayOverheadMass > 0) {
+    addRow('', 'Modular Cutter Reload Bay', moduleBayOverheadMass, 0);
+  }
 
   // Drones
   shipDesign.drones.filter(d => d.quantity > 0).forEach((drone, index) => {
