@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import type { Ship, ShipDesign, MassCalculation, CostCalculation, StaffRequirements } from './types/ship';
-import { calculateTotalFuelMass, calculateVehicleServiceStaff, calculateDroneServiceStaff, calculateMedicalStaff, convertTechLevelToNumber, getBridgeMassAndCost, getEffectiveMaxJump, getHullCost, getNumberOfSections, getMinimumComputer, getRoboticsCrewDivisor, getRoboticsGunnerDivisor, COMPUTER_TYPES, VEHICLE_TYPES, WEAPON_TYPES, BAY_WEAPON_TYPES, getAvailableSpinalWeapons } from './data/constants';
+import { calculateTotalFuelMass, calculateVehicleServiceStaff, calculateDroneServiceStaff, calculateMedicalStaff, convertTechLevelToNumber, getBridgeMassAndCost, getEffectiveMaxJump, getHullCost, getNumberOfSections, getMinimumComputer, getRoboticsCrewDivisor, getRoboticsGunnerDivisor, COMPUTER_TYPES, VEHICLE_TYPES, WEAPON_TYPES, BAY_WEAPON_TYPES, getAvailableSpinalWeapons, getModularCutterCount, calculateModularCutterBayMass, calculateModularCutterModuleCost } from './data/constants';
 import { databaseService } from './services/database';
 import { logger } from './utils/logger';
 import { createEmptyShipDesign, createDefaultShip } from './utils/shipDefaults';
@@ -64,6 +64,11 @@ function App() {
     used += sumMassWithQuantity(shipDesign.drones);
     used += sumMass(shipDesign.custom_items);
 
+    // Modular Cutter spare-module reload bays (see calculateModularCutterBayMass)
+    const modularCutterCount = getModularCutterCount(shipDesign.vehicles);
+    const spareModuleCount = (shipDesign.modular_cutter_modules || []).reduce((sum, m) => sum + m.quantity, 0);
+    used += calculateModularCutterBayMass(modularCutterCount, spareModuleCount);
+
     const jumpDrive = shipDesign.engines.find(e => e.engine_type === 'jump_drive');
     const maneuverDrive = shipDesign.engines.find(e => e.engine_type === 'maneuver_drive');
     const jumpPerformance = jumpDrive?.performance || 0;
@@ -105,6 +110,9 @@ function App() {
     total += sumCostWithQuantity(shipDesign.vehicles);
     total += sumCostWithQuantity(shipDesign.drones);
     total += sumCost(shipDesign.custom_items);
+
+    // Modular Cutter spare modules (the reload bay itself is structural, no MCr cost)
+    total += calculateModularCutterModuleCost(shipDesign.modular_cutter_modules || []);
 
     total += shipDesign.ship.missile_reloads;
     total += shipDesign.ship.sand_reloads * 0.1;
@@ -489,11 +497,14 @@ function App() {
       !knownWeaponNames.has(weapon.weapon_name)
     );
 
-    let cleanedShipDesign = loadedShipDesign;
+    let cleanedShipDesign: ShipDesign = {
+      ...loadedShipDesign,
+      modular_cutter_modules: loadedShipDesign.modular_cutter_modules || []
+    };
 
     if (removedWeapons.length > 0) {
       logger.info(`Cleaned ${removedWeapons.length} non-standard weapons from "${loadedShipDesign.ship.name}"`);
-      cleanedShipDesign = { ...loadedShipDesign, weapons: standardWeapons };
+      cleanedShipDesign = { ...cleanedShipDesign, weapons: standardWeapons };
 
       try {
         await databaseService.saveOrUpdateShipByName(cleanedShipDesign);
@@ -577,7 +588,13 @@ function App() {
       case 6:
         return <CargoPanel cargo={shipDesign.cargo} remainingMass={mass.remaining} shipTonnage={shipDesign.ship.tonnage} onUpdate={(cargo) => updateShipDesign({ cargo })} />;
       case 7:
-        return <VehiclesPanel vehicles={shipDesign.vehicles} shipTechLevel={shipDesign.ship.tech_level} onUpdate={(vehicles) => updateShipDesign({ vehicles })} />;
+        return <VehiclesPanel
+          vehicles={shipDesign.vehicles}
+          shipTechLevel={shipDesign.ship.tech_level}
+          modularCutterModules={shipDesign.modular_cutter_modules || []}
+          onUpdate={(vehicles) => updateShipDesign({ vehicles })}
+          onModulesUpdate={(modular_cutter_modules) => updateShipDesign({ modular_cutter_modules })}
+        />;
       case 8:
         return <DronesPanel drones={shipDesign.drones} onUpdate={(drones) => updateShipDesign({ drones })} />;
       case 9:
