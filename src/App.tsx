@@ -154,7 +154,7 @@ function App() {
   const calculateStaffRequirements = useCallback((): StaffRequirements => {
     const pilot = 1;
     const navigator = 1;
-    let engineers = 0;
+    let engineers: number;
     const shipTonnage = shipDesign.ship.tonnage;
     if (shipTonnage === 100) {
       engineers = 1;
