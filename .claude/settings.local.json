@@ -40,7 +40,16 @@
       "Bash(node_modules\\\\.bin\\\\jest.cmd --no-coverage --testPathPattern=\"WeaponsPanel|FittingsPanel|FacilitiesPanel|DefensesPanel|StaffPanel|CargoPanel|VehiclesPanel|DronesPanel\")",
       "PowerShell(& \"node_modules\\\\.bin\\\\jest.cmd\" --no-coverage --silent 2>&1 | Select-Object -Last 25)",
       "Bash(python -m json.tool --indent 1)",
-      "Bash(python -c ' *)"
+      "Bash(python -c ' *)",
+      "Bash(node_modules/.bin/jest.cmd --no-coverage src/utils/printContent.test.ts src/services/serviceStaff.test.ts src/services/crewAdjustments.test.ts src/components/StaffPanel.test.tsx src/components/BerthsPanel.test.tsx)",
+      "PowerShell(node_modules\\\\.bin\\\\jest.cmd --no-coverage src/utils/printContent.test.ts src/services/serviceStaff.test.ts src/services/crewAdjustments.test.ts src/components/StaffPanel.test.tsx src/components/BerthsPanel.test.tsx 2>&1 | Select-Object -Last 150)",
+      "PowerShell(& .\\\\node_modules\\\\.bin\\\\jest.cmd --no-coverage src/utils/printContent.test.ts src/services/serviceStaff.test.ts src/services/crewAdjustments.test.ts src/components/StaffPanel.test.tsx src/components/BerthsPanel.test.tsx 2>&1 | Select-Object -Last 150)",
+      "PowerShell(& \"node_modules\\\\.bin\\\\jest.cmd\" --no-coverage src/utils/printContent.test.ts src/services/serviceStaff.test.ts src/services/crewAdjustments.test.ts src/components/StaffPanel.test.tsx src/components/BerthsPanel.test.tsx 2>&1 | Select-Object -Last 200)",
+      "PowerShell(& \"node_modules\\\\.bin\\\\jest.cmd\" --no-coverage 2>&1 | Select-Object -Last 80)",
+      "PowerShell(& \"node_modules\\\\.bin\\\\tsc.cmd\" -b 2>&1 | Select-Object -Last 150)",
+      "PowerShell(& \"node_modules\\\\.bin\\\\tsc.cmd\" -b; Write-Output \"EXIT:$LASTEXITCODE\")",
+      "PowerShell(& \"node_modules\\\\.bin\\\\tsc.cmd\" -b --force; Write-Output \"EXIT:$LASTEXITCODE\")",
+      "PowerShell(& \"node_modules\\\\.bin\\\\jest.cmd\" --no-coverage 2>&1 | Select-Object -Last 100)"
     ],
     "deny": []
   }

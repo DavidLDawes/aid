@@ -708,13 +708,22 @@ export function getAvailableVehicles(shipTechLevel: string): typeof VEHICLE_TYPE
   return VEHICLE_TYPES.filter(vehicle => vehicle.techLevel <= shipTL);
 }
 
-export function calculateVehicleServiceStaff(vehicles: { vehicle_type: string; quantity: number }[]): number {
+export function calculateVehicleServiceStaff(vehicles: { vehicle_type: string; quantity: number }[], shipTonnage?: number): number {
   let totalServiceStaff = 0;
+  // On a 100 ton ship, a single vehicle (the first unit encountered) needs no
+  // service crew; the second and later vehicles still require one.
+  let freeUnitsRemaining = shipTonnage === 100 ? 1 : 0;
 
   for (const vehicle of vehicles) {
     const vehicleType = VEHICLE_TYPES.find(vt => vt.type === vehicle.vehicle_type);
     if (vehicleType) {
-      totalServiceStaff += vehicle.quantity * vehicleType.serviceStaff;
+      let billableQuantity = vehicle.quantity;
+      if (freeUnitsRemaining > 0) {
+        const exempt = Math.min(freeUnitsRemaining, billableQuantity);
+        billableQuantity -= exempt;
+        freeUnitsRemaining -= exempt;
+      }
+      totalServiceStaff += billableQuantity * vehicleType.serviceStaff;
     }
   }
 

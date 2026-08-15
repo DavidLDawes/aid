@@ -15,10 +15,11 @@ interface SummaryPanelProps {
   staff: StaffRequirements;
   combinePilotNavigator: boolean;
   noStewards: boolean;
+  noEngineer: boolean;
   onBackToShipSelect?: () => void;
 }
 
-const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, staff, combinePilotNavigator, noStewards, onBackToShipSelect }) => {
+const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, staff, combinePilotNavigator, noStewards, noEngineer, onBackToShipSelect }) => {
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [showCsvModal, setShowCsvModal] = useState(false);
@@ -27,6 +28,7 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
   const isSmallShip = shipDesign.ship.tonnage >= 100 && shipDesign.ship.tonnage <= 200;
   const applyCombine = combinePilotNavigator && isSmallShip;
   const applyNoStewards = noStewards && isSmallShip;
+  const applyNoEngineer = noEngineer && shipDesign.ship.tonnage === 100;
 
   const modularCutterModules = shipDesign.modular_cutter_modules || [];
   const modularCutterCount = getModularCutterCount(shipDesign.vehicles);
@@ -717,7 +719,7 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
             <p><strong>Navigator:</strong> {staff.navigator}</p>
           </>
         )}
-        <p><strong>Engineers:</strong> {staff.engineers}</p>
+        {!applyNoEngineer && <p><strong>Engineers:</strong> {staff.engineers}</p>}
         {staff.gunners > 0 && <p><strong>Gunners:</strong> {staff.gunners}</p>}
         {staff.service > 0 && <p><strong>Service Staff:</strong> {staff.service}</p>}
         {!applyNoStewards && <p><strong>Stewards:</strong> {staff.stewards}</p>}
@@ -725,13 +727,10 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
         {staff.surgeons > 0 && <p><strong>Surgeons:</strong> {staff.surgeons}</p>}
         {staff.techs > 0 && <p><strong>Medical Techs:</strong> {staff.techs}</p>}
         <p><strong>Total:</strong> {
-          applyCombine && applyNoStewards
-            ? staff.total - 1 - staff.stewards
-            : applyCombine
-              ? staff.total - 1
-              : applyNoStewards
-                ? staff.total - staff.stewards
-                : staff.total
+          staff.total
+            - (applyCombine ? 1 : 0)
+            - (applyNoStewards ? staff.stewards : 0)
+            - (applyNoEngineer ? staff.engineers : 0)
         }</p>
       </div>
 

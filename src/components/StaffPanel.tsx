@@ -7,38 +7,40 @@ interface StaffPanelProps {
   shipTonnage: number;
   combinePilotNavigator: boolean;
   noStewards: boolean;
+  noEngineer: boolean;
   onCombinePilotNavigatorChange: (combine: boolean) => void;
   onNoStewardsChange: (noStewards: boolean) => void;
+  onNoEngineerChange: (noEngineer: boolean) => void;
 }
 
-const StaffPanel: React.FC<StaffPanelProps> = ({ 
-  staffRequirements, 
-  berths, 
+const StaffPanel: React.FC<StaffPanelProps> = ({
+  staffRequirements,
+  berths,
   shipTonnage,
   combinePilotNavigator,
   noStewards,
+  noEngineer,
   onCombinePilotNavigatorChange,
-  onNoStewardsChange 
+  onNoStewardsChange,
+  onNoEngineerChange
 }) => {
   const isSmallShip = shipTonnage === 100 || shipTonnage === 200;
-  
+  const canSkipEngineer = shipTonnage === 100;
+
   // Calculate if ship has passengers (more staterooms than crew)
   const totalStaterooms = berths
     .filter(berth => berth.berth_type === 'staterooms' || berth.berth_type === 'luxury_staterooms')
     .reduce((sum, berth) => sum + berth.quantity, 0);
-  
+
   // Calculate if ship has passengers based on ORIGINAL crew count (not adjusted)
   // This ensures checkboxes don't disappear when selected
   const hasPassengers = totalStaterooms > staffRequirements.total;
-  
+
   // Calculate actual crew count with adjustments
-  const actualCrewCount = combinePilotNavigator && noStewards
-    ? staffRequirements.total - 1 - staffRequirements.stewards
-    : combinePilotNavigator 
-      ? staffRequirements.total - 1 
-      : noStewards 
-        ? staffRequirements.total - staffRequirements.stewards
-        : staffRequirements.total;
+  let actualCrewCount = staffRequirements.total;
+  if (combinePilotNavigator) actualCrewCount -= 1;
+  if (noStewards) actualCrewCount -= staffRequirements.stewards;
+  if (canSkipEngineer && noEngineer) actualCrewCount -= staffRequirements.engineers;
 
   return (
     <div className="panel-content">
@@ -70,9 +72,22 @@ const StaffPanel: React.FC<StaffPanelProps> = ({
               </label>
             </div>
           )}
+
+          {canSkipEngineer && (
+            <div className="crew-option">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={noEngineer}
+                  onChange={(e) => onNoEngineerChange(e.target.checked)}
+                />
+                No Engineer (pilot handles engineering)
+              </label>
+            </div>
+          )}
         </div>
       )}
-      
+
       <div className="staff-breakdown">
         {combinePilotNavigator ? (
           <p>Pilot/Navigator: 1</p>
@@ -82,7 +97,7 @@ const StaffPanel: React.FC<StaffPanelProps> = ({
             <p>Navigator: {staffRequirements.navigator}</p>
           </>
         )}
-        <p>Engineers: {staffRequirements.engineers}</p>
+        <p>Engineers: {canSkipEngineer && noEngineer ? 0 : staffRequirements.engineers}</p>
         <p>Gunners: {staffRequirements.gunners}</p>
         <p>Service (Vehicle & Drone Maintenance): {staffRequirements.service}</p>
         <p>Stewards: {noStewards ? 0 : staffRequirements.stewards}</p>

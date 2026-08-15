@@ -15,7 +15,8 @@ const renderPanel = (
   berths: Berth[] = [],
   shipTonnage = 400,
   combinePilotNavigator = false,
-  noStewards = false
+  noStewards = false,
+  noEngineer = false
 ) =>
   render(
     <StaffPanel
@@ -24,8 +25,10 @@ const renderPanel = (
       shipTonnage={shipTonnage}
       combinePilotNavigator={combinePilotNavigator}
       noStewards={noStewards}
+      noEngineer={noEngineer}
       onCombinePilotNavigatorChange={jest.fn()}
       onNoStewardsChange={jest.fn()}
+      onNoEngineerChange={jest.fn()}
     />
   );
 
@@ -103,8 +106,10 @@ describe('StaffPanel', () => {
         shipTonnage={100}
         combinePilotNavigator={false}
         noStewards={false}
+        noEngineer={false}
         onCombinePilotNavigatorChange={onCombinePilotNavigatorChange}
         onNoStewardsChange={jest.fn()}
+        onNoEngineerChange={jest.fn()}
       />
     );
     fireEvent.click(screen.getByLabelText(/Combine Pilot and Navigator/));
@@ -120,12 +125,71 @@ describe('StaffPanel', () => {
         shipTonnage={100}
         combinePilotNavigator={false}
         noStewards={false}
+        noEngineer={false}
         onCombinePilotNavigatorChange={jest.fn()}
         onNoStewardsChange={onNoStewardsChange}
+        onNoEngineerChange={jest.fn()}
       />
     );
     fireEvent.click(screen.getByLabelText(/No Stewards/));
     expect(onNoStewardsChange).toHaveBeenCalledWith(true);
+  });
+
+  it('shows No Engineer checkbox for 100-ton ships', () => {
+    renderPanel(makeStaff({ engineers: 1, total: 3 }), [], 100);
+    expect(screen.getByLabelText(/No Engineer/)).toBeInTheDocument();
+  });
+
+  it('hides No Engineer checkbox for 200-ton ships', () => {
+    renderPanel(makeStaff({ engineers: 2, total: 4 }), [], 200);
+    expect(screen.queryByLabelText(/No Engineer/)).not.toBeInTheDocument();
+  });
+
+  it('hides No Engineer checkbox for ships larger than 200 tons', () => {
+    renderPanel(makeStaff(), [], 400);
+    expect(screen.queryByLabelText(/No Engineer/)).not.toBeInTheDocument();
+  });
+
+  it('calls onNoEngineerChange when No Engineer checkbox clicked', () => {
+    const onNoEngineerChange = jest.fn();
+    render(
+      <StaffPanel
+        staffRequirements={makeStaff({ engineers: 1, total: 3 })}
+        berths={[]}
+        shipTonnage={100}
+        combinePilotNavigator={false}
+        noStewards={false}
+        noEngineer={false}
+        onCombinePilotNavigatorChange={jest.fn()}
+        onNoStewardsChange={jest.fn()}
+        onNoEngineerChange={onNoEngineerChange}
+      />
+    );
+    fireEvent.click(screen.getByLabelText(/No Engineer/));
+    expect(onNoEngineerChange).toHaveBeenCalledWith(true);
+  });
+
+  it('shows engineers as 0 when noEngineer is true on a 100-ton ship', () => {
+    renderPanel(makeStaff({ engineers: 1, total: 3 }), [], 100, false, false, true);
+    expect(screen.getByText(/Engineers: 0/)).toBeInTheDocument();
+  });
+
+  it('adjusts total when noEngineer is true on a 100-ton ship', () => {
+    renderPanel(makeStaff({ engineers: 1, total: 3 }), [], 100, false, false, true);
+    // total - engineers = 2
+    expect(screen.getByText(/Total Staff: 2/)).toBeInTheDocument();
+  });
+
+  it('ignores noEngineer on a 200-ton ship (engineers cannot be skipped)', () => {
+    renderPanel(makeStaff({ engineers: 2, total: 4 }), [], 200, false, false, true);
+    expect(screen.getByText(/Engineers: 2/)).toBeInTheDocument();
+    expect(screen.getByText(/Total Staff: 4/)).toBeInTheDocument();
+  });
+
+  it('allows all three small-ship adjustments to combine for a single-operator 100-ton scout', () => {
+    // pilot+navigator combined (-1), no stewards (-1), no engineer (-1) => total 1
+    renderPanel(makeStaff({ pilot: 1, navigator: 1, engineers: 1, stewards: 1, total: 4 }), [], 100, true, true, true);
+    expect(screen.getByText(/Total Staff: 1/)).toBeInTheDocument();
   });
 
   it('shows stewards as 0 when noStewards is true', () => {

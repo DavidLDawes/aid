@@ -49,6 +49,7 @@ function App() {
   const [currentPanel, setCurrentPanel] = useState(0);
   const [combinePilotNavigator, setCombinePilotNavigator] = useState(false);
   const [noStewards, setNoStewards] = useState(false);
+  const [noEngineer, setNoEngineer] = useState(false);
   const [activeRules, setActiveRules] = useState<Set<string>>(new Set(['spacecraft_design_srd']));
   const [shipDesign, setShipDesign] = useState<ShipDesign>(EMPTY_SHIP_DESIGN);
 
@@ -176,7 +177,7 @@ function App() {
       shipDesign.defenses
         .filter(defense => defense.quantity > 0)
         .reduce((sum, defense) => sum + Math.ceil(defense.quantity / 10), 0);
-    const vehicleService = calculateVehicleServiceStaff(shipDesign.vehicles);
+    const vehicleService = calculateVehicleServiceStaff(shipDesign.vehicles, shipTonnage);
     const droneService = calculateDroneServiceStaff(shipDesign.drones);
     const service = vehicleService + droneService;
     const totalStaterooms = shipDesign.berths
@@ -203,7 +204,7 @@ function App() {
     const mass = calculateMass();
     const cost = calculateCost();
     const staff = calculateStaffRequirements();
-    const html = generateShipPrintContent(shipDesign, mass, cost, staff, combinePilotNavigator, noStewards);
+    const html = generateShipPrintContent(shipDesign, mass, cost, staff, combinePilotNavigator, noStewards, noEngineer);
 
     printWindow.document.write(html);
     printWindow.document.close();
@@ -214,7 +215,7 @@ function App() {
     });
     printWindow.print();
     logger.info(`Print dialog opened for "${shipDesign.ship.name}"`);
-  }, [shipDesign, combinePilotNavigator, noStewards, calculateMass, calculateCost, calculateStaffRequirements]);
+  }, [shipDesign, combinePilotNavigator, noStewards, noEngineer, calculateMass, calculateCost, calculateStaffRequirements]);
 
   // Global keyboard shortcuts for file operations
   useEffect(() => {
@@ -315,14 +316,12 @@ function App() {
   const calculateAdjustedCrewCount = (staffRequirements: StaffRequirements): number => {
     const isSmallShip = shipDesign.ship.tonnage >= 100 && shipDesign.ship.tonnage <= 200;
     if (!isSmallShip) return staffRequirements.total;
-    
-    return combinePilotNavigator && noStewards
-      ? staffRequirements.total - 1 - staffRequirements.stewards
-      : combinePilotNavigator 
-        ? staffRequirements.total - 1 
-        : noStewards 
-          ? staffRequirements.total - staffRequirements.stewards
-          : staffRequirements.total;
+
+    let adjusted = staffRequirements.total;
+    if (combinePilotNavigator) adjusted -= 1;
+    if (noStewards) adjusted -= staffRequirements.stewards;
+    if (noEngineer && shipDesign.ship.tonnage === 100) adjusted -= staffRequirements.engineers;
+    return adjusted;
   };
 
   const isCurrentPanelValid = (): boolean => {
@@ -477,6 +476,7 @@ function App() {
         return <VehiclesPanel
           vehicles={shipDesign.vehicles}
           shipTechLevel={shipDesign.ship.tech_level}
+          shipTonnage={shipDesign.ship.tonnage}
           modularCutterModules={shipDesign.modular_cutter_modules || []}
           onUpdate={(vehicles) => updateShipDesign({ vehicles })}
           onModulesUpdate={(modular_cutter_modules) => updateShipDesign({ modular_cutter_modules })}
@@ -497,8 +497,10 @@ function App() {
           shipTonnage={shipDesign.ship.tonnage}
           combinePilotNavigator={combinePilotNavigator}
           noStewards={noStewards}
+          noEngineer={noEngineer}
           onCombinePilotNavigatorChange={setCombinePilotNavigator}
           onNoStewardsChange={setNoStewards}
+          onNoEngineerChange={setNoEngineer}
         />;
       case 11:
         return <SummaryPanel
@@ -508,6 +510,7 @@ function App() {
           staff={staff}
           combinePilotNavigator={combinePilotNavigator}
           noStewards={noStewards}
+          noEngineer={noEngineer}
           onBackToShipSelect={handleBackToShipSelect}
         />;
       default:

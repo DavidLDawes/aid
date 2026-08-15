@@ -37,6 +37,7 @@ function buildTableRows(
   staff: StaffRequirements,
   combinePilotNavigator: boolean,
   noStewards: boolean,
+  noEngineer: boolean,
 ): string {
   const rows: string[] = [];
 
@@ -174,12 +175,12 @@ function buildTableRows(
   const isSmallShip = shipDesign.ship.tonnage >= 100 && shipDesign.ship.tonnage <= 200;
   const applyCombine = combinePilotNavigator && isSmallShip;
   const applyNoStewards = noStewards && isSmallShip;
+  const applyNoEngineer = noEngineer && shipDesign.ship.tonnage === 100;
 
-  const crewTotal = applyCombine && applyNoStewards
-    ? staff.total - 1 - staff.stewards
-    : applyCombine ? staff.total - 1
-    : applyNoStewards ? staff.total - staff.stewards
-    : staff.total;
+  const crewTotal = staff.total
+    - (applyCombine ? 1 : 0)
+    - (applyNoStewards ? staff.stewards : 0)
+    - (applyNoEngineer ? staff.engineers : 0);
 
   const crewRows: string[] = [];
   if (applyCombine) {
@@ -188,7 +189,7 @@ function buildTableRows(
     crewRows.push('<tr><td><strong>Crew</strong></td><td>Pilot</td><td>1</td><td></td></tr>');
     crewRows.push('<tr><td></td><td>Navigator</td><td>1</td><td></td></tr>');
   }
-  crewRows.push(`<tr><td></td><td>Engineers</td><td>${staff.engineers}</td><td></td></tr>`);
+  if (!applyNoEngineer) crewRows.push(`<tr><td></td><td>Engineers</td><td>${staff.engineers}</td><td></td></tr>`);
   if (staff.gunners > 0) crewRows.push(`<tr><td></td><td>Gunners</td><td>${staff.gunners}</td><td></td></tr>`);
   if (staff.service > 0) crewRows.push(`<tr><td></td><td>Service Staff</td><td>${staff.service}</td><td></td></tr>`);
   if (!applyNoStewards && staff.stewards > 0) crewRows.push(`<tr><td></td><td>Stewards</td><td>${staff.stewards}</td><td></td></tr>`);
@@ -207,6 +208,7 @@ export function generateShipPrintContent(
   staff: StaffRequirements,
   combinePilotNavigator: boolean,
   noStewards: boolean,
+  noEngineer: boolean,
 ): string {
   const name = escapeHtml(shipDesign.ship.name);
   const title = `${name}, ${escapeHtml(shipDesign.ship.configuration)} configuration, ${shipDesign.ship.tonnage} tons, Tech Level ${escapeHtml(shipDesign.ship.tech_level)}`;
@@ -242,7 +244,7 @@ export function generateShipPrintContent(
         </tr>
       </thead>
       <tbody>
-        ${buildTableRows(shipDesign, mass, cost, staff, combinePilotNavigator, noStewards)}
+        ${buildTableRows(shipDesign, mass, cost, staff, combinePilotNavigator, noStewards, noEngineer)}
       </tbody>
     </table>
   </body>
