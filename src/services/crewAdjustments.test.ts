@@ -3,21 +3,20 @@ import type { StaffRequirements } from '../types/ship';
 
 // Helper function to calculate adjusted crew count (extracted from App.tsx logic)
 function calculateAdjustedCrewCount(
-  staffRequirements: StaffRequirements, 
+  staffRequirements: StaffRequirements,
   shipTonnage: number,
   combinePilotNavigator: boolean,
-  noStewards: boolean
+  noStewards: boolean,
+  noEngineer: boolean = false
 ): number {
   const isSmallShip = shipTonnage === 100 || shipTonnage === 200;
   if (!isSmallShip) return staffRequirements.total;
-  
-  return combinePilotNavigator && noStewards
-    ? staffRequirements.total - 1 - staffRequirements.stewards
-    : combinePilotNavigator 
-      ? staffRequirements.total - 1 
-      : noStewards 
-        ? staffRequirements.total - staffRequirements.stewards
-        : staffRequirements.total;
+
+  let adjusted = staffRequirements.total;
+  if (combinePilotNavigator) adjusted -= 1;
+  if (noStewards) adjusted -= staffRequirements.stewards;
+  if (noEngineer && shipTonnage === 100) adjusted -= staffRequirements.engineers;
+  return adjusted;
 }
 
 describe('Crew Adjustments for Small Ships', () => {
@@ -124,6 +123,29 @@ describe('Crew Adjustments for Small Ships', () => {
       };
       const result = calculateAdjustedCrewCount(multiStewardStaff, 100, true, true);
       expect(result).toBe(2); // Remove 1 pilot/navigator + 2 stewards
+    });
+  });
+
+  describe('no engineer adjustment (100 ton ships only)', () => {
+    it('should reduce crew by engineer count on a 100 ton ship', () => {
+      const result = calculateAdjustedCrewCount(mockStaffRequirements, 100, false, false, true);
+      expect(result).toBe(3); // Remove the 1 engineer
+    });
+
+    it('should not affect crew count on a 200 ton ship (engineers cannot be skipped)', () => {
+      const result = calculateAdjustedCrewCount(mockStaffRequirements, 200, false, false, true);
+      expect(result).toBe(4);
+    });
+
+    it('should not affect crew count on ships larger than 200 tons', () => {
+      const result = calculateAdjustedCrewCount(mockStaffRequirements, 400, false, false, true);
+      expect(result).toBe(4);
+    });
+
+    it('should combine with all other adjustments for a single-operator 100 ton scout', () => {
+      // pilot/navigator combined (-1), no stewards (-1 steward), no engineer (-1 engineer) => 4 - 1 - 1 - 1 = 1
+      const result = calculateAdjustedCrewCount(mockStaffRequirements, 100, true, true, true);
+      expect(result).toBe(1);
     });
   });
 });

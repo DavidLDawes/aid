@@ -25,6 +25,41 @@ describe('Service Staff Calculations', () => {
       const result = calculateVehicleServiceStaff(vehicles);
       expect(result).toBe(3); // 2 + 1 = 3 service staff
     });
+
+    describe('100 ton ship single-vehicle exemption', () => {
+      it('should require 0 service staff for a single vehicle on a 100 ton ship', () => {
+        const vehicles = [
+          { vehicle_type: 'honey_badger_off_roader', quantity: 1 }
+        ];
+        const result = calculateVehicleServiceStaff(vehicles, 100);
+        expect(result).toBe(0);
+      });
+
+      it('should exempt only the first vehicle when the same type has multiple units', () => {
+        const vehicles = [
+          { vehicle_type: 'honey_badger_off_roader', quantity: 2 }
+        ];
+        const result = calculateVehicleServiceStaff(vehicles, 100);
+        expect(result).toBe(1); // 2 - 1 exempt = 1 billable
+      });
+
+      it('should exempt only one unit total when multiple vehicle types are present', () => {
+        const vehicles = [
+          { vehicle_type: 'honey_badger_off_roader', quantity: 1 },
+          { vehicle_type: 'atv_tracked', quantity: 1 }
+        ];
+        const result = calculateVehicleServiceStaff(vehicles, 100);
+        expect(result).toBe(1); // first vehicle's unit is exempt, second still billable
+      });
+
+      it('should not apply the exemption for ships other than 100 tons', () => {
+        const vehicles = [
+          { vehicle_type: 'honey_badger_off_roader', quantity: 1 }
+        ];
+        const result = calculateVehicleServiceStaff(vehicles, 200);
+        expect(result).toBe(1);
+      });
+    });
   });
 
   describe('Drone Service Staff', () => {

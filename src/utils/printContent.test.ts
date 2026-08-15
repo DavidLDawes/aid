@@ -236,4 +236,39 @@ describe('generateShipPrintContent', () => {
     expect(html).toContain('Surgeons');
     expect(html).toContain('Medical Techs');
   });
+
+  describe('noEngineer (100 ton ships only)', () => {
+    const ship100: ShipDesign = { ...baseShip, ship: { ...baseShip.ship, tonnage: 100 } };
+    const staffWithEngineer = { ...baseStaff, engineers: 1, total: 3 };
+
+    it('should hide Engineers row when noEngineer is true on a 100 ton ship', () => {
+      const html = generateShipPrintContent(ship100, baseMass, baseCost, staffWithEngineer, false, false, true);
+      expect(html).not.toContain('Engineers');
+    });
+
+    it('should show Engineers row when noEngineer is false', () => {
+      const html = generateShipPrintContent(ship100, baseMass, baseCost, staffWithEngineer, false, false, false);
+      expect(html).toContain('Engineers');
+    });
+
+    it('should reduce total crew by the engineer count on a 100 ton ship', () => {
+      const html = generateShipPrintContent(ship100, baseMass, baseCost, staffWithEngineer, false, false, true);
+      expect(html).toContain(`<strong>${staffWithEngineer.total - staffWithEngineer.engineers}</strong>`);
+    });
+
+    it('should not apply noEngineer on a 200 ton ship', () => {
+      const html = generateShipPrintContent(baseShip, baseMass, baseCost, staffWithEngineer, false, false, true);
+      expect(html).toContain('Engineers');
+      expect(html).toContain(`<strong>${staffWithEngineer.total}</strong>`);
+    });
+
+    it('should combine all three small-ship adjustments for a single-operator 100 ton scout', () => {
+      const scoutStaff = { ...baseStaff, engineers: 1, stewards: 1, total: 4 };
+      const html = generateShipPrintContent(ship100, baseMass, baseCost, scoutStaff, true, true, true);
+      // total - 1 (combine) - 1 (steward) - 1 (engineer) = 1
+      expect(html).toContain('<strong>1</strong>');
+      expect(html).not.toContain('Engineers');
+      expect(html).not.toContain('Stewards');
+    });
+  });
 });

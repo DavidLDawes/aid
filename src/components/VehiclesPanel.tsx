@@ -8,14 +8,15 @@ import {
 interface VehiclesPanelProps {
   vehicles: Vehicle[];
   shipTechLevel: string;
+  shipTonnage: number;
   modularCutterModules: ModularCutterModule[];
   onUpdate: (vehicles: Vehicle[]) => void;
   onModulesUpdate: (modules: ModularCutterModule[]) => void;
 }
 
-const VehiclesPanel: React.FC<VehiclesPanelProps> = ({ vehicles, shipTechLevel, modularCutterModules, onUpdate, onModulesUpdate }) => {
+const VehiclesPanel: React.FC<VehiclesPanelProps> = ({ vehicles, shipTechLevel, shipTonnage, modularCutterModules, onUpdate, onModulesUpdate }) => {
   const availableVehicles = getAvailableVehicles(shipTechLevel);
-  const totalServiceStaff = calculateVehicleServiceStaff(vehicles);
+  const totalServiceStaff = calculateVehicleServiceStaff(vehicles, shipTonnage);
   const modularCutterCount = getModularCutterCount(vehicles);
   const spareModuleCount = modularCutterModules.reduce((sum, m) => sum + m.quantity, 0);
   const moduleBayMass = calculateModularCutterBayMass(modularCutterCount, spareModuleCount);
@@ -135,20 +136,29 @@ const VehiclesPanel: React.FC<VehiclesPanelProps> = ({ vehicles, shipTechLevel, 
               </tr>
             </thead>
             <tbody>
-              {vehicles.map(vehicle => {
-                const vehicleType = availableVehicles.find(vt => vt.type === vehicle.vehicle_type);
-                const serviceStaff = vehicleType ? vehicle.quantity * vehicleType.serviceStaff : 0;
+              {(() => {
+                let freeUnitsRemaining = shipTonnage === 100 ? 1 : 0;
+                return vehicles.map(vehicle => {
+                  const vehicleType = availableVehicles.find(vt => vt.type === vehicle.vehicle_type);
+                  let billableQuantity = vehicle.quantity;
+                  if (freeUnitsRemaining > 0) {
+                    const exempt = Math.min(freeUnitsRemaining, billableQuantity);
+                    billableQuantity -= exempt;
+                    freeUnitsRemaining -= exempt;
+                  }
+                  const serviceStaff = vehicleType ? billableQuantity * vehicleType.serviceStaff : 0;
 
-                return (
-                  <tr key={vehicle.vehicle_type}>
-                    <td>{vehicleType?.name || vehicle.vehicle_type}</td>
-                    <td>{vehicle.quantity}</td>
-                    <td>{(vehicle.mass * vehicle.quantity).toFixed(1)}</td>
-                    <td>{(vehicle.cost * vehicle.quantity).toFixed(3)}</td>
-                    <td>{serviceStaff}</td>
-                  </tr>
-                );
-              })}
+                  return (
+                    <tr key={vehicle.vehicle_type}>
+                      <td>{vehicleType?.name || vehicle.vehicle_type}</td>
+                      <td>{vehicle.quantity}</td>
+                      <td>{(vehicle.mass * vehicle.quantity).toFixed(1)}</td>
+                      <td>{(vehicle.cost * vehicle.quantity).toFixed(3)}</td>
+                      <td>{serviceStaff}</td>
+                    </tr>
+                  );
+                });
+              })()}
             </tbody>
           </table>
         )}
