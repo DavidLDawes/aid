@@ -138,6 +138,13 @@ function App() {
     const pilot = 1;
     const navigator = 1;
 
+    // Robotics (TL-F+ Rules menu toggle): robot workers assist crew at the
+    // same rate engineers get their own reduction, applied wherever a
+    // human headcount is derived from a workload (engines, staterooms).
+    const roboticsDivisor = activeRules.has('robotics')
+      ? getRoboticsCrewDivisor(shipDesign.ship.tech_level)
+      : 1;
+
     let engineers: number;
     const shipTonnage = shipDesign.ship.tonnage;
 
@@ -148,11 +155,7 @@ function App() {
     } else if (shipDesign.engines.length === 0) {
       engineers = 1;
     } else {
-      // Robotics (TL-F+ Rules menu toggle) reduces each engine's own crew
-      // requirement, rounded up, applied per engine before summing.
-      const roboticsDivisor = activeRules.has('robotics')
-        ? getRoboticsCrewDivisor(shipDesign.ship.tech_level)
-        : 1;
+      // Applied per engine before summing.
       engineers = shipDesign.engines.reduce((sum, engine) => {
         const baseCrew = 1 + (engine.mass > 100 ? Math.ceil(engine.mass / 100) - 1 : 0);
         return sum + Math.ceil(baseCrew / roboticsDivisor);
@@ -199,12 +202,18 @@ function App() {
 
     const vehicleService = calculateVehicleServiceStaff(shipDesign.vehicles);
     const droneService = calculateDroneServiceStaff(shipDesign.drones);
-    const service = vehicleService + droneService;
+    const baseService = vehicleService + droneService;
+    // Robotic service crew handle most vehicle/drone maintenance, at the
+    // same rate as engineers above; we only track the (reduced) human count.
+    const service = Math.ceil(baseService / roboticsDivisor);
 
     const totalStaterooms = shipDesign.berths
       .filter(berth => berth.berth_type === 'staterooms' || berth.berth_type === 'luxury_staterooms')
       .reduce((sum, berth) => sum + berth.quantity, 0);
-    const stewards = Math.ceil(totalStaterooms / 8);
+    const baseStewards = Math.ceil(totalStaterooms / 8);
+    // Robotic stewards handle most of the passenger/crew load, at the same
+    // rate as engineers above; we only track the (reduced) human count.
+    const stewards = Math.ceil(baseStewards / roboticsDivisor);
 
     const medicalStaff = calculateMedicalStaff(shipDesign.facilities);
     const { nurses: baseNurses, surgeons: baseSurgeons, techs: baseTechs } = medicalStaff;
