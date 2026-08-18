@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import type { Ship, ShipDesign, MassCalculation, CostCalculation, StaffRequirements } from './types/ship';
-import { calculateTotalFuelMass, calculateVehicleServiceStaff, calculateDroneServiceStaff, calculateMedicalStaff, convertTechLevelToNumber, getBridgeMassAndCost, getEffectiveMaxJump, getHullCost, getNumberOfSections, getMinimumComputer, getRoboticsCrewDivisor, getRoboticsGunnerDivisor, COMPUTER_TYPES, VEHICLE_TYPES, WEAPON_TYPES, BAY_WEAPON_TYPES, getAvailableSpinalWeapons, getModularCutterCount, calculateModularCutterBayMass, calculateModularCutterModuleCost } from './data/constants';
+import { calculateTotalFuelMass, calculateVehicleServiceStaff, calculateVehicleCrewStaff, calculateDroneServiceStaff, calculateMedicalStaff, convertTechLevelToNumber, getBridgeMassAndCost, getEffectiveMaxJump, getHullCost, getNumberOfSections, getMinimumComputer, getRoboticsCrewDivisor, getRoboticsGunnerDivisor, COMPUTER_TYPES, VEHICLE_TYPES, WEAPON_TYPES, BAY_WEAPON_TYPES, getAvailableSpinalWeapons, getModularCutterCount, calculateModularCutterBayMass, calculateModularCutterModuleCost } from './data/constants';
 import { databaseService } from './services/database';
 import { logger } from './utils/logger';
 import { createEmptyShipDesign, createDefaultShip } from './utils/shipDefaults';
@@ -207,6 +207,11 @@ function App() {
     // same rate as engineers above; we only track the (reduced) human count.
     const service = Math.ceil(baseService / roboticsDivisor);
 
+    // Crew that rides along with fighters/shuttles/military vehicles
+    // (pilots, gunners, engineers) — separate from the maintenance-focused
+    // vehicleService above, and not reduced by Robotics.
+    const vehicleCrew = calculateVehicleCrewStaff(shipDesign.vehicles);
+
     const totalStaterooms = shipDesign.berths
       .filter(berth => berth.berth_type === 'staterooms' || berth.berth_type === 'luxury_staterooms')
       .reduce((sum, berth) => sum + berth.quantity, 0);
@@ -222,10 +227,10 @@ function App() {
     // the corresponding position; infantry/armor/mp/security have no
     // baseline formula elsewhere, so they're purely custom-crew-driven.
     const customCrew = shipDesign.custom_crew;
-    const pilotTotal = pilot + customCrew.pilot;
+    const pilotTotal = pilot + vehicleCrew.pilot + customCrew.pilot;
     const navigatorTotal = navigator + customCrew.navigator;
-    const engineersTotal = engineers + customCrew.engineers;
-    const gunnersTotal = gunners + customCrew.gunners;
+    const engineersTotal = engineers + vehicleCrew.engineer + customCrew.engineers;
+    const gunnersTotal = gunners + vehicleCrew.gunner + customCrew.gunners;
     const serviceTotal = service + customCrew.service;
     const stewardsTotal = stewards + customCrew.stewards;
     const nurses = baseNurses + customCrew.nurses;
