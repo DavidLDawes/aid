@@ -26,3 +26,17 @@ export const sumCost = <T extends { cost: number }>(items: T[]): number => {
 export const sumCargoTonnage = <T extends { tonnage: number }>(cargo: T[]): number => {
   return cargo.reduce((sum, item) => sum + item.tonnage, 0);
 };
+
+// Redundant engines of the same type (e.g. two Power Plants) may be
+// installed for reliability. The highest-performing one of a given type is
+// what the structure actually runs on — backups sit idle in reserve — so
+// gating checks, fuel consumption, and crew sizing all key off this max
+// rather than an arbitrary single entry.
+export const getMaxEnginePerformance = <T extends { engine_type: string; performance: number }>(
+  engines: T[],
+  type: T['engine_type']
+): number => {
+  return engines
+    .filter(e => e.engine_type === type)
+    .reduce((max, e) => Math.max(max, e.performance), 0);
+};

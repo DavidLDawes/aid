@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import type { ShipDesign, MassCalculation, CostCalculation, StaffRequirements } from './types/ship';
 import {
-  calculateVehicleServiceStaff, calculateDroneServiceStaff,
+  calculateVehicleServiceStaff, calculateDroneServiceStaff, calculateVehicleCrewStaff,
   calculateMedicalStaff, WEAPON_TYPES, BAY_WEAPON_TYPES,
   calculateControlCenterMass, calculateControlCenterCost,
   calculateArmorMass, calculateArmorCost,
@@ -13,7 +13,7 @@ import {
 import { databaseService } from './services/database';
 import { logger } from './utils/logger';
 import { createEmptyShipDesign, createDefaultShip } from './utils/shipDefaults';
-import { sumMass, sumMassWithQuantity, sumCost, sumCostWithQuantity, sumCargoTonnage } from './utils/calculations';
+import { sumMass, sumMassWithQuantity, sumCost, sumCostWithQuantity, sumCargoTonnage, getMaxEnginePerformance } from './utils/calculations';
 import { rescaleEnginesForTonnage, rescaleFittingsForTonnage } from './utils/tonnageRescale';
 import { cleanupVehiclesForTechLevel, cleanupBayWeaponsForTechLevel, cleanupScreensForTechLevel } from './utils/techLevelCleanup';
 import { calculatePilotCount, calculateNavigatorCount, calculateEngineerCount } from './utils/crewCalculations';
@@ -121,8 +121,9 @@ function App() {
 
     // Maneuver fuel only — no jump drives on megastructures. An installed
     // Antimatter Plant reduces this to 1/10th (see hasAntimatterPlant).
-    const maneuverDrive = shipDesign.engines.find(e => e.engine_type === 'maneuver_drive');
-    const maneuverPerformance = maneuverDrive?.performance || 0;
+    // Redundant maneuver drives are allowed; the highest-performing one is
+    // what the structure actually runs on (see getMaxEnginePerformance).
+    const maneuverPerformance = getMaxEnginePerformance(shipDesign.engines, 'maneuver_drive');
     const fuelSystems = shipDesign.fuel_systems || [];
     const hasAmPlant = hasAntimatterPlant(fuelSystems);
     if (maneuverPerformance > 0) {
@@ -199,7 +200,7 @@ function App() {
     // crew. A plotted course is followed for decades, so no standing
     // navigator is needed unless this is an atmosphere-support structure
     // (a floating city) that requires active navigation.
-    const maneuverPerformance = shipDesign.engines.find(e => e.engine_type === 'maneuver_drive')?.performance || 0;
+    const maneuverPerformance = getMaxEnginePerformance(shipDesign.engines, 'maneuver_drive');
     const pilot = calculatePilotCount(maneuverPerformance);
     const navigator = calculateNavigatorCount(shipDesign.ship.atmosphere_support);
 
@@ -250,6 +251,11 @@ function App() {
     const baseService = vehicleService + droneService;
     const service = Math.ceil(baseService / roboticsSupportDivisor);
 
+    // Crew that rides along with fighters/shuttles/military vehicles
+    // (pilots, gunners, engineers) — separate from the maintenance-focused
+    // vehicleService above, and not reduced by Robotics.
+    const vehicleCrew = calculateVehicleCrewStaff(shipDesign.vehicles);
+
     const totalStaterooms = shipDesign.berths
       .filter(berth => berth.berth_type === 'staterooms' || berth.berth_type === 'luxury_staterooms')
       .reduce((sum, berth) => sum + berth.quantity, 0);
@@ -263,10 +269,10 @@ function App() {
     // the corresponding position; infantry/armor/mp/security have no
     // baseline formula elsewhere, so they're purely custom-crew-driven.
     const customCrew = shipDesign.custom_crew;
-    const pilotTotal = pilot + customCrew.pilot;
+    const pilotTotal = pilot + vehicleCrew.pilot + customCrew.pilot;
     const navigatorTotal = navigator + customCrew.navigator;
-    const engineersTotal = engineers + customCrew.engineers;
-    const gunnersTotal = gunners + customCrew.gunners;
+    const engineersTotal = engineers + vehicleCrew.engineer + customCrew.engineers;
+    const gunnersTotal = gunners + vehicleCrew.gunner + customCrew.gunners;
     const serviceTotal = service + customCrew.service;
     const stewardsTotal = stewards + customCrew.stewards;
     const nurses = baseNurses + customCrew.nurses;
@@ -407,7 +413,7 @@ function App() {
       // tonnage change, since the minimum itself is tonnage-tiered - even
       // an unchanged power plant can fall below it if the structure shrinks.
       if (updates.engines !== undefined || newTonnage !== undefined) {
-        const powerPlantPerformance = newDesign.engines.find(e => e.engine_type === 'power_plant')?.performance || 0;
+        const powerPlantPerformance = getMaxEnginePerformance(newDesign.engines, 'power_plant');
         const existingFuelSystems = newDesign.fuel_systems || [];
         const minPowerForFuel = getMinPowerPlantForFuelEquipment(newDesign.ship.tonnage);
         if (powerPlantPerformance < minPowerForFuel && hasAntimatterPlant(existingFuelSystems)) {
