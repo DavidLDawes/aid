@@ -5,7 +5,7 @@ import {
   hasAntimatterPlant, calculateAntimatterAdjustedManeuverFuel,
   getModularCutterCount, calculateModularCutterBayMass
 } from '../data/constants';
-import { sumMass, sumMassWithQuantity, sumCargoTonnage } from '../utils/calculations';
+import { sumMass, sumMassWithQuantity, sumCargoTonnage, getMaxEnginePerformance } from '../utils/calculations';
 
 interface MassSidebarProps {
   mass: MassCalculation;
@@ -55,8 +55,7 @@ const MassSidebar: React.FC<MassSidebarProps> = ({ mass, cost, shipDesign }) => 
 
   // Maneuver fuel only — no jump drives on megastructures. An installed
   // Antimatter Plant reduces this to 1/10th.
-  const maneuverDrive = shipDesign.engines.find(e => e.engine_type === 'maneuver_drive');
-  const maneuverPerformance = maneuverDrive?.performance || 0;
+  const maneuverPerformance = getMaxEnginePerformance(shipDesign.engines, 'maneuver_drive');
   const maneuverFuelMass = maneuverPerformance > 0
     ? calculateAntimatterAdjustedManeuverFuel(shipDesign.ship.tonnage, maneuverPerformance, shipDesign.ship.fuel_weeks, hasAmPlant)
     : 0;

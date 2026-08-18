@@ -8,6 +8,7 @@ import {
   hasAntimatterPlant, calculateAntimatterAdjustedManeuverFuel,
   getModularCutterCount, calculateModularCutterBayMass
 } from '../data/constants';
+import { getMaxEnginePerformance } from './calculations';
 
 function escapeHtml(str: string): string {
   return str
@@ -59,7 +60,7 @@ export function generateShipPrintContent(
   // Maneuver fuel only. An installed Antimatter Plant reduces this to 1/10th.
   const fuelSystems = shipDesign.fuel_systems || [];
   const hasAmPlant = hasAntimatterPlant(fuelSystems);
-  const manPerf = shipDesign.engines.find(e => e.engine_type === 'maneuver_drive')?.performance || 0;
+  const manPerf = getMaxEnginePerformance(shipDesign.engines, 'maneuver_drive');
   const manFuelMass = manPerf > 0
     ? calculateAntimatterAdjustedManeuverFuel(shipDesign.ship.tonnage, manPerf, shipDesign.ship.fuel_weeks, hasAmPlant)
     : 0;

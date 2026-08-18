@@ -11,6 +11,7 @@ import {
 } from '../data/constants';
 import { databaseService } from '../services/database';
 import { escapeCsvField } from '../utils/csv';
+import { getMaxEnginePerformance } from '../utils/calculations';
 
 interface SummaryPanelProps {
   shipDesign: ShipDesign;
@@ -37,8 +38,7 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
   const fuelSystems = shipDesign.fuel_systems || [];
   const hasAmPlant = hasAntimatterPlant(fuelSystems);
 
-  const maneuverDrive = shipDesign.engines.find(e => e.engine_type === 'maneuver_drive');
-  const maneuverPerf = maneuverDrive?.performance || 0;
+  const maneuverPerf = getMaxEnginePerformance(shipDesign.engines, 'maneuver_drive');
   const maneuverFuelMass = maneuverPerf > 0
     ? calculateAntimatterAdjustedManeuverFuel(shipDesign.ship.tonnage, maneuverPerf, shipDesign.ship.fuel_weeks, hasAmPlant)
     : 0;
@@ -304,7 +304,7 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
                 const name = engine.engine_type === 'power_plant' ? 'Power Plant' : 'Maneuver Drive';
                 const code = engine.engine_type === 'power_plant' ? 'P' : 'M';
                 return (
-                  <tr key={engine.engine_type}>
+                  <tr key={`${engine.engine_type}-${index}`}>
                     <td>{index === 0 ? 'Engines' : ''}</td>
                     <td>{name} {code}-{engine.performance}</td>
                     <td>{engine.mass.toFixed(1)} tons</td>

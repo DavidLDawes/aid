@@ -1,6 +1,7 @@
 import React from 'react';
 import type { FuelSystem, Engine } from '../types/ship';
 import { FUEL_SYSTEM_TYPES, PLANT_PER_SCOOP, getMegastructureSections, getMinPowerPlantForFuelEquipment, formatPowerPlantCode } from '../data/constants';
+import { getMaxEnginePerformance } from '../utils/calculations';
 
 interface FuelPanelProps {
   fuelSystems: FuelSystem[];
@@ -14,8 +15,7 @@ const FuelPanel: React.FC<FuelPanelProps> = ({ fuelSystems, engines, shipTonnage
   const maxScoopsPerSection = 1000;
   const maxScoops = maxScoopsPerSection * sections;
 
-  const powerPlant = engines.find(e => e.engine_type === 'power_plant');
-  const powerPlantPerformance = powerPlant?.performance || 0;
+  const powerPlantPerformance = getMaxEnginePerformance(engines, 'power_plant');
   const minPowerForFuel = getMinPowerPlantForFuelEquipment(shipTonnage);
   const hasSufficientPower = powerPlantPerformance >= minPowerForFuel;
 

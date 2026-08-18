@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { Engine } from '../types/ship';
 import { getAvailableEngines, getMaxPowerPlantByTechLevel, calculateAntimatterAdjustedManeuverFuel, getMinPowerPlantForFuelEquipment, formatPowerPlantCode } from '../data/constants';
+import { getMaxEnginePerformance } from '../utils/calculations';
 
 interface EnginesPanelProps {
   engines: Engine[];
@@ -17,64 +18,69 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, shipT
   const maxPowerPlant = getMaxPowerPlantByTechLevel(shipTechLevel);
   const minPowerForFuel = getMinPowerPlantForFuelEquipment(shipTonnage);
 
-  const getEngine = (type: Engine['engine_type']): Engine => {
-    const found = engines.find(e => e.engine_type === type);
-    if (found) return found;
-    return { engine_type: type, drive_code: type === 'maneuver_drive' ? 'M-0' : '', performance: 0, mass: 0, cost: 0 };
+  // Multiple engines of the same type can be installed for redundancy. The
+  // highest-performing one of each type is what the structure actually runs
+  // on for gating/fuel/crew purposes — see getMaxEnginePerformance.
+  const powerPlantPerformance = getMaxEnginePerformance(engines, 'power_plant');
+  const maneuverPerformance = getMaxEnginePerformance(engines, 'maneuver_drive');
+
+  const [selectedCode, setSelectedCode] = useState<Record<Engine['engine_type'], string>>({
+    power_plant: '',
+    maneuver_drive: '',
+  });
+
+  const addEngine = (type: Engine['engine_type']) => {
+    const code = selectedCode[type];
+    if (!code) return;
+    const availableEngines = getAvailableEngines(
+      shipTonnage,
+      type,
+      type === 'maneuver_drive' ? (powerPlantPerformance > 0 ? powerPlantPerformance : undefined) : undefined,
+      shipTechLevel
+    );
+    const picked = availableEngines.find(eng => eng.code === code);
+    if (!picked) return;
+
+    const newEngine: Engine = {
+      engine_type: type,
+      drive_code: picked.code,
+      performance: picked.performance,
+      mass: picked.mass,
+      cost: picked.cost,
+    };
+    onUpdate([...engines, newEngine]);
+    setSelectedCode(prev => ({ ...prev, [type]: '' }));
   };
 
-  const updateEngine = (type: Engine['engine_type'], updates: Partial<Engine>) => {
-    const newEngines = [...engines];
-    const existingIndex = newEngines.findIndex(e => e.engine_type === type);
-    const updatedEngine = { ...getEngine(type), ...updates, engine_type: type };
-
-    if (existingIndex >= 0) {
-      newEngines[existingIndex] = updatedEngine;
-    } else {
-      newEngines.push(updatedEngine);
-    }
-    onUpdate(newEngines);
+  const removeEngine = (index: number) => {
+    onUpdate(engines.filter((_, i) => i !== index));
   };
 
-  const renderEngineInput = (type: Engine['engine_type'], label: string) => {
-    const engine = getEngine(type);
-    const powerPlant = getEngine('power_plant');
-    const powerPlantPerformance = (powerPlant.drive_code && powerPlant.performance > 0) ? powerPlant.performance : undefined;
-    const availableEngines = getAvailableEngines(shipTonnage, type, powerPlantPerformance, shipTechLevel);
+  const renderEngineAddForm = (type: Engine['engine_type'], label: string) => {
+    const countOfType = engines.filter(e => e.engine_type === type).length;
+    const availableEngines = getAvailableEngines(
+      shipTonnage,
+      type,
+      type === 'maneuver_drive' ? (powerPlantPerformance > 0 ? powerPlantPerformance : undefined) : undefined,
+      shipTechLevel
+    );
 
     return (
       <div key={type} className="engine-group">
-        <h3>{label}</h3>
+        <h3>{label}{countOfType > 0 ? ` (${countOfType} installed)` : ''}</h3>
         <div className="form-row">
           <div className="form-group">
-            <label>Drive Selection {type === 'maneuver_drive' ? '' : '*'}</label>
+            <label>Drive Selection {type === 'power_plant' && countOfType === 0 ? '*' : ''}</label>
             <select
-              value={engine.drive_code}
-              onChange={(e) => {
-                if (e.target.value === 'M-0' && type === 'maneuver_drive') {
-                  updateEngine(type, { drive_code: 'M-0', performance: 0, mass: 0, cost: 0 });
-                } else {
-                  const selectedEngine = availableEngines.find(eng => eng.code === e.target.value);
-                  if (selectedEngine) {
-                    updateEngine(type, {
-                      drive_code: selectedEngine.code,
-                      performance: selectedEngine.performance,
-                      mass: selectedEngine.mass,
-                      cost: selectedEngine.cost
-                    });
-                  }
-                }
-              }}
+              value={selectedCode[type]}
+              onChange={(e) => setSelectedCode(prev => ({ ...prev, [type]: e.target.value }))}
             >
               <option value="">Select a drive...</option>
-              {type === 'maneuver_drive' && (
-                <option value="M-0">None (M-0 performance, 0 tons, 0 MCr)</option>
-              )}
               {availableEngines.map(eng => (
                 <option key={eng.code} value={eng.code}>{eng.label}</option>
               ))}
             </select>
-            {type === 'maneuver_drive' && powerPlantPerformance && (
+            {type === 'maneuver_drive' && powerPlantPerformance > 0 && (
               <small>Limited by Power Plant P-{powerPlantPerformance}</small>
             )}
             {type === 'power_plant' && (
@@ -82,22 +88,25 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, shipT
             )}
           </div>
         </div>
-        {engine.drive_code && (
-          <div className="engine-info">
-            <small>Performance: {engine.performance} ({engine.drive_code})</small>
-          </div>
+        <button
+          type="button"
+          onClick={() => addEngine(type)}
+          disabled={!selectedCode[type]}
+          className="add-item-btn"
+        >
+          Add {label}
+        </button>
+        {countOfType > 0 && (
+          <p><small>{countOfType > 1 ? 'Redundant engines installed — see Engine Summary below.' : 'Add another for redundancy.'}</small></p>
         )}
       </div>
     );
   };
 
-  const powerPlant = getEngine('power_plant');
-  const maneuverDrive = getEngine('maneuver_drive');
+  const powerRequirementsMet = maneuverPerformance <= powerPlantPerformance;
 
-  const powerRequirementsMet = !maneuverDrive.drive_code || maneuverDrive.performance <= powerPlant.performance;
-
-  const maneuverFuel = maneuverDrive.performance > 0
-    ? calculateAntimatterAdjustedManeuverFuel(shipTonnage, maneuverDrive.performance, fuelWeeks, hasAmPlant)
+  const maneuverFuel = maneuverPerformance > 0
+    ? calculateAntimatterAdjustedManeuverFuel(shipTonnage, maneuverPerformance, fuelWeeks, hasAmPlant)
     : 0;
 
   const totalEngineMass = engines.reduce((sum, e) => sum + e.mass, 0);
@@ -105,8 +114,8 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, shipT
   const fuelFitsInShip = maneuverFuel <= remainingMass;
 
   const fuelRateDivisor = shipTonnage * 0.01 * (hasAmPlant ? 0.1 : 1);
-  const maxPossibleWeeks = maneuverDrive.performance > 0
-    ? Math.floor(2 * remainingMass / (fuelRateDivisor * maneuverDrive.performance))
+  const maxPossibleWeeks = maneuverPerformance > 0
+    ? Math.floor(2 * remainingMass / (fuelRateDivisor * maneuverPerformance))
     : 12;
   const effectiveMaxWeeks = Math.min(12, Math.max(2, maxPossibleWeeks));
 
@@ -116,11 +125,11 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, shipT
 
   return (
     <div className="panel-content">
-      <p>Configure engines for the megastructure. Power Plant is required. Jump Drive is not available for megastructures. Maneuver Drive is optional (defaults to M-0).</p>
+      <p>Configure engines for the megastructure. Power Plant is required. Jump Drive is not available for megastructures. Maneuver Drive is optional (no entries means M-0). Multiple engines of the same type can be added for redundancy — the highest-performing one determines what the structure actually runs on.</p>
 
       <div className="engines-horizontal-layout">
-        {renderEngineInput('power_plant', 'Power Plant')}
-        {renderEngineInput('maneuver_drive', 'Maneuver Drive')}
+        {renderEngineAddForm('power_plant', 'Power Plant')}
+        {renderEngineAddForm('maneuver_drive', 'Maneuver Drive')}
       </div>
 
       <div className="fuel-section">
@@ -149,7 +158,7 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, shipT
                 <tr>
                   <td>Maneuver Fuel ({fuelWeeks} weeks):</td>
                   <td>{maneuverFuel.toFixed(1)} tons</td>
-                  <td><small>({maneuverDrive.performance > 0 ? `M-${maneuverDrive.performance}` : 'No Maneuver Drive'} × 0.01 × {shipTonnage.toLocaleString()}t × {fuelWeeks / 2}{hasAmPlant ? ' × 0.1 antimatter' : ''})</small></td>
+                  <td><small>({maneuverPerformance > 0 ? `M-${maneuverPerformance}` : 'No Maneuver Drive'} × 0.01 × {shipTonnage.toLocaleString()}t × {fuelWeeks / 2}{hasAmPlant ? ' × 0.1 antimatter' : ''})</small></td>
                 </tr>
                 <tr className="total-row">
                   <td><strong>Total Maneuver Fuel:</strong></td>
@@ -185,31 +194,38 @@ const EnginesPanel: React.FC<EnginesPanelProps> = ({ engines, shipTonnage, shipT
 
       <div className="engine-summary">
         <h3>Engine Summary:</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>Engine Type</th>
-              <th>Drive</th>
-              <th>Performance</th>
-              <th>Mass (tons)</th>
-              <th>Cost (MCr)</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(['power_plant', 'maneuver_drive'] as Engine['engine_type'][]).map(engineType => {
-              const engine = getEngine(engineType);
-              return (
-                <tr key={engineType}>
-                  <td>{engineType === 'power_plant' ? 'Power Plant' : 'Maneuver Drive'}</td>
+        {engines.length === 0 ? (
+          <p>No engines configured.</p>
+        ) : (
+          <table>
+            <thead>
+              <tr>
+                <th>Engine Type</th>
+                <th>Drive</th>
+                <th>Performance</th>
+                <th>Mass (tons)</th>
+                <th>Cost (MCr)</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {engines.map((engine, index) => (
+                <tr key={`${engine.engine_type}-${index}`}>
+                  <td>{engine.engine_type === 'power_plant' ? 'Power Plant' : 'Maneuver Drive'}</td>
                   <td>{engine.drive_code || '-'}</td>
                   <td>{engine.performance} ({engine.drive_code || '-'})</td>
                   <td>{engine.mass.toFixed(1)}</td>
                   <td>{engine.cost.toFixed(2)}</td>
+                  <td>
+                    <button type="button" onClick={() => removeEngine(index)} className="remove-btn">
+                      Remove
+                    </button>
+                  </td>
                 </tr>
-              );
-            })}
-          </tbody>
-        </table>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );
