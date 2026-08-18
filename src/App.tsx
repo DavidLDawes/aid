@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Ship, ShipDesign, MassCalculation, CostCalculation, StaffRequirements } from './types/ship';
-import { calculateTotalFuelMass, calculateVehicleServiceStaff, calculateDroneServiceStaff, calculateMedicalStaff, convertTechLevelToNumber, getBridgeMassAndCost, getHullCost, getMaxJumpByTechLevel, VEHICLE_TYPES, WEAPON_TYPES, getModularCutterCount, calculateModularCutterBayMass, calculateModularCutterModuleCost } from './data/constants';
+import { calculateTotalFuelMass, calculateVehicleServiceStaff, calculateVehicleCrewStaff, calculateDroneServiceStaff, calculateMedicalStaff, convertTechLevelToNumber, getBridgeMassAndCost, getHullCost, getMaxJumpByTechLevel, VEHICLE_TYPES, WEAPON_TYPES, getModularCutterCount, calculateModularCutterBayMass, calculateModularCutterModuleCost } from './data/constants';
 import { databaseService } from './services/database';
 import { generateShipPrintContent } from './utils/printContent';
 import { logger } from './utils/logger';
@@ -153,8 +153,6 @@ function App() {
   }, [shipDesign]);
 
   const calculateStaffRequirements = useCallback((): StaffRequirements => {
-    const pilot = 1;
-    const navigator = 1;
     let engineers: number;
     const shipTonnage = shipDesign.ship.tonnage;
     if (shipTonnage === 100) {
@@ -188,8 +186,18 @@ function App() {
     const nurses = medicalStaff.nurses;
     const surgeons = medicalStaff.surgeons;
     const techs = medicalStaff.techs;
-    const total = pilot + navigator + engineers + gunners + service + stewards + nurses + surgeons + techs;
-    return { pilot, navigator, engineers, gunners, service, stewards, nurses, surgeons, techs, total };
+
+    // Crew that rides along with fighters/shuttles/military vehicles
+    // (pilots, gunners, engineers) — separate from the maintenance-focused
+    // vehicleService above.
+    const vehicleCrew = calculateVehicleCrewStaff(shipDesign.vehicles);
+    const pilot = 1 + vehicleCrew.pilot;
+    const navigator = 1;
+    const gunnersTotal = gunners + vehicleCrew.gunner;
+    const engineersTotal = engineers + vehicleCrew.engineer;
+
+    const total = pilot + navigator + engineersTotal + gunnersTotal + service + stewards + nurses + surgeons + techs;
+    return { pilot, navigator, engineers: engineersTotal, gunners: gunnersTotal, service, stewards, nurses, surgeons, techs, total };
   }, [shipDesign]);
 
   const handleFilePrint = useCallback(() => {
