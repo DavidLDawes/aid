@@ -730,6 +730,61 @@ export function calculateVehicleServiceStaff(vehicles: { vehicle_type: string; q
   return totalServiceStaff;
 }
 
+// Names (not types) of vehicles that count as "military vehicles" for the
+// pilot/gunner crew add-on below. Matched by prefix, not exact type, so a
+// future variant sharing the same name lineage (e.g. an "Iderati Mk II")
+// picks up the same crew requirement automatically.
+const MILITARY_VEHICLE_NAME_PREFIXES = [
+  'Iderati',
+  'Armored Fighting Vehicle',
+  'Fire Scorpion',
+  'Awesome AWS-8Q',
+  'Fury Helicopter Gunship',
+  '22 ton AAT'
+];
+
+// Crew that rides along with combat/utility vehicles, on top of the
+// maintenance-focused calculateVehicleServiceStaff above:
+// - Fighters (Light/Medium/Heavy) each need a pilot; Medium and Heavy also
+//   need a gunner; Heavy additionally needs an engineer.
+// - Each Shuttle needs a pilot.
+// - Each military vehicle (matched by name prefix) needs a pilot, plus a
+//   gunner if over 5 tons, or two gunners if over 30 tons.
+export function calculateVehicleCrewStaff(
+  vehicles: { vehicle_type: string; quantity: number }[]
+): { pilot: number; gunner: number; engineer: number } {
+  let pilot = 0;
+  let gunner = 0;
+  let engineer = 0;
+
+  for (const vehicle of vehicles) {
+    const vehicleType = VEHICLE_TYPES.find(vt => vt.type === vehicle.vehicle_type);
+    if (!vehicleType) continue;
+    const qty = vehicle.quantity;
+
+    if (vehicleType.type === 'light_fighter' || vehicleType.type === 'medium_fighter' || vehicleType.type === 'heavy_fighter') {
+      pilot += qty;
+      if (vehicleType.type === 'medium_fighter' || vehicleType.type === 'heavy_fighter') {
+        gunner += qty;
+      }
+      if (vehicleType.type === 'heavy_fighter') {
+        engineer += qty;
+      }
+    } else if (vehicleType.type === 'shuttle') {
+      pilot += qty;
+    } else if (MILITARY_VEHICLE_NAME_PREFIXES.some(prefix => vehicleType.name.startsWith(prefix))) {
+      pilot += qty;
+      if (vehicleType.mass > 30) {
+        gunner += qty * 2;
+      } else if (vehicleType.mass > 5) {
+        gunner += qty;
+      }
+    }
+  }
+
+  return { pilot, gunner, engineer };
+}
+
 export function calculateDroneServiceStaff(drones: { drone_type: string; quantity: number }[]): number {
   let heavyDroneTonnage = 0; // 10 ton drones
   let lightDroneTonnage = 0; // less than 10 ton drones
