@@ -38,7 +38,8 @@ export const createEmptyShipDesign = (shipInfo: Ship): ShipDesign => {
     modular_cutter_modules: [],
     drones: [],
     custom_items: [],
-    custom_crew: createEmptyCustomCrew()
+    custom_crew: createEmptyCustomCrew(),
+    active_rules: ['spacecraft_design_srd']
   };
 };
 

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { isTechLevelAtLeast } from '../data/constants';
+import { isRuleAvailable } from '../data/constants';
 import type { ShipDesign } from '../types/ship';
 import './RulesMenu.css';
 
@@ -18,78 +18,30 @@ interface RulesMenuProps {
 const RulesMenu: React.FC<RulesMenuProps> = ({ shipDesign, onRuleChange }) => {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  
-  // Calculate tech level restrictions dynamically
+
   const currentTechLevel = shipDesign.ship.tech_level;
-  const canUseAntimatter = isTechLevelAtLeast(currentTechLevel, 'H');
-  const canUseLongerJumps = isTechLevelAtLeast(currentTechLevel, 'G');
-  const canUseRobotics = isTechLevelAtLeast(currentTechLevel, 'F');
+  const requestedRuleIds = new Set(shipDesign.active_rules ?? ['spacecraft_design_srd']);
 
-  const [enabledRuleIds, setEnabledRuleIds] = useState<Set<string>>(
-    new Set(['spacecraft_design_srd'])
-  );
+  const canUseAntimatter = isRuleAvailable('antimatter', currentTechLevel);
+  const canUseLongerJumps = isRuleAvailable('longer_jumps', currentTechLevel);
+  const canUseRobotics = isRuleAvailable('robotics', currentTechLevel);
 
-  // Keep a ref of the latest enabled ids so the tech-level effects below can
-  // see current state without re-running on every enable/disable click.
-  // Synced via effect (not during render) per react-hooks/refs.
-  const enabledRuleIdsRef = useRef(enabledRuleIds);
-  useEffect(() => {
-    enabledRuleIdsRef.current = enabledRuleIds;
-  }, [enabledRuleIds]);
-
-  // Tech-level constraints are computed inline for display (disabled/enabled
-  // below), but App's activeRules is a separate piece of state driven only by
-  // onRuleChange calls. A TL change can silently desync the two: dropping
-  // below the requirement must report the rule as disabled (or it keeps
-  // applying in App's calculations after the UI shows it off), and raising
-  // the TL back up must re-report it as enabled if the user still has it
-  // checked (or App never re-applies a rule the UI shows as on again).
-  // Skip the initial mount — there's nothing to reconcile until the tech
-  // level actually changes, and firing on mount would call onRuleChange for
-  // a rule the user never touched.
-  const isFirstAntimatterCheck = useRef(true);
-  useEffect(() => {
-    if (isFirstAntimatterCheck.current) {
-      isFirstAntimatterCheck.current = false;
-      return;
-    }
-    const antimatterEffective = enabledRuleIdsRef.current.has('antimatter') && canUseAntimatter;
-    onRuleChange?.('antimatter', antimatterEffective);
-  }, [canUseAntimatter, onRuleChange]);
-
-  const isFirstLongerJumpsCheck = useRef(true);
-  useEffect(() => {
-    if (isFirstLongerJumpsCheck.current) {
-      isFirstLongerJumpsCheck.current = false;
-      return;
-    }
-    const longerJumpsEffective = enabledRuleIdsRef.current.has('longer_jumps') && canUseLongerJumps;
-    onRuleChange?.('longer_jumps', longerJumpsEffective);
-  }, [canUseLongerJumps, onRuleChange]);
-
-  const isFirstRoboticsCheck = useRef(true);
-  useEffect(() => {
-    if (isFirstRoboticsCheck.current) {
-      isFirstRoboticsCheck.current = false;
-      return;
-    }
-    const roboticsEffective = enabledRuleIdsRef.current.has('robotics') && canUseRobotics;
-    onRuleChange?.('robotics', roboticsEffective);
-  }, [canUseRobotics, onRuleChange]);
-
-  // Derive full rule list each render; tech-level constraints are computed inline
-  // so no useEffect is needed to sync disabled state.
+  // Rule state is fully derived from shipDesign.active_rules (the user's
+  // persisted request) plus the current tech level, each render - there is
+  // no local/duplicated state to keep in sync, so a tech-level change or a
+  // ship load can't desync what this menu shows from what App actually
+  // applies in calculations.
   const rules: RuleItem[] = [
     { id: 'spacecraft_design_srd', name: 'Spacecraft Design SRD', enabled: true, disabled: false },
     { id: 'high_guard_capital_ships', name: 'High Guard Capital Ship Design SRD', enabled: false, disabled: true },
     { id: 'antimatter', name: 'Antimatter',
-      enabled: enabledRuleIds.has('antimatter') && canUseAntimatter,
+      enabled: requestedRuleIds.has('antimatter') && canUseAntimatter,
       disabled: !canUseAntimatter },
     { id: 'longer_jumps', name: 'Longer Jumps',
-      enabled: enabledRuleIds.has('longer_jumps') && canUseLongerJumps,
+      enabled: requestedRuleIds.has('longer_jumps') && canUseLongerJumps,
       disabled: !canUseLongerJumps },
     { id: 'robotics', name: 'Robotics',
-      enabled: enabledRuleIds.has('robotics') && canUseRobotics,
+      enabled: requestedRuleIds.has('robotics') && canUseRobotics,
       disabled: !canUseRobotics },
   ];
 
@@ -100,17 +52,7 @@ const RulesMenu: React.FC<RulesMenuProps> = ({ shipDesign, onRuleChange }) => {
     // Don't allow disabling the Spacecraft Design SRD (it's always selected)
     if (ruleId === 'spacecraft_design_srd') return;
 
-    const newEnabled = !rule.enabled;
-    setEnabledRuleIds(prev => {
-      const next = new Set(prev);
-      if (newEnabled) next.add(ruleId);
-      else next.delete(ruleId);
-      return next;
-    });
-
-    if (onRuleChange) {
-      onRuleChange(ruleId, newEnabled);
-    }
+    onRuleChange?.(ruleId, !rule.enabled);
   };
 
   const getStatusIcon = (rule: RuleItem) => {
@@ -125,7 +67,7 @@ const RulesMenu: React.FC<RulesMenuProps> = ({ shipDesign, onRuleChange }) => {
       }
       return <span className="rule-status disabled">—</span>;
     }
-    return rule.enabled 
+    return rule.enabled
       ? <span className="rule-status enabled">✓</span>
       : <span className="rule-status disabled">✗</span>;
   };
@@ -163,7 +105,7 @@ const RulesMenu: React.FC<RulesMenuProps> = ({ shipDesign, onRuleChange }) => {
 
   return (
     <div className="rules-menu" ref={menuRef}>
-      <button 
+      <button
         className="rules-menu-button"
         onClick={() => setIsOpen(!isOpen)}
         aria-haspopup="true"
@@ -171,11 +113,11 @@ const RulesMenu: React.FC<RulesMenuProps> = ({ shipDesign, onRuleChange }) => {
       >
         Rules
       </button>
-      
+
       {isOpen && (
         <div className="rules-menu-dropdown">
           {rules.map(rule => (
-            <button 
+            <button
               key={rule.id}
               className={`rules-menu-item ${rule.disabled ? 'disabled' : ''} ${rule.enabled ? 'enabled' : ''}`}
               onClick={() => toggleRule(rule.id)}
