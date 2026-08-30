@@ -39,6 +39,29 @@ export function isTechLevelAtLeast(currentLevel: string, requiredLevel: string):
   return currentIndex >= requiredIndex;
 }
 
+// Minimum tech level for each optional Rules Menu item that has one.
+// Rules absent from this map (e.g. 'spacecraft_design_srd') have no tech
+// requirement and are always available.
+export const RULE_TECH_REQUIREMENTS: Record<string, string> = {
+  antimatter: 'H',
+  robotics: 'F',
+};
+
+export function isRuleAvailable(ruleId: string, techLevel: string): boolean {
+  const required = RULE_TECH_REQUIREMENTS[ruleId];
+  return required === undefined || isTechLevelAtLeast(techLevel, required);
+}
+
+// A design's `active_rules` records which rules the user has requested, so
+// the choice persists with the save file. The rules actually applied in
+// calculations are that request set filtered down to whatever the design's
+// current tech level allows - so a rule that's TL-gated off (e.g. after
+// lowering tech level) stops affecting calculations immediately, without
+// losing the user's selection if they raise the tech level back up.
+export function getEffectiveActiveRules(requestedRuleIds: Iterable<string>, techLevel: string): Set<string> {
+  return new Set([...requestedRuleIds].filter(id => isRuleAvailable(id, techLevel)));
+}
+
 // Maximum power plant performance by tech level. Megastructures have no
 // jump drive, so power plant tiers are gated directly by TL: TL-H unlocks
 // the P-10 an Antimatter Plant requires, TL-J extends further to P-12.
