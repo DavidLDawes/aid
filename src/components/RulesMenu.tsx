@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { isTechLevelAtLeast } from '../data/constants';
+import { isRuleAvailable } from '../data/constants';
 import type { ShipDesign } from '../types/ship';
 import './RulesMenu.css';
 
@@ -19,25 +19,25 @@ const RulesMenu: React.FC<RulesMenuProps> = ({ shipDesign, onRuleChange }) => {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   
-  // Calculate tech level restrictions dynamically
   const currentTechLevel = shipDesign.ship.tech_level;
-  const canUseAntimatter = isTechLevelAtLeast(currentTechLevel, 'H');
-  const canUseRobotics = isTechLevelAtLeast(currentTechLevel, 'F');
+  const requestedRuleIds = new Set(shipDesign.active_rules ?? ['spacecraft_design_srd']);
 
-  const [enabledRuleIds, setEnabledRuleIds] = useState<Set<string>>(
-    new Set(['spacecraft_design_srd'])
-  );
+  const canUseAntimatter = isRuleAvailable('antimatter', currentTechLevel);
+  const canUseRobotics = isRuleAvailable('robotics', currentTechLevel);
 
-  // Derive full rule list each render; tech-level constraints are computed inline
-  // so no useEffect is needed to sync disabled state.
+  // Rule state is fully derived from shipDesign.active_rules (the user's
+  // persisted request) plus the current tech level, each render - there is
+  // no local/duplicated state to keep in sync, so a tech-level change or a
+  // design load can't desync what this menu shows from what App actually
+  // applies in calculations.
   const rules: RuleItem[] = [
     { id: 'spacecraft_design_srd', name: 'Spacecraft Design SRD', enabled: true, disabled: false },
     { id: 'high_guard_capital_ships', name: 'High Guard Capital Ship Design SRD', enabled: false, disabled: true },
     { id: 'antimatter', name: 'Antimatter',
-      enabled: enabledRuleIds.has('antimatter') && canUseAntimatter,
+      enabled: requestedRuleIds.has('antimatter') && canUseAntimatter,
       disabled: !canUseAntimatter },
     { id: 'robotics', name: 'Robotics',
-      enabled: enabledRuleIds.has('robotics') && canUseRobotics,
+      enabled: requestedRuleIds.has('robotics') && canUseRobotics,
       disabled: !canUseRobotics },
   ];
 
@@ -48,17 +48,7 @@ const RulesMenu: React.FC<RulesMenuProps> = ({ shipDesign, onRuleChange }) => {
     // Don't allow disabling the Spacecraft Design SRD (it's always selected)
     if (ruleId === 'spacecraft_design_srd') return;
 
-    const newEnabled = !rule.enabled;
-    setEnabledRuleIds(prev => {
-      const next = new Set(prev);
-      if (newEnabled) next.add(ruleId);
-      else next.delete(ruleId);
-      return next;
-    });
-
-    if (onRuleChange) {
-      onRuleChange(ruleId, newEnabled);
-    }
+    onRuleChange?.(ruleId, !rule.enabled);
   };
 
   const getStatusIcon = (rule: RuleItem) => {

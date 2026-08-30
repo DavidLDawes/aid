@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
+import { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react';
 import type { ShipDesign, MassCalculation, CostCalculation, StaffRequirements } from './types/ship';
 import {
   calculateVehicleServiceStaff, calculateDroneServiceStaff, calculateVehicleCrewStaff,
@@ -8,6 +8,7 @@ import {
   getMegastructureSections, PLANT_PER_SCOOP,
   hasAntimatterPlant, calculateAntimatterAdjustedManeuverFuel,
   getRoboticsSupportDivisor, getMinPowerPlantForFuelEquipment,
+  getEffectiveActiveRules, isRuleAvailable, RULE_TECH_REQUIREMENTS,
   getModularCutterCount, calculateModularCutterBayMass, calculateModularCutterModuleCost
 } from './data/constants';
 import { databaseService } from './services/database';
@@ -51,9 +52,15 @@ const panels = [
 function App() {
   const [showSelectShip, setShowSelectShip] = useState(true);
   const [currentPanel, setCurrentPanel] = useState(0);
-  const [activeRules, setActiveRules] = useState<Set<string>>(new Set(['spacecraft_design_srd']));
   const [shipDesign, setShipDesign] = useState<ShipDesign>(
     createEmptyShipDesign(createDefaultShip('', 'A', 1_000_000, 'standard'))
+  );
+  // Derived (not stored) from shipDesign.active_rules so a save/load round
+  // trip can't desync "what the Rules Menu shows" from "what calculations
+  // apply" - see getEffectiveActiveRules.
+  const activeRules = useMemo(
+    () => getEffectiveActiveRules(shipDesign.active_rules ?? ['spacecraft_design_srd'], shipDesign.ship.tech_level),
+    [shipDesign.active_rules, shipDesign.ship.tech_level]
   );
 
   useEffect(() => {
@@ -330,10 +337,10 @@ function App() {
 
   const handleRuleChange = useCallback((ruleId: string, enabled: boolean) => {
     logger.info(`Rule "${ruleId}" ${enabled ? 'enabled' : 'disabled'}`);
-    setActiveRules(prevRules => {
-      const newRules = new Set(prevRules);
-      if (enabled) { newRules.add(ruleId); } else { newRules.delete(ruleId); }
-      return newRules;
+    setShipDesign(prev => {
+      const requestedRules = new Set(prev.active_rules ?? ['spacecraft_design_srd']);
+      if (enabled) { requestedRules.add(ruleId); } else { requestedRules.delete(ruleId); }
+      return { ...prev, active_rules: Array.from(requestedRules) };
     });
   }, []);
 
@@ -459,20 +466,44 @@ function App() {
       !knownWeaponNames.has(weapon.weapon_name)
     );
 
+    // One-time migration for designs saved before active_rules existed:
+    // assume any TL-gated rule the design's tech level could support was in
+    // effect when it was designed. Robotics only ever reduces calculated
+    // crew (engineer/gunner/service/steward divisors), so defaulting it off
+    // instead would risk making an old, previously-valid design look
+    // overstaffed purely from this data migration - defaulting to "on
+    // wherever eligible" can't do that. Antimatter has no effect on any
+    // calculation on this branch (see Rules System in CLAUDE.md), so its
+    // migrated value is inert either way.
+    const needsRulesMigration = loadedShipDesign.active_rules === undefined;
+    const migratedActiveRules: string[] = needsRulesMigration
+      ? ['spacecraft_design_srd', ...Object.keys(RULE_TECH_REQUIREMENTS).filter(
+          ruleId => isRuleAvailable(ruleId, loadedShipDesign.ship.tech_level)
+        )]
+      : loadedShipDesign.active_rules ?? ['spacecraft_design_srd'];
+
     let cleanedShipDesign: ShipDesign = {
       ...loadedShipDesign,
       fuel_systems: loadedShipDesign.fuel_systems || [],
       zone_sections: loadedShipDesign.zone_sections || [],
-      modular_cutter_modules: loadedShipDesign.modular_cutter_modules || []
+      modular_cutter_modules: loadedShipDesign.modular_cutter_modules || [],
+      active_rules: migratedActiveRules
     };
 
     if (removedWeapons.length > 0) {
       logger.info(`Cleaned ${removedWeapons.length} non-standard weapons`);
       cleanedShipDesign = { ...cleanedShipDesign, weapons: standardWeapons };
+    }
+
+    if (needsRulesMigration) {
+      logger.info(`Migrated "${loadedShipDesign.ship.name}" to persisted Rules Menu selections: [${migratedActiveRules.join(', ')}]`);
+    }
+
+    if (removedWeapons.length > 0 || needsRulesMigration) {
       try {
         await databaseService.saveOrUpdateShipByName(cleanedShipDesign);
       } catch (error) {
-        logger.error('Error saving cleaned design', error);
+        logger.error('Error saving cleaned/migrated design', error);
       }
     }
 

@@ -40,7 +40,8 @@ export const createEmptyShipDesign = (shipInfo: Ship): ShipDesign => {
     custom_items: [],
     custom_crew: createEmptyCustomCrew(),
     fuel_systems: [],
-    zone_sections: []
+    zone_sections: [],
+    active_rules: ['spacecraft_design_srd']
   };
 };
 

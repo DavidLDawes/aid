@@ -173,6 +173,13 @@ export interface ShipDesign {
   custom_crew: CustomCrew;
   fuel_systems: FuelSystem[];
   zone_sections: ZoneSection[];
+  // Rules Menu selections the user has requested for this megastructure
+  // (e.g. 'antimatter', 'robotics'), persisted so a saved design's
+  // TL-gated calculations (Robotics' engineer/gunner/service/steward
+  // divisors) stay correct on reload. Optional for backward compatibility
+  // with designs saved before this field existed - treat a missing value
+  // as ['spacecraft_design_srd'].
+  active_rules?: string[];
 }
 
 export interface MassCalculation {
