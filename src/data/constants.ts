@@ -9,13 +9,36 @@ export function getTechLevelIndex(techLevel: string): number {
 export function isTechLevelAtLeast(currentLevel: string, requiredLevel: string): boolean {
   const currentIndex = getTechLevelIndex(currentLevel);
   const requiredIndex = getTechLevelIndex(requiredLevel);
-  
+
   // If either tech level is invalid, return false
   if (currentIndex === -1 || requiredIndex === -1) {
     return false;
   }
-  
+
   return currentIndex >= requiredIndex;
+}
+
+// Minimum tech level for each optional Rules Menu item that has one. Rules
+// absent from this map (e.g. 'spacecraft_design_srd') have no tech
+// requirement and are always available.
+export const RULE_TECH_REQUIREMENTS: Record<string, string> = {
+  antimatter: 'H',
+  longer_jumps: 'G',
+};
+
+export function isRuleAvailable(ruleId: string, techLevel: string): boolean {
+  const required = RULE_TECH_REQUIREMENTS[ruleId];
+  return required === undefined || isTechLevelAtLeast(techLevel, required);
+}
+
+// A ship's `active_rules` records which rules the user has requested, so the
+// choice persists with the save file. The rules actually applied in
+// calculations are that request set filtered down to whatever the ship's
+// current tech level allows - so a rule that's TL-gated off (e.g. after
+// lowering tech level) stops affecting calculations immediately, without
+// losing the user's selection if they raise the tech level back up.
+export function getEffectiveActiveRules(requestedRuleIds: Iterable<string>, techLevel: string): Set<string> {
+  return new Set([...requestedRuleIds].filter(id => isRuleAvailable(id, techLevel)));
 }
 
 // Maximum jump performance by tech level: A=J1, B=J2 ... F+=J6.
