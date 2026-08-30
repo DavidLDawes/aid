@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
+import { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react';
 import type { Ship, ShipDesign, MassCalculation, CostCalculation, StaffRequirements } from './types/ship';
-import { calculateTotalFuelMass, calculateVehicleServiceStaff, calculateVehicleCrewStaff, calculateDroneServiceStaff, calculateMedicalStaff, convertTechLevelToNumber, getBridgeMassAndCost, getEffectiveMaxJump, getHullCost, getNumberOfSections, getMinimumComputer, getRoboticsCrewDivisor, getRoboticsGunnerDivisor, COMPUTER_TYPES, VEHICLE_TYPES, WEAPON_TYPES, BAY_WEAPON_TYPES, getAvailableSpinalWeapons, getModularCutterCount, calculateModularCutterBayMass, calculateModularCutterModuleCost } from './data/constants';
+import { calculateTotalFuelMass, calculateVehicleServiceStaff, calculateVehicleCrewStaff, calculateDroneServiceStaff, calculateMedicalStaff, convertTechLevelToNumber, getBridgeMassAndCost, getEffectiveActiveRules, getEffectiveMaxJump, getHullCost, getNumberOfSections, getMinimumComputer, getRoboticsCrewDivisor, getRoboticsGunnerDivisor, isRuleAvailable, RULE_TECH_REQUIREMENTS, COMPUTER_TYPES, VEHICLE_TYPES, WEAPON_TYPES, BAY_WEAPON_TYPES, getAvailableSpinalWeapons, getModularCutterCount, calculateModularCutterBayMass, calculateModularCutterModuleCost } from './data/constants';
 import { databaseService } from './services/database';
 import { logger } from './utils/logger';
 import { createEmptyShipDesign, createDefaultShip } from './utils/shipDefaults';
@@ -39,9 +39,15 @@ function App() {
   const [currentPanel, setCurrentPanel] = useState(0);
   const [combinePilotNavigator, setCombinePilotNavigator] = useState(false);
   const [noStewards, setNoStewards] = useState(false);
-  const [activeRules, setActiveRules] = useState<Set<string>>(new Set(['spacecraft_design_srd']));
   const [shipDesign, setShipDesign] = useState<ShipDesign>(
     createEmptyShipDesign(createDefaultShip('', 'A', 5000, 'standard'))
+  );
+  // Derived (not stored) from shipDesign.active_rules so a save/load round
+  // trip can't desync "what the Rules Menu shows" from "what calculations
+  // apply" - see getEffectiveActiveRules.
+  const activeRules = useMemo(
+    () => getEffectiveActiveRules(shipDesign.active_rules ?? ['spacecraft_design_srd'], shipDesign.ship.tech_level),
+    [shipDesign.active_rules, shipDesign.ship.tech_level]
   );
 
   useEffect(() => {
@@ -337,14 +343,14 @@ function App() {
 
   const handleRuleChange = useCallback((ruleId: string, enabled: boolean) => {
     logger.info(`Rule "${ruleId}" ${enabled ? 'enabled' : 'disabled'}`);
-    setActiveRules(prevRules => {
-      const newRules = new Set(prevRules);
+    setShipDesign(prev => {
+      const requestedRules = new Set(prev.active_rules ?? ['spacecraft_design_srd']);
       if (enabled) {
-        newRules.add(ruleId);
+        requestedRules.add(ruleId);
       } else {
-        newRules.delete(ruleId);
+        requestedRules.delete(ruleId);
       }
-      return newRules;
+      return { ...prev, active_rules: Array.from(requestedRules) };
     });
   }, []);
 
@@ -511,19 +517,39 @@ function App() {
       !knownWeaponNames.has(weapon.weapon_name)
     );
 
+    // One-time migration for ships saved before active_rules existed: assume
+    // any TL-gated rule the ship's tech level could support was in effect
+    // when it was designed. Antimatter/Robotics only ever reduce calculated
+    // mass/crew, so defaulting them off instead would risk making an old,
+    // previously-valid design look overweight/wrong purely from this data
+    // migration - defaulting to "on wherever eligible" can't do that.
+    const needsRulesMigration = loadedShipDesign.active_rules === undefined;
+    const migratedActiveRules: string[] = needsRulesMigration
+      ? ['spacecraft_design_srd', ...Object.keys(RULE_TECH_REQUIREMENTS).filter(
+          ruleId => isRuleAvailable(ruleId, loadedShipDesign.ship.tech_level)
+        )]
+      : loadedShipDesign.active_rules ?? ['spacecraft_design_srd'];
+
     let cleanedShipDesign: ShipDesign = {
       ...loadedShipDesign,
-      modular_cutter_modules: loadedShipDesign.modular_cutter_modules || []
+      modular_cutter_modules: loadedShipDesign.modular_cutter_modules || [],
+      active_rules: migratedActiveRules
     };
 
     if (removedWeapons.length > 0) {
       logger.info(`Cleaned ${removedWeapons.length} non-standard weapons from "${loadedShipDesign.ship.name}"`);
       cleanedShipDesign = { ...cleanedShipDesign, weapons: standardWeapons };
+    }
 
+    if (needsRulesMigration) {
+      logger.info(`Migrated "${loadedShipDesign.ship.name}" to persisted Rules Menu selections: [${migratedActiveRules.join(', ')}]`);
+    }
+
+    if (removedWeapons.length > 0 || needsRulesMigration) {
       try {
         await databaseService.saveOrUpdateShipByName(cleanedShipDesign);
       } catch (error) {
-        logger.error('Error saving cleaned ship design', error);
+        logger.error('Error saving cleaned/migrated ship design', error);
       }
     }
 
