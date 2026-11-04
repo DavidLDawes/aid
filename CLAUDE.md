@@ -254,6 +254,14 @@ Rules affect calculations (e.g., fuel mass with antimatter) — check `activeRul
 
 `ship.external_fuel` (optional boolean, chosen on the Engines panel): jump fuel is supplied by external fuelers at departure, so no jump fuel tankage is carried. Requires 1% of hull tonnage in jump batteries (`calculateJumpBatteryMass()`), which antimatter does not reduce, and restricts jumps to systems with fueler support. Hull size changes reset it.
 
+### Hull Configuration
+
+`ship.configuration` is standard, streamlined or distributed. `ship.configuration_shape` (optional) is the shape within it, listed in `CONFIGURATION_TYPES` (`constants.ts`): wedge, cone, sphere or cylinder for standard (default wedge); wing, disk or lifting body for streamlined (default lifting body); none for distributed.
+
+Built-in ships and designs saved before shapes existed store no shape, so read it through `getConfigurationShape()`, which falls back to the default, rather than the field directly. Use `getConfigurationName()` for display ("Standard Wedge", "Distributed"); the Summary, CSV and print titles append " configuration". Shape has no effect on mass, cost or crew.
+
+A wedge's top and bottom floors are 75% as long as its middle floor, with the floors in between interpolated linearly (`getWedgeFloorLengthRatio(floor, floorCount)`). The app has no floor or deck model yet, so only the Ship panel's help text reflects this.
+
 ### Print Functionality
 
 `handleFilePrint()` in App.tsx opens a new window and calls `generateShipPrintContent()` (in `src/utils/printContent.ts`) to produce a standalone HTML document mirroring SummaryPanel's table (hull, components, fuel, reloads, crew).
