@@ -54,7 +54,7 @@ export const createDefaultShip = (
     tech_level: techLevel,
     tonnage,
     configuration,
-    configuration_shape: CONFIGURATION_TYPES[configuration].shapes[0]?.value,
+    configuration_shape: CONFIGURATION_TYPES[configuration].defaultShape,
     fuel_weeks: 2,
     missile_reloads: 0,
     sand_reloads: 0,

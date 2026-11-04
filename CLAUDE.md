@@ -330,6 +330,14 @@ Ships ≥3,000 tons are capital ships with special rules:
 
 Rules affect calculations (e.g., fuel mass with antimatter) - check `activeRules.has('rule_id')` before applying rule-specific logic. `RulesMenu` computes `enabled`/`disabled` per-rule from the ship's tech level on every render, but that's purely for its own display — it must separately call `onRuleChange` whenever a tech-level change flips a rule's effective availability, or App's `activeRules` (the actual source of truth used in calculations) silently desyncs from what the menu shows.
 
+### Hull Configuration
+
+`ship.configuration` is standard, streamlined or distributed. `ship.configuration_shape` (optional) is the shape within it, listed in `CONFIGURATION_TYPES` (`constants.ts`): wedge, cone, sphere or cylinder for standard (default wedge); wing, disk or lifting body for streamlined (default lifting body); none for distributed.
+
+Built-in ships and designs saved before shapes existed store no shape, so read it through `getConfigurationShape()`, which falls back to the default, rather than the field directly. Use `getConfigurationName()` for display ("Standard Wedge", "Distributed"); the Summary, CSV and print titles append " configuration". Shape has no effect on mass, cost or crew.
+
+A wedge's top and bottom floors are 75% as long as its middle floor, with the floors in between interpolated linearly (`getWedgeFloorLengthRatio(floor, floorCount)`). The app has no floor or deck model yet, so only the Ship panel's help text reflects this.
+
 ### Print Functionality
 
 `handleFilePrint()` in App.tsx generates a printable HTML view. It calls `generateShipPrintContent()` from `src/utils/printContent.ts`, which produces a complete standalone HTML document with embedded styles and XSS prevention via `escapeHtml()`. This shared utility is the single source of truth for print output — SummaryPanel does not have its own print implementation.

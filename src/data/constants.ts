@@ -3,6 +3,7 @@ import type { Cargo, CustomCrew, ConfigurationShape, Ship } from '../types/ship'
 export const CONFIGURATION_TYPES: Record<Ship['configuration'], {
   label: string;
   shapes: { value: ConfigurationShape; label: string }[];
+  defaultShape?: ConfigurationShape;
 }> = {
   standard: {
     label: 'Standard',
@@ -11,7 +12,8 @@ export const CONFIGURATION_TYPES: Record<Ship['configuration'], {
       { value: 'cone', label: 'Cone' },
       { value: 'sphere', label: 'Sphere' },
       { value: 'cylinder', label: 'Cylinder' }
-    ]
+    ],
+    defaultShape: 'wedge'
   },
   streamlined: {
     label: 'Streamlined',
@@ -19,17 +21,41 @@ export const CONFIGURATION_TYPES: Record<Ship['configuration'], {
       { value: 'wing', label: 'Wing' },
       { value: 'disk', label: 'Disk' },
       { value: 'lifting_body', label: 'Lifting Body' }
-    ]
+    ],
+    defaultShape: 'lifting_body'
   },
   distributed: { label: 'Distributed', shapes: [] }
 };
 
-// e.g. "Standard Wedge", "Streamlined Lifting Body", "Distributed". A design
-// saved before shapes existed reads as just "Standard" or "Streamlined".
+// The shape a design has: the one it stored, or its configuration's default if
+// it stored none (built-in ships and designs saved before shapes existed).
+export function getConfigurationShape(
+  ship: Pick<Ship, 'configuration' | 'configuration_shape'>
+): ConfigurationShape | undefined {
+  const type = CONFIGURATION_TYPES[ship.configuration];
+  return type.shapes.some(s => s.value === ship.configuration_shape)
+    ? ship.configuration_shape
+    : type.defaultShape;
+}
+
+// e.g. "Standard Wedge", "Streamlined Lifting Body", "Distributed".
 export function getConfigurationName(ship: Pick<Ship, 'configuration' | 'configuration_shape'>): string {
   const type = CONFIGURATION_TYPES[ship.configuration];
-  const shape = type.shapes.find(s => s.value === ship.configuration_shape);
+  const shapeValue = getConfigurationShape(ship);
+  const shape = type.shapes.find(s => s.value === shapeValue);
   return shape ? `${type.label} ${shape.label}` : type.label;
+}
+
+// A wedge hull's top and bottom floors are this fraction of its middle floor's
+// length, with the floors in between interpolated linearly.
+export const WEDGE_END_FLOOR_LENGTH_RATIO = 0.75;
+
+// Length of a wedge floor (0 = top) relative to the middle floor. With an even
+// floor count the middle falls between two floors, so neither reaches 1.
+export function getWedgeFloorLengthRatio(floor: number, floorCount: number): number {
+  if (floorCount <= 1) return 1;
+  const middle = (floorCount - 1) / 2;
+  return 1 - (1 - WEDGE_END_FLOOR_LENGTH_RATIO) * Math.abs(floor - middle) / middle;
 }
 
 // Crew categories shown on the Custom panel's crew-tracking section, in

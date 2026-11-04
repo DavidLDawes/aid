@@ -59,10 +59,16 @@ describe('ShipPanel configuration shape', () => {
     expect(onUpdate).toHaveBeenCalledWith(expect.objectContaining({ configuration: 'standard', configuration_shape: 'sphere' }));
   });
 
-  it("preselects the new configuration's first shape when the configuration changes", () => {
+  it('switches to lifting body when the configuration changes to streamlined', () => {
     render(<ShipPanel ship={createShip()} onUpdate={onUpdate} />);
     fireEvent.change(screen.getByLabelText(/Configuration/), { target: { value: 'streamlined' } });
-    expect(onUpdate).toHaveBeenCalledWith(expect.objectContaining({ configuration: 'streamlined', configuration_shape: 'wing' }));
+    expect(onUpdate).toHaveBeenCalledWith(expect.objectContaining({ configuration: 'streamlined', configuration_shape: 'lifting_body' }));
+  });
+
+  it('switches to wedge when the configuration changes to standard', () => {
+    render(<ShipPanel ship={createShip({ configuration: 'streamlined', configuration_shape: 'disk' })} onUpdate={onUpdate} />);
+    fireEvent.change(screen.getByLabelText(/Configuration/), { target: { value: 'standard' } });
+    expect(onUpdate).toHaveBeenCalledWith(expect.objectContaining({ configuration: 'standard', configuration_shape: 'wedge' }));
   });
 
   it('clears the shape when the configuration changes to distributed', () => {
@@ -72,10 +78,20 @@ describe('ShipPanel configuration shape', () => {
     expect(onUpdate.mock.calls[0][0].configuration_shape).toBeUndefined();
   });
 
-  it('asks for a shape on a design saved before shapes existed', () => {
+  it('shows wedge on a standard design saved before shapes existed', () => {
     render(<ShipPanel ship={createShip({ configuration_shape: undefined })} onUpdate={onUpdate} />);
-    const select = screen.getByLabelText(/Shape/);
-    expect(select).toHaveValue('');
-    expect(optionLabels(select)[0]).toBe('Select a shape');
+    expect(screen.getByLabelText(/Shape/)).toHaveValue('wedge');
+  });
+
+  it('shows lifting body on a streamlined design saved before shapes existed', () => {
+    render(<ShipPanel ship={createShip({ configuration: 'streamlined', configuration_shape: undefined })} onUpdate={onUpdate} />);
+    expect(screen.getByLabelText(/Shape/)).toHaveValue('lifting_body');
+  });
+
+  it('describes the floor profile for a wedge only', () => {
+    const { rerender } = render(<ShipPanel ship={createShip()} onUpdate={onUpdate} />);
+    expect(screen.getByText(/Top and bottom floors are 75% as long/)).toBeInTheDocument();
+    rerender(<ShipPanel ship={createShip({ configuration_shape: 'cone' })} onUpdate={onUpdate} />);
+    expect(screen.queryByText(/Top and bottom floors/)).not.toBeInTheDocument();
   });
 });

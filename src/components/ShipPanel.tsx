@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import type { Ship, ShipDesign } from '../types/ship';
-import { TECH_LEVELS, HULL_SIZES, getTonnageCode, getNumberOfSections, CONFIGURATION_TYPES, getConfigurationName } from '../data/constants';
+import { TECH_LEVELS, HULL_SIZES, getTonnageCode, getNumberOfSections, CONFIGURATION_TYPES, getConfigurationName, getConfigurationShape, WEDGE_END_FLOOR_LENGTH_RATIO } from '../data/constants';
 import { databaseService } from '../services/database';
 import { createEmptyCustomCrew } from '../utils/shipDefaults';
 
@@ -90,9 +90,9 @@ const ShipPanel: React.FC<ShipPanelProps> = ({ ship, onUpdate, onLoadExistingShi
   };
 
   const handleConfigurationChange = (configuration: Ship['configuration']) => {
-    // The old configuration's shape doesn't apply to the new one, so preselect
-    // the new one's first shape (Distributed has none).
-    onUpdate({ ...ship, configuration, configuration_shape: CONFIGURATION_TYPES[configuration].shapes[0]?.value });
+    // The old configuration's shape doesn't apply to the new one, so switch to
+    // the new one's default (Distributed has none).
+    onUpdate({ ...ship, configuration, configuration_shape: CONFIGURATION_TYPES[configuration].defaultShape });
   };
 
   const handleTonnageChange = (newTonnage: number) => {
@@ -138,7 +138,7 @@ const ShipPanel: React.FC<ShipPanelProps> = ({ ship, onUpdate, onLoadExistingShi
   };
 
   const shapes = CONFIGURATION_TYPES[ship.configuration].shapes;
-  const selectedShape = shapes.find(shape => shape.value === ship.configuration_shape)?.value ?? '';
+  const selectedShape = getConfigurationShape(ship);
 
   return (
     <div className="panel-content">
@@ -218,11 +218,15 @@ const ShipPanel: React.FC<ShipPanelProps> = ({ ship, onUpdate, onLoadExistingShi
                 value={selectedShape}
                 onChange={(e) => handleInputChange('configuration_shape', e.target.value)}
               >
-                {!selectedShape && <option value="" disabled>Select a shape</option>}
                 {shapes.map(shape => (
                   <option key={shape.value} value={shape.value}>{shape.label}</option>
                 ))}
               </select>
+              {selectedShape === 'wedge' && (
+                <small>
+                  Top and bottom floors are {WEDGE_END_FLOOR_LENGTH_RATIO * 100}% as long as the middle floor, with floors in between tapering linearly.
+                </small>
+              )}
             </div>
           )}
         </div>
