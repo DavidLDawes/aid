@@ -7,7 +7,8 @@ import {
   calculateArmorMass, calculateArmorCost,
   getMegastructureSections, PLANT_PER_SCOOP,
   hasAntimatterPlant, calculateAntimatterAdjustedManeuverFuel,
-  getModularCutterCount, calculateModularCutterBayMass
+  getModularCutterCount, calculateModularCutterBayMass,
+  getConfigurationName
 } from '../data/constants';
 import { databaseService } from '../services/database';
 import { escapeCsvField } from '../utils/csv';
@@ -117,6 +118,7 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
     const lines: string[] = [];
     lines.push([
       escapeCsvField(shipDesign.ship.name),
+      escapeCsvField(`${getConfigurationName(shipDesign.ship)} configuration`),
       escapeCsvField(`${sections} sections`),
       escapeCsvField(`${shipDesign.ship.tonnage.toLocaleString()} tons`),
       escapeCsvField(`Tech Level ${shipDesign.ship.tech_level}`)
@@ -266,7 +268,7 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
     <div className="panel-content">
       <div className="ship-title-line">
         <h3>
-          {shipDesign.ship.name} — {shipDesign.ship.tonnage.toLocaleString()} tons ({sections} section{sections !== 1 ? 's' : ''}), Tech Level {shipDesign.ship.tech_level}
+          {shipDesign.ship.name} — {getConfigurationName(shipDesign.ship)} configuration, {shipDesign.ship.tonnage.toLocaleString()} tons ({sections} section{sections !== 1 ? 's' : ''}), Tech Level {shipDesign.ship.tech_level}
         </h3>
       </div>
 

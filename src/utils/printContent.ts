@@ -6,7 +6,8 @@ import {
   calculateArmorMass, calculateArmorCost,
   getMegastructureSections, PLANT_PER_SCOOP,
   hasAntimatterPlant, calculateAntimatterAdjustedManeuverFuel,
-  getModularCutterCount, calculateModularCutterBayMass
+  getModularCutterCount, calculateModularCutterBayMass,
+  getConfigurationName
 } from '../data/constants';
 import { getMaxEnginePerformance } from './calculations';
 
@@ -27,7 +28,7 @@ export function generateShipPrintContent(
 ): string {
   const sections = getMegastructureSections(shipDesign.ship.tonnage);
   const shipTitle = escapeHtml(
-    `${shipDesign.ship.name} — ${shipDesign.ship.tonnage.toLocaleString()} tons ` +
+    `${shipDesign.ship.name} — ${getConfigurationName(shipDesign.ship)} configuration, ${shipDesign.ship.tonnage.toLocaleString()} tons ` +
     `(${sections} section${sections !== 1 ? 's' : ''}), Tech Level ${shipDesign.ship.tech_level}`
   );
 

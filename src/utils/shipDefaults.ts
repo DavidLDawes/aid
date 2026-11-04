@@ -1,5 +1,5 @@
 import type { ShipDesign, Ship, CustomCrew } from '../types/ship';
-import { getMegastructureSections } from '../data/constants';
+import { getMegastructureSections, CONFIGURATION_TYPES } from '../data/constants';
 
 export const createEmptyCustomCrew = (): CustomCrew => ({
   pilot: 0,
@@ -56,6 +56,7 @@ export const createDefaultShip = (
     tech_level: techLevel,
     tonnage,
     configuration,
+    configuration_shape: CONFIGURATION_TYPES[configuration].shapes[0]?.value,
     fuel_weeks: 2,
     missile_reloads: 0,
     sand_reloads: 0,
@@ -63,3 +64,9 @@ export const createDefaultShip = (
     description: ''
   };
 };
+
+// Before this branch had a configuration selector, every megastructure was
+// described as distributed but saved with a hidden 'standard' value, so a
+// design with no shape never actually chose standard or streamlined.
+export const migrateLegacyConfiguration = (ship: Ship): Ship =>
+  ship.configuration_shape ? ship : { ...ship, configuration: 'distributed' };
