@@ -1,6 +1,7 @@
 import type { ShipDesign } from '../types/ship';
 import { cleanInvalidCargo } from '../data/constants';
 import { logger } from '../utils/logger';
+import { createEmptyCustomCrew } from '../utils/shipDefaults';
 
 export interface StoredShipDesign extends ShipDesign {
   id: number;
@@ -90,6 +91,8 @@ class DatabaseService {
         const ships = request.result.map((ship: StoredShipDesign) => ({
           ...ship,
           cargo: cleanInvalidCargo(ship.cargo),
+          // Built-in ships and older saved designs have no custom_crew.
+          custom_crew: ship.custom_crew || createEmptyCustomCrew(),
           createdAt: new Date(ship.createdAt),
           updatedAt: new Date(ship.updatedAt)
         }));
@@ -114,6 +117,8 @@ class DatabaseService {
           resolve({
             ...ship,
             cargo: cleanInvalidCargo(ship.cargo),
+            // Built-in ships and older saved designs have no custom_crew.
+            custom_crew: ship.custom_crew || createEmptyCustomCrew(),
             createdAt: new Date(ship.createdAt),
             updatedAt: new Date(ship.updatedAt)
           });
@@ -299,6 +304,8 @@ class DatabaseService {
           resolve({
             ...ship,
             cargo: cleanInvalidCargo(ship.cargo),
+            // Built-in ships and older saved designs have no custom_crew.
+            custom_crew: ship.custom_crew || createEmptyCustomCrew(),
             createdAt: new Date(ship.createdAt),
             updatedAt: new Date(ship.updatedAt)
           });
