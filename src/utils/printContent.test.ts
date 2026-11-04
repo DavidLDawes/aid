@@ -271,4 +271,10 @@ describe('generateShipPrintContent', () => {
       expect(html).not.toContain('Stewards');
     });
   });
+
+  it('names the configuration and its shape in the title', () => {
+    const design = { ...baseShip, ship: { ...baseShip.ship, configuration: 'streamlined' as const, configuration_shape: 'lifting_body' as const } };
+    const html = generateShipPrintContent(design, baseMass, baseCost, baseStaff, false, false);
+    expect(html).toContain('Streamlined Lifting Body configuration');
+  });
 });

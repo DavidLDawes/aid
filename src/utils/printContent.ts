@@ -11,6 +11,7 @@ import {
   getHullCost,
   getModularCutterCount,
   calculateModularCutterBayMass,
+  getConfigurationName
 } from '../data/constants';
 
 function escapeHtml(text: string): string {
@@ -42,7 +43,7 @@ function buildTableRows(
   const rows: string[] = [];
 
   // Hull (cost only; hull tonnage is the total, not used mass)
-  rows.push(row('Hull', `${shipDesign.ship.tonnage} tons (${shipDesign.ship.configuration})`, null, getHullCost(shipDesign.ship.tonnage)));
+  rows.push(row('Hull', `${shipDesign.ship.tonnage} tons (${getConfigurationName(shipDesign.ship)})`, null, getHullCost(shipDesign.ship.tonnage)));
 
   // Engines
   const validEngines = shipDesign.engines.filter(
@@ -211,7 +212,7 @@ export function generateShipPrintContent(
   noEngineer: boolean,
 ): string {
   const name = escapeHtml(shipDesign.ship.name);
-  const title = `${name}, ${escapeHtml(shipDesign.ship.configuration)} configuration, ${shipDesign.ship.tonnage} tons, Tech Level ${escapeHtml(shipDesign.ship.tech_level)}`;
+  const title = `${name}, ${escapeHtml(getConfigurationName(shipDesign.ship))} configuration, ${shipDesign.ship.tonnage} tons, Tech Level ${escapeHtml(shipDesign.ship.tech_level)}`;
 
   return `<!DOCTYPE html>
 <html>

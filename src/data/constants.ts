@@ -1,4 +1,36 @@
-import type { Cargo } from '../types/ship';
+import type { Cargo, ConfigurationShape, Ship } from '../types/ship';
+
+export const CONFIGURATION_TYPES: Record<Ship['configuration'], {
+  label: string;
+  shapes: { value: ConfigurationShape; label: string }[];
+}> = {
+  standard: {
+    label: 'Standard',
+    shapes: [
+      { value: 'wedge', label: 'Wedge' },
+      { value: 'cone', label: 'Cone' },
+      { value: 'sphere', label: 'Sphere' },
+      { value: 'cylinder', label: 'Cylinder' }
+    ]
+  },
+  streamlined: {
+    label: 'Streamlined',
+    shapes: [
+      { value: 'wing', label: 'Wing' },
+      { value: 'disk', label: 'Disk' },
+      { value: 'lifting_body', label: 'Lifting Body' }
+    ]
+  },
+  distributed: { label: 'Distributed', shapes: [] }
+};
+
+// e.g. "Standard Wedge", "Streamlined Lifting Body", "Distributed". A design
+// saved before shapes existed reads as just "Standard" or "Streamlined".
+export function getConfigurationName(ship: Pick<Ship, 'configuration' | 'configuration_shape'>): string {
+  const type = CONFIGURATION_TYPES[ship.configuration];
+  const shape = type.shapes.find(s => s.value === ship.configuration_shape);
+  return shape ? `${type.label} ${shape.label}` : type.label;
+}
 
 export const TECH_LEVELS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
 
