@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import type { Ship, ShipDesign } from '../types/ship';
-import { TECH_LEVELS, MEGASTRUCTURE_HULL_SIZES, getMegastructureSections } from '../data/constants';
+import { TECH_LEVELS, MEGASTRUCTURE_HULL_SIZES, getMegastructureSections, CONFIGURATION_TYPES, getConfigurationShape } from '../data/constants';
 import { databaseService } from '../services/database';
 import { createEmptyCustomCrew } from '../utils/shipDefaults';
 
@@ -83,6 +83,12 @@ const ShipPanel: React.FC<ShipPanelProps> = ({ ship, onUpdate, onLoadExistingShi
     onUpdate({ ...ship, [field]: value });
   };
 
+  const handleConfigurationChange = (configuration: Ship['configuration']) => {
+    // The old configuration's shape doesn't apply to the new one, so switch to
+    // the new one's default (Distributed has none).
+    onUpdate({ ...ship, configuration, configuration_shape: CONFIGURATION_TYPES[configuration].defaultShape });
+  };
+
   const handleTonnageChange = (newTonnage: number) => {
     onUpdate({ ...ship, tonnage: newTonnage, sections: getMegastructureSections(newTonnage) });
   };
@@ -105,9 +111,12 @@ const ShipPanel: React.FC<ShipPanelProps> = ({ ship, onUpdate, onLoadExistingShi
 
   const sections = getMegastructureSections(ship.tonnage);
 
+  const shapes = CONFIGURATION_TYPES[ship.configuration].shapes;
+  const selectedShape = getConfigurationShape(ship);
+
   return (
     <div className="panel-content">
-      <p>Megastructures are &gt;1,000,000 tons. Configuration is distributed (multiple million-ton sections).</p>
+      <p>Megastructures are &gt;1,000,000 tons, built from multiple million-ton sections.</p>
 
       <div className="ship-basic-info-row">
         <div className="form-group">
@@ -166,6 +175,36 @@ const ShipPanel: React.FC<ShipPanelProps> = ({ ship, onUpdate, onLoadExistingShi
       </div>
 
       <div className="ship-basic-info-row">
+        <div>
+          <div className="form-group">
+            <label htmlFor="configuration">Configuration *</label>
+            <select
+              id="configuration"
+              value={ship.configuration}
+              onChange={(e) => handleConfigurationChange(e.target.value as Ship['configuration'])}
+            >
+              <option value="standard">Standard</option>
+              <option value="streamlined">Streamlined (for atmospheric entry)</option>
+              <option value="distributed">Distributed (multiple sections, atmosphere/gravity incompatible)</option>
+            </select>
+          </div>
+
+          {shapes.length > 0 && (
+            <div className="form-group">
+              <label htmlFor="configuration-shape">Shape</label>
+              <select
+                id="configuration-shape"
+                value={selectedShape}
+                onChange={(e) => handleInputChange('configuration_shape', e.target.value)}
+              >
+                {shapes.map(shape => (
+                  <option key={shape.value} value={shape.value}>{shape.label}</option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+
         <div className="form-group">
           <label>
             <input

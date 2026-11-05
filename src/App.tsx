@@ -13,7 +13,7 @@ import {
 } from './data/constants';
 import { databaseService } from './services/database';
 import { logger } from './utils/logger';
-import { createEmptyShipDesign, createDefaultShip } from './utils/shipDefaults';
+import { createEmptyShipDesign, createDefaultShip, migrateLegacyConfiguration } from './utils/shipDefaults';
 import { sumMass, sumMassWithQuantity, sumCost, sumCostWithQuantity, sumCargoTonnage, getMaxEnginePerformance } from './utils/calculations';
 import { rescaleEnginesForTonnage, rescaleFittingsForTonnage } from './utils/tonnageRescale';
 import { cleanupVehiclesForTechLevel, cleanupBayWeaponsForTechLevel, cleanupScreensForTechLevel } from './utils/techLevelCleanup';
@@ -53,7 +53,7 @@ function App() {
   const [showSelectShip, setShowSelectShip] = useState(true);
   const [currentPanel, setCurrentPanel] = useState(0);
   const [shipDesign, setShipDesign] = useState<ShipDesign>(
-    createEmptyShipDesign(createDefaultShip('', 'A', 1_000_000, 'standard'))
+    createEmptyShipDesign(createDefaultShip('', 'A', 1_000_000, 'distributed'))
   );
   // Derived (not stored) from shipDesign.active_rules so a save/load round
   // trip can't desync "what the Rules Menu shows" from "what calculations
@@ -448,7 +448,7 @@ function App() {
 
   const handleNewShip = () => {
     logger.info('Starting new megastructure design');
-    setShipDesign(createEmptyShipDesign(createDefaultShip('', 'A', 1_000_000, 'standard')));
+    setShipDesign(createEmptyShipDesign(createDefaultShip('', 'A', 1_000_000, 'distributed')));
     setShowSelectShip(false);
     setCurrentPanel(0);
   };
@@ -484,6 +484,7 @@ function App() {
 
     let cleanedShipDesign: ShipDesign = {
       ...loadedShipDesign,
+      ship: migrateLegacyConfiguration(loadedShipDesign.ship),
       fuel_systems: loadedShipDesign.fuel_systems || [],
       zone_sections: loadedShipDesign.zone_sections || [],
       modular_cutter_modules: loadedShipDesign.modular_cutter_modules || [],
@@ -531,6 +532,7 @@ function App() {
           onUpdate={(ship) => updateShipDesign({ ship })}
           onLoadExistingShip={(loadedShipDesign) => setShipDesign({
             ...loadedShipDesign,
+            ship: migrateLegacyConfiguration(loadedShipDesign.ship),
             fuel_systems: loadedShipDesign.fuel_systems || [],
             zone_sections: loadedShipDesign.zone_sections || [],
             modular_cutter_modules: loadedShipDesign.modular_cutter_modules || []
