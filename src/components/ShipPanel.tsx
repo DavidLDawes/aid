@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import type { Ship, ShipDesign } from '../types/ship';
-import { TECH_LEVELS, MEGASTRUCTURE_HULL_SIZES, getMegastructureSections, CONFIGURATION_TYPES, getConfigurationShape, WEDGE_END_FLOOR_LENGTH_RATIO } from '../data/constants';
+import { TECH_LEVELS, MEGASTRUCTURE_HULL_SIZES, getMegastructureSections, CONFIGURATION_TYPES, getConfigurationShape } from '../data/constants';
 import { databaseService } from '../services/database';
 import { createEmptyCustomCrew } from '../utils/shipDefaults';
 
@@ -201,11 +201,6 @@ const ShipPanel: React.FC<ShipPanelProps> = ({ ship, onUpdate, onLoadExistingShi
                   <option key={shape.value} value={shape.value}>{shape.label}</option>
                 ))}
               </select>
-              {selectedShape === 'wedge' && (
-                <small>
-                  Top and bottom floors are {WEDGE_END_FLOOR_LENGTH_RATIO * 100}% as long as the middle floor, with floors in between tapering linearly.
-                </small>
-              )}
             </div>
           )}
         </div>

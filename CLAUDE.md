@@ -355,9 +355,7 @@ If you add a new rule that should actually affect calculations, wire it through 
 
 `ship.configuration` is standard, streamlined or distributed. `ship.configuration_shape` (optional) is the shape within it, listed in `CONFIGURATION_TYPES` (`constants.ts`): wedge, cone, sphere or cylinder for standard (default wedge); wing, disk or lifting body for streamlined (default lifting body); none for distributed.
 
-Built-in ships and designs saved before shapes existed store no shape, so read it through `getConfigurationShape()`, which falls back to the default, rather than the field directly. Use `getConfigurationName()` for display ("Standard Wedge", "Distributed"); the Summary, CSV and print titles append " configuration". Shape has no effect on mass, cost or crew.
-
-A wedge's top and bottom floors are 75% as long as its middle floor, with the floors in between interpolated linearly (`getWedgeFloorLengthRatio(floor, floorCount)`). The app has no floor or deck model yet, so only the Ship panel's help text reflects this.
+Built-in ships and designs saved before shapes existed store no shape, so read it through `getConfigurationShape()`, which falls back to the default, rather than the field directly. The first line of the CSV uses `getConfigurationName()` ("Standard Wedge configuration"); the Summary page and print do not show the configuration. Shape has no effect on mass, cost or crew.
 
 New megastructures default to distributed. Designs saved before this branch had a selector were stored with a hidden `standard` while the panel called them distributed, so `migrateLegacyConfiguration()` loads any non-distributed design with no stored shape as distributed.
 

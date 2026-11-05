@@ -268,7 +268,7 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
     <div className="panel-content">
       <div className="ship-title-line">
         <h3>
-          {shipDesign.ship.name} — {getConfigurationName(shipDesign.ship)} configuration, {shipDesign.ship.tonnage.toLocaleString()} tons ({sections} section{sections !== 1 ? 's' : ''}), Tech Level {shipDesign.ship.tech_level}
+          {shipDesign.ship.name} — {shipDesign.ship.tonnage.toLocaleString()} tons ({sections} section{sections !== 1 ? 's' : ''}), Tech Level {shipDesign.ship.tech_level}
         </h3>
       </div>
 

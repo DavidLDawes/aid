@@ -304,10 +304,4 @@ describe('generateShipPrintContent', () => {
     expect(html).toContain('>MP:<');
     expect(html).toContain('Security');
   });
-
-  it('names the configuration and its shape in the title', () => {
-    const design = { ...baseShip, ship: { ...baseShip.ship, configuration: 'streamlined' as const, configuration_shape: 'lifting_body' as const } };
-    const html = generateShipPrintContent(design, baseMass, baseCost, baseStaff, baseRules);
-    expect(html).toContain('Streamlined Lifting Body configuration');
-  });
 });
