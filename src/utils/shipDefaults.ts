@@ -1,5 +1,5 @@
 import type { ShipDesign, Ship, CustomCrew } from '../types/ship';
-import { getNumberOfSections } from '../data/constants';
+import { getNumberOfSections, CONFIGURATION_TYPES } from '../data/constants';
 
 export const createEmptyCustomCrew = (): CustomCrew => ({
   pilot: 0,
@@ -54,6 +54,7 @@ export const createDefaultShip = (
     tech_level: techLevel,
     tonnage,
     configuration,
+    configuration_shape: CONFIGURATION_TYPES[configuration].defaultShape,
     fuel_weeks: 2,
     missile_reloads: 0,
     sand_reloads: 0,

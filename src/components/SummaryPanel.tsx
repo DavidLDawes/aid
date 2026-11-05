@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { ShipDesign, MassCalculation, CostCalculation, StaffRequirements } from '../types/ship';
-import { COMMS_SENSORS_TYPES, DEFENSE_TYPES, FACILITY_TYPES, CARGO_TYPES, VEHICLE_TYPES, DRONE_TYPES, BERTH_TYPES, COMPUTER_TYPES, MODULE_TYPES, getTonnageCode, getNumberOfSections, calculateTotalFuelMass, getHullCost, getAvailableSpinalWeapons, getModularCutterCount, calculateModularCutterBayMass } from '../data/constants';
+import { COMMS_SENSORS_TYPES, DEFENSE_TYPES, FACILITY_TYPES, CARGO_TYPES, VEHICLE_TYPES, DRONE_TYPES, BERTH_TYPES, COMPUTER_TYPES, MODULE_TYPES, getTonnageCode, getNumberOfSections, calculateTotalFuelMass, getHullCost, getAvailableSpinalWeapons, getModularCutterCount, calculateModularCutterBayMass, getConfigurationName } from '../data/constants';
 import { databaseService } from '../services/database';
 
 interface SummaryPanelProps {
@@ -94,7 +94,7 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
     const tonnageCode = getTonnageCode(shipDesign.ship.tonnage);
     const sections = getNumberOfSections(shipDesign.ship.tonnage);
     const hullInfo = tonnageCode && sections ? ` (hull code ${tonnageCode}, ${sections} sections)` : tonnageCode ? ` (${tonnageCode})` : '';
-    lines.push(`${shipDesign.ship.name}, ${shipDesign.ship.configuration} configuration, ${shipDesign.ship.tonnage} tons${hullInfo}, Tech Level ${shipDesign.ship.tech_level}`);
+    lines.push(`${shipDesign.ship.name}, ${getConfigurationName(shipDesign.ship)} configuration, ${shipDesign.ship.tonnage} tons${hullInfo}, Tech Level ${shipDesign.ship.tech_level}`);
     lines.push('Category,Item,Mass,Cost');
 
     const allRows: { category: string; item: string; mass: number | null; cost: number }[] = [];
