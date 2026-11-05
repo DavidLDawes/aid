@@ -7,7 +7,7 @@ if (typeof structuredClone === 'undefined') {
 import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 import { databaseService } from './database';
 import type { ShipDesign } from '../types/ship';
-import { createEmptyShipDesign, createDefaultShip } from '../utils/shipDefaults';
+import { createEmptyShipDesign, createDefaultShip, createEmptyCustomCrew } from '../utils/shipDefaults';
 
 describe('Database Service', () => {
   const mockShipDesign: ShipDesign = createEmptyShipDesign({
@@ -294,6 +294,32 @@ describe('Database Service', () => {
       expect(loadedShip2).not.toBeUndefined();
       expect(loadedShip2!.cargo).toHaveLength(1);
       expect(loadedShip2!.cargo[0].cargo_type).toBe('spares');
+    });
+  });
+
+  describe('Designs saved without custom crew', () => {
+    // public/initial-ships.json and designs saved before custom crew tracking
+    // have no custom_crew, and the staff calculation reads it unconditionally.
+    const withoutCustomCrew = (): ShipDesign => {
+      const { custom_crew: _customCrew, ...design } = mockShipDesign;
+      return design as ShipDesign;
+    };
+    const emptyCrew = createEmptyCustomCrew();
+
+    it('should fill in custom crew on every read path', async () => {
+      const id = await databaseService.saveShip(withoutCustomCrew());
+
+      const all = await databaseService.getAllShips();
+      expect(all.find(ship => ship.id === id)!.custom_crew).toEqual(emptyCrew);
+      expect((await databaseService.getShipById(id))!.custom_crew).toEqual(emptyCrew);
+      expect((await databaseService.getShipByName('Test Ship'))!.custom_crew).toEqual(emptyCrew);
+    });
+
+    it('should keep custom crew that was saved', async () => {
+      const crew = { ...emptyCrew, pilot: 3 };
+      const id = await databaseService.saveShip({ ...mockShipDesign, custom_crew: crew });
+
+      expect((await databaseService.getShipById(id))!.custom_crew).toEqual(crew);
     });
   });
 });
