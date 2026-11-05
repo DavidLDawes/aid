@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { databaseService, type StoredShipDesign } from '../services/database';
 import { initialDataService } from '../services/initialDataService';
 import type { ShipDesign } from '../types/ship';
-import { getConfigurationName } from '../data/constants';
 import { logger } from '../utils/logger';
 import { createEmptyCustomCrew } from '../utils/shipDefaults';
 
@@ -379,7 +378,7 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPan
                 <p><strong>Name:</strong> {selectedShip.ship.name}</p>
                 <p><strong>Tech Level:</strong> {selectedShip.ship.tech_level}</p>
                 <p><strong>Tonnage:</strong> {selectedShip.ship.tonnage}</p>
-                <p><strong>Configuration:</strong> {getConfigurationName(selectedShip.ship)}</p>
+                <p><strong>Configuration:</strong> {selectedShip.ship.configuration}</p>
                 <p><strong>Created:</strong> {selectedShip.createdAt.toLocaleDateString()}</p>
                 <p><strong>Last Modified:</strong> {selectedShip.updatedAt.toLocaleDateString()}</p>
                 {selectedShip.ship.description && (

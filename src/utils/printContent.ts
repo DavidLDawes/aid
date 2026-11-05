@@ -3,8 +3,7 @@ import {
   COMMS_SENSORS_TYPES, DEFENSE_TYPES, FACILITY_TYPES, CARGO_TYPES,
   VEHICLE_TYPES, DRONE_TYPES, BERTH_TYPES, MODULE_TYPES,
   getTonnageCode, getNumberOfSections, calculateTotalFuelMass, getHullCost, getAvailableSpinalWeapons,
-  getModularCutterCount, calculateModularCutterBayMass,
-  getConfigurationName
+  getModularCutterCount, calculateModularCutterBayMass
 } from '../data/constants';
 
 function escapeHtml(str: string): string {
@@ -30,7 +29,7 @@ export function generateShipPrintContent(
     ? ` (hull code ${tonnageCode}, ${sections} sections)`
     : tonnageCode ? ` (${tonnageCode})` : '';
   const shipTitle = escapeHtml(
-    `${shipDesign.ship.name}, ${getConfigurationName(shipDesign.ship)} configuration, ` +
+    `${shipDesign.ship.name}, ${shipDesign.ship.configuration} configuration, ` +
     `${shipDesign.ship.tonnage.toLocaleString()} tons${hullInfo}, Tech Level ${shipDesign.ship.tech_level}`
   );
 
@@ -43,7 +42,7 @@ export function generateShipPrintContent(
   };
 
   // Hull (cost only; hull tonnage is the total, not used mass)
-  addRow('Hull', `${shipDesign.ship.tonnage.toLocaleString()} tons (${getConfigurationName(shipDesign.ship)})`, null, getHullCost(shipDesign.ship.tonnage));
+  addRow('Hull', `${shipDesign.ship.tonnage.toLocaleString()} tons (${shipDesign.ship.configuration})`, null, getHullCost(shipDesign.ship.tonnage));
 
   // Engines
   const validEngines = shipDesign.engines.filter(e =>

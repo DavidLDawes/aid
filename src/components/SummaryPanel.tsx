@@ -100,7 +100,7 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
     const allRows: { category: string; item: string; mass: number | null; cost: number }[] = [];
 
     // Hull (cost only; hull tonnage is the total, not used mass)
-    allRows.push({ category: 'Hull', item: `${shipDesign.ship.tonnage.toLocaleString()} tons (${getConfigurationName(shipDesign.ship)})`, mass: null, cost: getHullCost(shipDesign.ship.tonnage) });
+    allRows.push({ category: 'Hull', item: `${shipDesign.ship.tonnage.toLocaleString()} tons (${shipDesign.ship.configuration})`, mass: null, cost: getHullCost(shipDesign.ship.tonnage) });
 
     // Engines
     const validEngines = shipDesign.engines.filter(engine =>
@@ -271,7 +271,7 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
   return (
     <div className="panel-content">
       <div className="ship-title-line">
-        <h3>{shipDesign.ship.name}, {getConfigurationName(shipDesign.ship)} configuration, {shipDesign.ship.tonnage.toLocaleString()} tons{hullInfoDisplay}, Tech Level {shipDesign.ship.tech_level}</h3>
+        <h3>{shipDesign.ship.name}, {shipDesign.ship.configuration} configuration, {shipDesign.ship.tonnage.toLocaleString()} tons{hullInfoDisplay}, Tech Level {shipDesign.ship.tech_level}</h3>
         {isNonStandardSize && (
           <p className="nonstandard-notice">Non-standard capital ship design &lt; 3,000 tons</p>
         )}
@@ -291,7 +291,7 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
             {/* Hull */}
             <tr key="hull">
               <td>Hull</td>
-              <td>{shipDesign.ship.tonnage.toLocaleString()} tons ({getConfigurationName(shipDesign.ship)})</td>
+              <td>{shipDesign.ship.tonnage.toLocaleString()} tons ({shipDesign.ship.configuration})</td>
               <td></td>
               <td>{getHullCost(shipDesign.ship.tonnage).toFixed(2)} MCr</td>
             </tr>
