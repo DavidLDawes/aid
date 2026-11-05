@@ -3,7 +3,8 @@ import type { ShipDesign, MassCalculation, CostCalculation, StaffRequirements } 
 import {
   COMMS_SENSORS_TYPES, DEFENSE_TYPES, FACILITY_TYPES, CARGO_TYPES,
   VEHICLE_TYPES, DRONE_TYPES, BERTH_TYPES, MODULE_TYPES, getHullCost,
-  getModularCutterCount, calculateModularCutterBayMass
+  getModularCutterCount, calculateModularCutterBayMass,
+  getConfigurationName
 } from '../data/constants';
 import { databaseService } from '../services/database';
 import { logger } from '../utils/logger';
@@ -68,7 +69,7 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
     const lines: string[] = [];
     
     // First line: ship info from the title line
-    const shipInfoLine = `${shipDesign.ship.name}, ${shipDesign.ship.configuration} configuration, ${shipDesign.ship.tonnage} tons, Tech Level ${shipDesign.ship.tech_level}`;
+    const shipInfoLine = `${shipDesign.ship.name}, ${getConfigurationName(shipDesign.ship)} configuration, ${shipDesign.ship.tonnage} tons, Tech Level ${shipDesign.ship.tech_level}`;
     lines.push(shipInfoLine);
     
     // Second line: CSV headers

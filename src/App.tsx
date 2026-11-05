@@ -31,7 +31,7 @@ const PANELS = [
 // Default tech level is C: at TL A the smallest jump drive on a 100-ton hull
 // (J-2) already exceeds the tech level's maximum jump of J-1.
 const EMPTY_SHIP_DESIGN: ShipDesign = {
-  ship: { name: '', tech_level: 'C', tonnage: 100, configuration: 'standard', fuel_weeks: 2, missile_reloads: 0, sand_reloads: 0, external_fuel: false, description: '' },
+  ship: { name: '', tech_level: 'C', tonnage: 100, configuration: 'standard', configuration_shape: 'wedge', fuel_weeks: 2, missile_reloads: 0, sand_reloads: 0, external_fuel: false, description: '' },
   engines: [],
   fittings: [],
   weapons: [],

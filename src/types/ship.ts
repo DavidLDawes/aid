@@ -1,8 +1,15 @@
+// Hull shape within a configuration. Distributed hulls have no single shape.
+export type ConfigurationShape =
+  | 'wedge' | 'cone' | 'sphere' | 'cylinder'
+  | 'wing' | 'disk' | 'lifting_body';
+
 export interface Ship {
   name: string;
   tech_level: string;
   tonnage: number;
   configuration: 'standard' | 'streamlined' | 'distributed';
+  // Absent on distributed hulls and on designs saved before shapes existed.
+  configuration_shape?: ConfigurationShape;
   fuel_weeks: number;
   missile_reloads: number;
   sand_reloads: number;
