@@ -258,9 +258,7 @@ Rules affect calculations (e.g., fuel mass with antimatter) — check `activeRul
 
 `ship.configuration` is standard, streamlined or distributed. `ship.configuration_shape` (optional) is the shape within it, listed in `CONFIGURATION_TYPES` (`constants.ts`): wedge, cone, sphere or cylinder for standard (default wedge); wing, disk or lifting body for streamlined (default lifting body); none for distributed.
 
-Built-in ships and designs saved before shapes existed store no shape, so read it through `getConfigurationShape()`, which falls back to the default, rather than the field directly. Use `getConfigurationName()` for display ("Standard Wedge", "Distributed"); the Summary, CSV and print titles append " configuration". Shape has no effect on mass, cost or crew.
-
-A wedge's top and bottom floors are 75% as long as its middle floor, with the floors in between interpolated linearly (`getWedgeFloorLengthRatio(floor, floorCount)`). The app has no floor or deck model yet, so only the Ship panel's help text reflects this.
+Built-in ships and designs saved before shapes existed store no shape, so read it through `getConfigurationShape()`, which falls back to the default, rather than the field directly. The first line of the CSV uses `getConfigurationName()` ("Standard Wedge configuration"); the Summary page, the rest of the CSV and print still show the plain `ship.configuration`. Shape has no effect on mass, cost or crew.
 
 ### Print Functionality
 

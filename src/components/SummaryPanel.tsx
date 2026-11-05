@@ -81,7 +81,7 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
     // Hull (cost only; hull tonnage is the total, not used mass)
     allRows.push({
       category: 'Hull',
-      item: `${shipDesign.ship.tonnage} tons (${getConfigurationName(shipDesign.ship)})`,
+      item: `${shipDesign.ship.tonnage} tons (${shipDesign.ship.configuration})`,
       mass: null,
       cost: getHullCost(shipDesign.ship.tonnage)
     });
@@ -323,7 +323,7 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
   return (
     <div className="panel-content">
       <div className="ship-title-line">
-        <h3>{shipDesign.ship.name}, {getConfigurationName(shipDesign.ship)} configuration, {shipDesign.ship.tonnage} tons, Tech Level {shipDesign.ship.tech_level}</h3>
+        <h3>{shipDesign.ship.name}, {shipDesign.ship.configuration} configuration, {shipDesign.ship.tonnage} tons, Tech Level {shipDesign.ship.tech_level}</h3>
       </div>
 
       <div className="ship-components-table">
@@ -340,7 +340,7 @@ const SummaryPanel: React.FC<SummaryPanelProps> = ({ shipDesign, mass, cost, sta
             {/* Hull */}
             <tr key="hull">
               <td>Hull</td>
-              <td>{shipDesign.ship.tonnage} tons ({getConfigurationName(shipDesign.ship)})</td>
+              <td>{shipDesign.ship.tonnage} tons ({shipDesign.ship.configuration})</td>
               <td></td>
               <td>{getHullCost(shipDesign.ship.tonnage).toFixed(2)} MCr</td>
             </tr>

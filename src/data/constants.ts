@@ -46,18 +46,6 @@ export function getConfigurationName(ship: Pick<Ship, 'configuration' | 'configu
   return shape ? `${type.label} ${shape.label}` : type.label;
 }
 
-// A wedge hull's top and bottom floors are this fraction of its middle floor's
-// length, with the floors in between interpolated linearly.
-export const WEDGE_END_FLOOR_LENGTH_RATIO = 0.75;
-
-// Length of a wedge floor (0 = top) relative to the middle floor. With an even
-// floor count the middle falls between two floors, so neither reaches 1.
-export function getWedgeFloorLengthRatio(floor: number, floorCount: number): number {
-  if (floorCount <= 1) return 1;
-  const middle = (floorCount - 1) / 2;
-  return 1 - (1 - WEDGE_END_FLOOR_LENGTH_RATIO) * Math.abs(floor - middle) / middle;
-}
-
 export const TECH_LEVELS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
 
 export function getTechLevelIndex(techLevel: string): number {

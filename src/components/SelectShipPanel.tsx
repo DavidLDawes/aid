@@ -3,7 +3,7 @@ import { databaseService, type StoredShipDesign } from '../services/database';
 import { initialDataService } from '../services/initialDataService';
 import type { ShipDesign } from '../types/ship';
 import { logger } from '../utils/logger';
-import { MAX_SHIP_TONNAGE, getConfigurationName } from '../data/constants';
+import { MAX_SHIP_TONNAGE } from '../data/constants';
 
 // This branch only designs 100-2,000 ton starships. Filter out any saved
 // ship over that tonnage - e.g. leftover capital/megastructure-scale
@@ -344,7 +344,7 @@ export default function SelectShipPanel({ onNewShip, onLoadShip }: SelectShipPan
                 <p><strong>Name:</strong> {selectedShip.ship.name}</p>
                 <p><strong>Tech Level:</strong> {selectedShip.ship.tech_level}</p>
                 <p><strong>Tonnage:</strong> {selectedShip.ship.tonnage}</p>
-                <p><strong>Configuration:</strong> {getConfigurationName(selectedShip.ship)}</p>
+                <p><strong>Configuration:</strong> {selectedShip.ship.configuration}</p>
                 <p><strong>Created:</strong> {selectedShip.createdAt.toLocaleDateString()}</p>
                 <p><strong>Last Modified:</strong> {selectedShip.updatedAt.toLocaleDateString()}</p>
                 {selectedShip.ship.description && (

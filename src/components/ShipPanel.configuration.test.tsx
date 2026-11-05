@@ -87,11 +87,4 @@ describe('ShipPanel configuration shape', () => {
     render(<ShipPanel ship={createShip({ configuration: 'streamlined', configuration_shape: undefined })} onUpdate={onUpdate} />);
     expect(screen.getByLabelText(/Shape/)).toHaveValue('lifting_body');
   });
-
-  it('describes the floor profile for a wedge only', () => {
-    const { rerender } = render(<ShipPanel ship={createShip()} onUpdate={onUpdate} />);
-    expect(screen.getByText(/Top and bottom floors are 75% as long/)).toBeInTheDocument();
-    rerender(<ShipPanel ship={createShip({ configuration_shape: 'cone' })} onUpdate={onUpdate} />);
-    expect(screen.queryByText(/Top and bottom floors/)).not.toBeInTheDocument();
-  });
 });
