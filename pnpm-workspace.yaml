@@ -7,6 +7,7 @@ allowBuilds:
   workerd: true
   '@parcel/watcher': true
 overrides:
+  test-exclude: '7.0.1'
   babel-plugin-istanbul: '>=8.0.0'
   glob: '>=10.5.0'
   shell-quote: '>=1.8.4'
@@ -23,8 +24,12 @@ overrides:
   postcss: '>=8.5.18'
   launch-editor: '>=2.14.1'
   http-proxy-middleware: '>=2.0.10'
-  '@babel/core': '>=7.29.1'
+  '@babel/core': '>=7.29.1 <8'
   browserslist: '>=4.28.7'
   'schema-utils>ajv': '>=8.18.0'
   uuid: '>=11.1.1'
+  minimatch: '>=11.0.1'
   brace-expansion: '>=5.0.7'
+  serialize-javascript: '>=7.0.5'
+  '@babel/plugin-transform-modules-systemjs': '>=7.29.4 <8'
+  undici: '>=7.29.1 <8'
